@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"strings"
 )
 
 var (
@@ -31,6 +32,7 @@ func auth_prompt() (string, string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("Enter your email: ")
 	email, _ := reader.ReadString('\n')
+	email = strings.Trim(email, "\n")
 	pass, pass_err := gopass.GetPass("Enter your password: ")
 	if pass_err != nil {
 		return "", "", pass_err
