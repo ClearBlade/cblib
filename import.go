@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
@@ -31,6 +32,7 @@ func CreateCollections(cli *cb.DevClient, sysKey string, meta []Collection_meta)
 		newCollections[i] = Collection_meta{
 			Collection_id: collID,
 			Columns:       meta[i].Columns,
+			Name:          meta[i].Name,
 		}
 		for j := 0; j < len(meta[i].Columns); j++ {
 			if meta[i].Columns[j].ColumnName != "item_id" {
@@ -84,7 +86,19 @@ func CreateCustomRole(cli *cb.DevClient, sysKey, role_id string) (string, error)
 	return resp.(map[string]interface{})["role_id"].(string), nil
 }
 
-func CreateRoles(cli *cb.DevClient, sysKey string, roles []interface{}) error {
+func getNewCollectionId(oldCollectionName string, newCollections []Collection_meta) (string, error) {
+	if oldCollectionName == "" {
+		return "", errors.New("Skip adding collection to role due to it being deleted")
+	}
+	for i := 0; i < len(newCollections); i++ {
+		if oldCollectionName == newCollections[i].Name {
+			return newCollections[i].Collection_id, nil
+		}
+	}
+	return "", errors.New("Unable to map " + oldCollectionName + " to new system's collections")
+}
+
+func CreateRoles(cli *cb.DevClient, sysKey string, roles []interface{}, newCollections []Collection_meta) error {
 	fmt.Println("Creating roles...")
 	for i := 0; i < len(roles); i++ {
 		roleID := roles[i].(map[string]interface{})["ID"].(string)
@@ -106,8 +120,9 @@ func CreateRoles(cli *cb.DevClient, sysKey string, roles []interface{}) error {
 				}
 			case "Collections":
 				for j := 0; j < len(v.([]interface{})); j++ {
-					if roles[i].(map[string]interface{})["Name"].(string) != "Administrator" {
-						err := cli.AddCollectionToRole(sysKey, v.([]interface{})[j].(map[string]interface{})["ID"].(string), roleID, int(v.([]interface{})[j].(map[string]interface{})["Level"].(float64)))
+					newCollectionID, err := getNewCollectionId(v.([]interface{})[j].(map[string]interface{})["Name"].(string), newCollections)
+					if err == nil {
+						err := cli.AddCollectionToRole(sysKey, newCollectionID, roleID, int(v.([]interface{})[j].(map[string]interface{})["Level"].(float64)))
 						if err != nil {
 							return err
 						}
@@ -777,7 +792,7 @@ func Import_cmd(dir, devToken string) error {
 		fmt.Printf("Import failed - retrieving roles info\n")
 	}
 
-	err = CreateRoles(cli, sysKey, old_roles)
+	err = CreateRoles(cli, sysKey, old_roles, newCollections)
 	if err != nil {
 		fmt.Printf("Import failed - uploading service info\n")
 		return err
