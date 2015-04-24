@@ -511,7 +511,7 @@ func service_changed(dir, name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	hash, err := service_hash(dir, name)
+	hash, err := service_hash(dir+"/code", name)
 	if err != nil {
 		return false, err
 	}
