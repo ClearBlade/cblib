@@ -186,7 +186,7 @@ func getNilValue(columns []Column, columnName string) interface{} {
 func MigrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string, oldCollections, newCollections []Collection_meta) error {
 	fmt.Println("Migrating items...")
 	investigatorQuery := new(cb.Query)
-	investigatorQuery.PageNumber = 1
+	investigatorQuery.PageNumber = 0
 	investigatorQuery.PageSize = 0
 	var oldSystemCli *cb.DevClient
 
@@ -194,11 +194,11 @@ func MigrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string
 
 	for i := 0; i < len(oldCollections); i++ {
 		cb.CB_ADDR = oldSystemMeta.PlatformUrl
-		data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, investigatorQuery)
+		data, err := oldSystemCli.GetDataTotal(oldCollections[i].Collection_id, investigatorQuery)
 		if err != nil {
 			return err
 		}
-		totalItems := data["TOTAL"].(float64)
+		totalItems := data["count"].(float64)
 
 		for j := 0; j < int(totalItems); j += ImportPageSize {
 			cb.CB_ADDR = oldSystemMeta.PlatformUrl
@@ -837,7 +837,7 @@ func Sys_for_dir() (string, error) {
 func migrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string, oldCollections, newCollections []Collection_meta) error {
 	fmt.Println("migrating items...")
 	investigatorQuery := new(cb.Query)
-	investigatorQuery.PageNumber = 1
+	investigatorQuery.PageNumber = 0
 	investigatorQuery.PageSize = 0
 	var oldSystemCli *cb.DevClient
 
@@ -859,11 +859,11 @@ func migrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string
 
 	for i := 0; i < len(oldCollections); i++ {
 		cb.CB_ADDR = oldSystemMeta.PlatformUrl
-		data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, investigatorQuery)
+		data, err := oldSystemCli.GetDataTotal(oldCollections[i].Collection_id, investigatorQuery)
 		if err != nil {
 			return err
 		}
-		totalItems := data["TOTAL"].(float64)
+		totalItems := data["count"].(float64)
 
 		for j := 0; j < int(totalItems); j += ImportPageSize {
 			cb.CB_ADDR = oldSystemMeta.PlatformUrl
