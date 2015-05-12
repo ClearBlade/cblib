@@ -682,6 +682,7 @@ func Auth_cmd() error {
 }
 
 func Export_cmd(sysKey, devToken string) error {
+	cb.CB_ADDR = URL
 	cli, err := auth(devToken)
 	if err != nil {
 		return err
