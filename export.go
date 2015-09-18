@@ -306,7 +306,7 @@ func Export_cmd(sysKey, devToken string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Done.\nGetting System Info...")
+	fmt.Printf("Done.\nExporting System Info...")
 
 	sysMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
@@ -318,7 +318,7 @@ func Export_cmd(sysKey, devToken string) error {
 		return err
 	}
 	storeMeta(sysMeta)
-	fmt.Printf("Done.\nGetting Roles...")
+	fmt.Printf("Done.\nExporting Roles...")
 
 	roles, err := pullRoles(sysKey, cli)
 	if err != nil {
@@ -326,7 +326,7 @@ func Export_cmd(sysKey, devToken string) error {
 	}
 	storeRoles(roles)
 
-	fmt.Printf("Done.\nGetting Services...")
+	fmt.Printf("Done.\nExporting Services...")
 	services, err := pullServices(sysKey, cli)
 	if err != nil {
 		return err
@@ -336,7 +336,7 @@ func Export_cmd(sysKey, devToken string) error {
 	}
 	systemDotJSON["services"] = cleanServices(services)
 
-	fmt.Printf("Done.\nGetting Libraries...")
+	fmt.Printf("Done.\nExporting Libraries...")
 	libraries, err := pullLibraries(sysMeta, cli)
 	if err != nil {
 		return err
@@ -346,28 +346,28 @@ func Export_cmd(sysKey, devToken string) error {
 		return err
 	}
 
-	fmt.Printf("Done.\nGetting Triggers...")
+	fmt.Printf("Done.\nExporting Triggers...")
 	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["triggers"] = triggers
 	}
 
-	fmt.Printf("Done.\nGetting Timers...")
+	fmt.Printf("Done.\nExporting Timers...")
 	if timers, err := pullTimers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["timers"] = timers
 	}
 
-	fmt.Printf("Done.\nGetting Collections...")
+	fmt.Printf("Done.\nExporting Collections...")
 	colls, err := pullCollections(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["data"] = colls
 
-	fmt.Printf("Done.\nGetting Users...")
+	fmt.Printf("Done.\nExporting Users...")
 	allUsers, err := cli.GetAllUsers(sysKey)
 	if err != nil {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
