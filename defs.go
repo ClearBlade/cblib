@@ -4,6 +4,10 @@ var (
 	URL                        string
 	ShouldImportCollectionRows bool
 	ImportPageSize             int
+	systemDotJSON              map[string]interface{}
+	libCode                    map[string]interface{}
+	svcCode                    map[string]interface{}
+	rolesInfo                  []map[string]interface{}
 )
 
 type Role_meta struct {
@@ -37,6 +41,7 @@ type Service_meta struct {
 type System_meta struct {
 	Name        string
 	Key         string
+	Secret      string
 	Description string
 	Services    map[string]Service_meta
 	PlatformUrl string

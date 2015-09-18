@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+func init() {
+}
+
 func CreateSystem(cli *cb.DevClient, meta *System_meta) (string, error) {
 	fmt.Println("Creating system...")
 	result, err := cli.NewSystem(meta.Name, meta.Description, true)
@@ -231,207 +234,6 @@ func MigrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string
 	return nil
 }
 
-func pull_roles(systemKey string, cli *cb.DevClient) ([]interface{}, error) {
-	r, err := cli.GetAllRoles(systemKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-func store_roles(dir string, roles []interface{}) error {
-	authdir := dir + "/auth"
-	if err := os.MkdirAll(authdir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(roles)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(authdir+"/roles.json", meta_bytes, 0777); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func pull_colls(systemKey string, cli *cb.DevClient) ([]Collection_meta, error) {
-	colls, err := cli.GetAllCollections(systemKey)
-	if err != nil {
-		return nil, err
-	}
-	collections := make([]Collection_meta, len(colls))
-	for i, col := range colls {
-		co := col.(map[string]interface{})
-		id, ok := co["collectionID"].(string)
-		if !ok {
-			return nil, fmt.Errorf("collectionID is not a string")
-		}
-		columnsResp, err := cli.GetColumns(id)
-
-		if err != nil {
-			return nil, err
-		}
-		columns := make([]Column, len(columnsResp))
-		for j := 0; j < len(columnsResp); j++ {
-			columns[j] = Column{
-				ColumnName: columnsResp[j].(map[string]interface{})["ColumnName"].(string),
-				ColumnType: columnsResp[j].(map[string]interface{})["ColumnType"].(string),
-			}
-		}
-
-		collections[i] = Collection_meta{
-			Name:          co["name"].(string),
-			Collection_id: co["collectionID"].(string),
-			Columns:       columns,
-		}
-	}
-
-	return collections, nil
-}
-
-func store_cols(dir string, collections []Collection_meta) error {
-
-	datadir := dir + "/data"
-	if err := os.MkdirAll(datadir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(collections)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(datadir+"/collections.json", meta_bytes, 0777); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func pull_user_columns(systemKey string, cli *cb.DevClient) (User_meta, error) {
-	resp, err := cli.GetUserColumns(systemKey)
-	if err != nil {
-		return User_meta{}, err
-	}
-	columns := make([]Column, len(resp))
-	for j := 0; j < len(resp); j++ {
-		columns[j] = Column{
-			ColumnName: resp[j].(map[string]interface{})["ColumnName"].(string),
-			ColumnType: resp[j].(map[string]interface{})["ColumnType"].(string),
-		}
-	}
-
-	return User_meta{
-		Columns: columns,
-	}, nil
-}
-
-func store_user_columns(dir string, meta User_meta) error {
-
-	userdir := dir + "/user"
-	if err := os.MkdirAll(userdir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(userdir+"/columns.json", meta_bytes, 0777); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func pull_services(systemKey string, cli *cb.DevClient) ([]*cb.Service, error) {
-	svcs, err := cli.GetServiceNames(systemKey)
-	if err != nil {
-		return nil, err
-	}
-	services := make([]*cb.Service, len(svcs))
-	for i, svc := range svcs {
-		service, err := cli.GetService(systemKey, svc)
-		if err != nil {
-			return nil, err
-		}
-		service.Code = strings.Replace(service.Code, "\\n", "\n", -1)
-		services[i] = service
-	}
-	return services, nil
-}
-
-func pull_system_meta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
-	sys, err := cli.GetSystem(systemKey)
-	if err != nil {
-		return nil, err
-	}
-	svcs, err := pull_services(systemKey, cli)
-	if err != nil {
-		return nil, err
-	}
-	serv_metas := make(map[string]Service_meta)
-	for _, svc := range svcs {
-		serv_metas[svc.Name] = Service_meta{
-			Name:    svc.Name,
-			Version: svc.Version,
-			Hash:    fmt.Sprintf("%x", md5.Sum([]byte(svc.Code))),
-			Params:  svc.Params,
-		}
-	}
-	sys_meta := &System_meta{
-		Name:        sys.Name,
-		Key:         sys.Key,
-		Description: sys.Description,
-		Services:    serv_metas,
-		PlatformUrl: URL,
-	}
-	return sys_meta, nil
-}
-
-func createSystemDirectory(dir string, meta *System_meta) error {
-	if err := os.MkdirAll(dir, 0777); err != nil {
-		return err
-	}
-	return nil
-}
-
-func store_services(dir string, services []*cb.Service, meta *System_meta) error {
-	err := createSystemDirectory(dir, meta)
-	if err != nil {
-		return err
-	}
-	codedir := dir + "/code"
-	if err := os.MkdirAll(codedir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(dir+"/.meta.json", meta_bytes, 0777); err != nil {
-		return err
-	}
-
-	for _, service := range services {
-		if err := ioutil.WriteFile(codedir+"/"+service.Name+".js", []byte(service.Code), 0777); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func store_meta(dir string, meta *System_meta) error {
-	meta.PlatformUrl = URL
-	meta_bytes, err := json.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(dir+"/.meta.json", meta_bytes, 0777); err != nil {
-		fmt.Println("fuckkk")
-		return err
-	}
-	return nil
-}
-
 func load_sys_meta(dir string) (*System_meta, error) {
 	meta_bytes, err := ioutil.ReadFile(dir + "/.meta.json")
 	if err != nil {
@@ -531,7 +333,7 @@ func service_local(dir, name string) bool {
 }
 
 func ok_to_pull(systemKey string, cli *cb.DevClient) (bool, string, error) {
-	sys_meta, err := pull_system_meta(systemKey, cli)
+	sys_meta, err := pullSystemMeta(systemKey, cli)
 	if err != nil {
 		return false, "", err
 	}
@@ -551,7 +353,7 @@ func ok_to_pull(systemKey string, cli *cb.DevClient) (bool, string, error) {
 }
 
 func system_diff(systemKey, dir string, cli *cb.DevClient) ([]string, error) {
-	sys_meta, err := pull_system_meta(systemKey, cli)
+	sys_meta, err := pullSystemMeta(systemKey, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -592,16 +394,16 @@ func Pull_cmd(sysKey string) error {
 		}
 	}
 
-	sys_meta, err := pull_system_meta(sysKey, cli)
+	sys_meta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
 		return err
 	}
-	services, svcErr := pull_services(sysKey, cli)
+	services, svcErr := pullServices(sysKey, cli)
 	if svcErr != nil {
 		return svcErr
 	}
 	dir := strings.Replace(sys_meta.Name, " ", "_", -1)
-	if err := store_services(dir, services, sys_meta); err != nil {
+	if err := storeServices(dir, services, sys_meta); err != nil {
 		return err
 	}
 	fmt.Printf("Code for %s has been successfully pulled and put in a directory %s\n", sysKey, dir)
@@ -644,7 +446,7 @@ func Push_cmd(systemKey, dir string) error {
 	if err != nil {
 		return err
 	}
-	sys_meta, err := pull_system_meta(systemKey, cli)
+	sys_meta, err := pullSystemMeta(systemKey, cli)
 	if err != nil {
 		return err
 	}
@@ -660,16 +462,19 @@ func Push_cmd(systemKey, dir string) error {
 		if err := push(systemKey, dir, svcs, cli); err != nil {
 			return err
 		} else {
-			if store_err := store_meta(dir, sys_meta); store_err != nil {
-				return store_err
-			}
+			// XXX SWM FIX THIS
+			/*
+				if store_err := store_meta(dir, sys_meta); store_err != nil {
+					return store_err
+				}
+			*/
 			fmt.Printf("Push successful\n")
 			return nil
 		}
 	}
 }
 
-func Auth_cmd() error {
+func Init_cmd() error {
 	cli, auth_err := auth("")
 	if auth_err != nil {
 		return auth_err
@@ -679,70 +484,6 @@ func Auth_cmd() error {
 		return nil
 	}
 	return save_auth_info(AuthInfoFile, cli.DevToken)
-}
-
-func Export_cmd(sysKey, devToken string) error {
-	cb.CB_ADDR = URL
-	cli, err := auth(devToken)
-	if err != nil {
-		return err
-	}
-
-	sys_meta, err := pull_system_meta(sysKey, cli)
-	if err != nil {
-		return err
-	}
-
-	var dir string
-	//if we have a devtoken then command is coming from goPlatform so we need to create
-	//a directory that has the systemKey in it to avoid naming conflicts
-	if devToken != "" {
-		dir = strings.Replace(sysKey+"="+sys_meta.Name, " ", "_", -1)
-	} else {
-		dir = strings.Replace(sys_meta.Name, " ", "_", -1)
-	}
-
-	if err := createSystemDirectory(dir, sys_meta); err != nil {
-		return err
-	}
-
-	if err := store_meta(dir, sys_meta); err != nil {
-		return err
-	}
-
-	services, err := pull_services(sysKey, cli)
-	if err != nil {
-		return err
-	}
-	if err := store_services(dir, services, sys_meta); err != nil {
-		return err
-	}
-	collections, err := pull_colls(sysKey, cli)
-	if err != nil {
-		return err
-	}
-	if err := store_cols(dir, collections); err != nil {
-		return err
-	}
-
-	roles, err := pull_roles(sysKey, cli)
-	if err != nil {
-		return err
-	}
-	if err := store_roles(dir, roles); err != nil {
-		return err
-	}
-
-	userColumns, err := pull_user_columns(sysKey, cli)
-	if err != nil {
-		return err
-	}
-	if err := store_user_columns(dir, userColumns); err != nil {
-		return err
-	}
-
-	fmt.Printf("System %s has been successfully pulled and put in a directory %s\n", sysKey, dir)
-	return nil
 }
 
 func Import_cmd(dir, devToken string) error {
