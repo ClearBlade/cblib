@@ -30,10 +30,7 @@ func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, e
 }
 func storeRoles(roles []map[string]interface{}) {
 	rolesInfo = roles
-	marshalled, _ := json.MarshalIndent(roles, "", "    ")
-	fmt.Printf("Roles: %s\n", string(marshalled))
 	roleList := make([]string, len(roles))
-
 	for idx, role := range roles {
 		roleList[idx] = role["Name"].(string)
 	}
@@ -117,22 +114,20 @@ func storeCollections(dir string, collections []Collection_meta) error {
 	return nil
 }
 
-func pullUserColumns(systemKey string, cli *cb.DevClient) (User_meta, error) {
+func pullUserColumns(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	resp, err := cli.GetUserColumns(systemKey)
 	if err != nil {
-		return User_meta{}, err
+		return nil, err
 	}
-	columns := make([]Column, len(resp))
-	for j := 0; j < len(resp); j++ {
-		columns[j] = Column{
-			ColumnName: resp[j].(map[string]interface{})["ColumnName"].(string),
-			ColumnType: resp[j].(map[string]interface{})["ColumnType"].(string),
+	rval := make([]map[string]interface{}, len(resp))
+	for idx, colIF := range resp {
+		col := colIF.(map[string]interface{})
+		if col["ColumnName"] == "email" || col["ColumnName"] == "creation_date" {
+			continue
 		}
+		rval[idx] = col
 	}
-
-	return User_meta{
-		Columns: columns,
-	}, nil
+	return rval, nil
 }
 
 func storeUserColumns(dir string, meta User_meta) error {
@@ -305,11 +300,13 @@ func storeMeta(meta *System_meta) {
 }
 
 func Export_cmd(sysKey, devToken string) error {
+	fmt.Printf("Initializing...")
 	cb.CB_ADDR = URL
 	cli, err := auth(devToken)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Done.\nGetting System Info...")
 
 	sysMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
@@ -321,6 +318,7 @@ func Export_cmd(sysKey, devToken string) error {
 		return err
 	}
 	storeMeta(sysMeta)
+	fmt.Printf("Done.\nGetting Roles...")
 
 	roles, err := pullRoles(sysKey, cli)
 	if err != nil {
@@ -328,6 +326,7 @@ func Export_cmd(sysKey, devToken string) error {
 	}
 	storeRoles(roles)
 
+	fmt.Printf("Done.\nGetting Services...")
 	services, err := pullServices(sysKey, cli)
 	if err != nil {
 		return err
@@ -337,6 +336,7 @@ func Export_cmd(sysKey, devToken string) error {
 	}
 	systemDotJSON["services"] = cleanServices(services)
 
+	fmt.Printf("Done.\nGetting Libraries...")
 	libraries, err := pullLibraries(sysMeta, cli)
 	if err != nil {
 		return err
@@ -346,31 +346,28 @@ func Export_cmd(sysKey, devToken string) error {
 		return err
 	}
 
+	fmt.Printf("Done.\nGetting Triggers...")
 	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["triggers"] = triggers
 	}
 
+	fmt.Printf("Done.\nGetting Timers...")
 	if timers, err := pullTimers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["timers"] = timers
 	}
 
+	fmt.Printf("Done.\nGetting Collections...")
 	colls, err := pullCollections(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["data"] = colls
-	/*
-		doh, _ := json.MarshalIndent(colls, "", "    ")
-		fmt.Printf("Collections: %s\n", string(doh))
-			if err := storeCollections(dir, collections); err != nil {
-				return err
-			}
-	*/
 
+	fmt.Printf("Done.\nGetting Users...")
 	allUsers, err := cli.GetAllUsers(sysKey)
 	if err != nil {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
@@ -385,20 +382,17 @@ func Export_cmd(sysKey, devToken string) error {
 	}
 	writeUsersFile(allUsers)
 
-	/*
-		userColumns, err := pullUserColumns(sysKey, cli)
-		if err != nil {
-			return err
-		}
-		if err := storeUserColumns(dir, userColumns); err != nil {
-			return err
-		}
-	*/
+	userColumns, err := pullUserColumns(sysKey, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["users"] = userColumns
+	fmt.Printf("Done.\n")
 
 	if err = storeSystemDotJSON(); err != nil {
 		return err
 	}
 
-	fmt.Printf("System %s has been successfully pulled and put in a directory %s\n", sysKey, dir)
+	fmt.Printf("System '%s' has been exported into directory %s\n", sysMeta.Name, strings.Replace(sysMeta.Name, " ", "_", -1))
 	return nil
 }
