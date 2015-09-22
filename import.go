@@ -1,232 +1,136 @@
 package cblib
 
 import (
-	"bufio"
-	"crypto/md5"
-	"encoding/json"
-	"errors"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	"io/ioutil"
-	"os"
-	"strings"
+	"time"
 )
 
 func init() {
 }
 
-func CreateSystem(cli *cb.DevClient, meta *System_meta) (string, error) {
-	fmt.Println("Creating system...")
-	result, err := cli.NewSystem(meta.Name, meta.Description, true)
-	if err != nil {
-		return "", err
+func createSystem(system map[string]interface{}, client *cb.DevClient) error {
+	name := system["name"].(string)
+	desc := system["description"].(string)
+	auth := system["auth"].(bool)
+	sysKey, sysErr := client.NewSystem(name, desc, auth)
+	if sysErr != nil {
+		return sysErr
 	}
-	return result, nil
+	realSystem, sysErr := client.GetSystem(sysKey)
+	if sysErr != nil {
+		return sysErr
+	}
+	system["systemKey"] = realSystem.Key
+	system["systemSecret"] = realSystem.Secret
+	return nil
 }
 
-func CreateCollections(cli *cb.DevClient, sysKey string, meta []Collection_meta) ([]Collection_meta, error) {
-	fmt.Println("Creating collections...")
-	newCollections := make([]Collection_meta, len(meta))
-	for i := 0; i < len(meta); i++ {
-		collID, err := cli.NewCollection(sysKey, meta[i].Name)
+func createUsers(systemInfo map[string]interface{}, users []interface{}, client *cb.DevClient) error {
+
+	//  Create user columns first -- if any
+	sysKey := systemInfo["systemKey"].(string)
+	sysSec := systemInfo["systemSecret"].(string)
+	userCols := systemInfo["users"].([]interface{})
+	for _, columnIF := range userCols {
+		column := columnIF.(map[string]interface{})
+		columnName := column["ColumnName"].(string)
+		columnType := column["ColumnType"].(string)
+		if err := client.CreateUserColumn(sysKey, columnName, columnType); err != nil {
+			return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
+		}
+	}
+
+	// Now, create users
+	for _, userIF := range users {
+		user := userIF.(map[string]interface{})
+		email := user["email"].(string)
+		password := "password"
+		if pwd, ok := user["password"]; ok {
+			password = pwd.(string)
+		}
+		newUser, err := client.RegisterNewUser(email, password, sysKey, sysSec)
 		if err != nil {
-			return nil, err
+			return fmt.Errorf("Could not create user %s: %s", email, err.Error())
 		}
-		newCollections[i] = Collection_meta{
-			Collection_id: collID,
-			Columns:       meta[i].Columns,
-			Name:          meta[i].Name,
-		}
-		for j := 0; j < len(meta[i].Columns); j++ {
-			if meta[i].Columns[j].ColumnName != "item_id" {
-				err := cli.AddColumn(collID, meta[i].Columns[j].ColumnName, meta[i].Columns[j].ColumnType)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-	return newCollections, nil
-}
-
-func CreateServices(cli *cb.DevClient, sysKey string, services []cb.Service) error {
-	fmt.Println("Creating services...")
-	for i := 0; i < len(services); i++ {
-		err := cli.NewService(sysKey, services[i].Name, services[i].Code, services[i].Params)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func isCustomRole(role_id string) bool {
-	switch role_id {
-	case "Authenticated":
-		return false
-	case "Administrator":
-		return false
-	case "Anonymous":
-		return false
-	default:
-		return true
-	}
-}
-
-func AddGenericPermission(cli *cb.DevClient, sysKey, role, permission string, level int) error {
-	err := cli.AddGenericPermissionToRole(sysKey, role, permission, level)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func CreateCustomRole(cli *cb.DevClient, sysKey, role_id string) (string, error) {
-	resp, err := cli.CreateRole(sysKey, role_id)
-	if err != nil {
-		return "", err
-	}
-	return resp.(map[string]interface{})["role_id"].(string), nil
-}
-
-func getNewCollectionId(oldCollectionName string, newCollections []Collection_meta) (string, error) {
-	if oldCollectionName == "" {
-		return "", errors.New("Skip adding collection to role due to it being deleted")
-	}
-	for i := 0; i < len(newCollections); i++ {
-		if oldCollectionName == newCollections[i].Name {
-			return newCollections[i].Collection_id, nil
-		}
-	}
-	return "", errors.New("Unable to map " + oldCollectionName + " to new system's collections")
-}
-
-func CreateRoles(cli *cb.DevClient, sysKey string, roles []interface{}, newCollections []Collection_meta) error {
-	fmt.Println("Creating roles...")
-	for i := 0; i < len(roles); i++ {
-		roleID := roles[i].(map[string]interface{})["ID"].(string)
-		if isCustomRole(roles[i].(map[string]interface{})["Name"].(string)) {
-			resp, err := CreateCustomRole(cli, sysKey, roles[i].(map[string]interface{})["Name"].(string))
-			if err != nil {
-				return err
-			}
-			roleID = resp
-		}
-		for k, v := range roles[i].(map[string]interface{})["Permissions"].(map[string]interface{}) {
-			switch k {
-			case "CodeServices":
-				for j := 0; j < len(v.([]interface{})); j++ {
-					err := cli.AddServiceToRole(sysKey, v.([]interface{})[j].(map[string]interface{})["Name"].(string), roleID, int(v.([]interface{})[j].(map[string]interface{})["Level"].(float64)))
-					if err != nil {
-						return err
-					}
-				}
-			case "Collections":
-				for j := 0; j < len(v.([]interface{})); j++ {
-					newCollectionID, err := getNewCollectionId(v.([]interface{})[j].(map[string]interface{})["Name"].(string), newCollections)
-					if err == nil {
-						err := cli.AddCollectionToRole(sysKey, newCollectionID, roleID, int(v.([]interface{})[j].(map[string]interface{})["Level"].(float64)))
-						if err != nil {
-							return err
-						}
-					}
-				}
-			case "MsgHistory":
-				err := AddGenericPermission(cli, sysKey, roleID, "msgHistory", int(v.(map[string]interface{})["Level"].(float64)))
-				if err != nil {
-					return err
-				}
-			case "Push":
-				err := AddGenericPermission(cli, sysKey, roleID, "push", int(v.(map[string]interface{})["Level"].(float64)))
-				if err != nil {
-					return err
-				}
-			case "UsersList":
-				err := AddGenericPermission(cli, sysKey, roleID, "users", int(v.(map[string]interface{})["Level"].(float64)))
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func CreateUserColumns(cli *cb.DevClient, sysKey string, columns []Column) error {
-	for i := 0; i < len(columns); i++ {
-		//only create columns that are not generated by default
-		if columns[i].ColumnName != "email" && columns[i].ColumnName != "creation_date" && columns[i].ColumnName != "user_id" {
-			err := cli.CreateUserColumn(sysKey, columns[i].ColumnName, columns[i].ColumnType)
-			if err != nil {
+		userId := newUser["user_id"].(string)
+		niceRoles := mungeRoles(user["roles"].([]interface{}))
+		if len(niceRoles) > 0 {
+			if err := client.AddUserToRoles(sysKey, userId, niceRoles); err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
-func getNilValue(columns []Column, columnName string) interface{} {
-	nilValueMap := map[string]interface{}{
-		"string":    "",
-		"int":       0,
-		"float":     0,
-		"uuid":      "00000000-0000-0000-0000-000000000000",
-		"bigint":    0,
-		"blob":      "",
-		"bool":      false,
-		"double":    0,
-		"timestamp": 0,
-	}
-	for i := 0; i < len(columns); i++ {
-		if columns[i].ColumnName == columnName {
-			return nilValueMap[columns[i].ColumnType]
+func mungeRoles(roles []interface{}) []string {
+	rval := []string{}
+	for _, role := range roles {
+		roleStr := role.(string)
+		if roleStr == "Authenticated" { // This automagically happens when user auth'd
+			continue
 		}
+		rval = append(rval, roleStr)
 	}
-	var thing interface{}
-	return thing
+	return rval
 }
 
-func MigrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string, oldCollections, newCollections []Collection_meta) error {
-	fmt.Println("Migrating items...")
-	investigatorQuery := new(cb.Query)
-	investigatorQuery.PageNumber = 1
-	investigatorQuery.PageSize = 0
-	var oldSystemCli *cb.DevClient
+func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	triggers := systemInfo["triggers"].([]interface{})
+	for _, triggerIF := range triggers {
+		trigger := triggerIF.(map[string]interface{})
+		triggerName := trigger["name"].(string)
+		triggerDef := trigger["event_definition"].(map[string]interface{})
+		trigger["def_module"] = triggerDef["def_module"]
+		trigger["def_name"] = triggerDef["def_name"]
+		trigger["system_key"] = systemInfo["systemKey"]
+		delete(trigger, "name")
+		delete(trigger, "event_definition")
+		if _, err := client.CreateEventHandler(sysKey, triggerName, trigger); err != nil {
+			return fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
+		}
+	}
+	return nil
+}
 
-	oldSystemCli = cli
+func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	timers := systemInfo["timers"].([]interface{})
+	for _, timerIF := range timers {
+		timer := timerIF.(map[string]interface{})
+		timerName := timer["name"].(string)
+		delete(timer, "name")
+		startTime := timer["start_time"].(string)
+		if startTime == "Now" {
+			timer["start_time"] = time.Now().Format(time.RFC3339)
+		}
+		if _, err := client.CreateTimer(sysKey, timerName, timer); err != nil {
+			return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
+		}
+	}
+	return nil
+}
 
-	for i := 0; i < len(oldCollections); i++ {
-		cb.CB_ADDR = oldSystemMeta.PlatformUrl
-		data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, investigatorQuery)
+func createServices(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	services := systemInfo["services"].([]interface{})
+	sysKey := systemInfo["systemKey"].(string)
+	for _, serviceIF := range services {
+		service := serviceIF.(map[string]interface{})
+		svcName := service["name"].(string)
+		svcParams := mkSvcParams(service["params"].([]interface{}))
+		svcDeps := service["dependencies"].(string)
+		svcCode, err := getServiceCode(svcName)
 		if err != nil {
 			return err
 		}
-		totalItems := data["TOTAL"].(float64)
-
-		for j := 0; j < int(totalItems); j += ImportPageSize {
-			cb.CB_ADDR = oldSystemMeta.PlatformUrl
-			currentQuery := new(cb.Query)
-			currentQuery.PageNumber = (j / ImportPageSize) + 1
-			currentQuery.PageSize = ImportPageSize
-			data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, currentQuery)
-			if err != nil {
-				return err
-			}
-
-			typedData := data["DATA"].([]interface{})
-
-			for k := 0; k < len(typedData); k++ {
-				delete(typedData[k].(map[string]interface{}), "item_id")
-				for key, val := range typedData[k].(map[string]interface{}) {
-					if val == nil {
-						typedData[k].(map[string]interface{})[key] = getNilValue(newCollections[i].Columns, key)
-					}
-
-				}
-			}
-			cb.CB_ADDR = URL
-			err = cli.InsertData(newCollections[i].Collection_id, data["DATA"].([]interface{}))
-			if err != nil {
+		if err := client.NewServiceWithLibraries(sysKey, svcName, svcCode, svcDeps, svcParams); err != nil {
+			return err
+		}
+		if enableLogs(service) {
+			if err := client.EnableLogsForService(sysKey, svcName); err != nil {
 				return err
 			}
 		}
@@ -234,406 +138,142 @@ func MigrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string
 	return nil
 }
 
-func load_sys_meta(dir string) (*System_meta, error) {
-	meta_bytes, err := ioutil.ReadFile(dir + "/.meta.json")
-	if err != nil {
-		return nil, err
-	}
-	sys_meta := new(System_meta)
-	if err := json.Unmarshal(meta_bytes, sys_meta); err != nil {
-		return nil, err
-	}
-	return sys_meta, nil
-}
-
-func load_collection_meta(dir string) ([]Collection_meta, error) {
-	meta_bytes, err := ioutil.ReadFile(dir + "/data/collections.json")
-	if err != nil {
-		return nil, err
-	}
-	var collection_meta []Collection_meta
-	if err := json.Unmarshal(meta_bytes, &collection_meta); err != nil {
-		return nil, err
-	}
-	return collection_meta, nil
-}
-
-func load_services(dir string, meta *System_meta) ([]cb.Service, error) {
-	service_meta := make([]cb.Service, len(meta.Services))
-
-	i := 0
-	for k, _ := range meta.Services {
-		code_bytes, err := ioutil.ReadFile(dir + "/code/" + k + ".js")
+func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	libraries := systemInfo["libraries"].([]interface{})
+	sysKey := systemInfo["systemKey"].(string)
+	for _, libraryIF := range libraries {
+		library := libraryIF.(map[string]interface{})
+		libName := library["name"].(string)
+		libCode, err := getLibraryCode(libName)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		service_meta[i].Name = meta.Services[k].Name
-		service_meta[i].Params = meta.Services[k].Params
-		service_meta[i].Code = string(code_bytes)
-		i++
+		library["code"] = libCode
+		delete(library, "name")
+		delete(library, "version")
+		if _, err := client.CreateLibrary(sysKey, libName, library); err != nil {
+			return fmt.Errorf("Could not create library %s: %s", libName, err.Error())
+		}
 	}
-
-	return service_meta, nil
+	return nil
 }
 
-func load_roles(dir string) ([]interface{}, error) {
-	roles_bytes, err := ioutil.ReadFile(dir + "/auth/roles.json")
-	if err != nil {
-		return nil, err
-	}
-	var roles_data []interface{}
-	if err := json.Unmarshal(roles_bytes, &roles_data); err != nil {
-		return nil, err
-	}
-	return roles_data, nil
-}
+func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	collections := systemInfo["data"].([]interface{})
+	for _, collectionIF := range collections {
+		//  Create the collection
+		collection := collectionIF.(map[string]interface{})
+		collectionName := collection["name"].(string)
+		colId, err := client.NewCollection(sysKey, collectionName)
+		if err != nil {
+			return err
+		}
 
-func load_user_columns(dir string) ([]Column, error) {
-	user_bytes, err := ioutil.ReadFile(dir + "/user/columns.json")
-	if err != nil {
-		return nil, err
-	}
-	var meta User_meta
-	if err := json.Unmarshal(user_bytes, &meta); err != nil {
-		return nil, err
-	}
-	return meta.Columns, nil
-}
+		permissions := collection["permissions"].(map[string]interface{})
+		for roleId, level := range permissions {
+			if err := client.AddCollectionToRole(sysKey, colId, roleId, int(level.(float64))); err != nil {
+				return err
+			}
+		}
 
-func service_hash(dir, name string) (string, error) {
-	svc_bytes, err := ioutil.ReadFile(dir + "/" + name + ".js")
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", md5.Sum(svc_bytes)), nil
-}
-
-func service_changed(dir, name string) (bool, error) {
-	sys_meta, err := load_sys_meta(dir)
-	if err != nil {
-		return false, err
-	}
-	hash, err := service_hash(dir+"/code", name)
-	if err != nil {
-		return false, err
-	}
-	if sys_meta.Services[name].Hash != hash {
-		return true, nil
-	} else {
-		return false, nil
-	}
-}
-
-func service_local(dir, name string) bool {
-	if _, err := os.Stat(dir + "/" + name + ".js"); err != nil {
-		return false
-	} else {
-		return true
-	}
-}
-
-func ok_to_pull(systemKey string, cli *cb.DevClient) (bool, string, error) {
-	sys_meta, err := pullSystemMeta(systemKey, cli)
-	if err != nil {
-		return false, "", err
-	}
-	for k, _ := range sys_meta.Services {
-		dir := strings.Replace(sys_meta.Name, " ", "_", -1)
-		if service_local(dir, k) {
-			if has_changed, err := service_changed(dir, k); err != nil {
-				return false, "", err
-			} else if has_changed {
-				return false, "You have made changes to a service since the last pull", nil
-			} else {
+		//  Add the columns
+		columns := collection["schema"].([]interface{})
+		for _, columnIF := range columns {
+			column := columnIF.(map[string]interface{})
+			colName := column["ColumnName"].(string)
+			colType := column["ColumnType"].(string)
+			if colName == "item_id" {
 				continue
 			}
+			if err := client.AddColumn(colId, colName, colType); err != nil {
+				return err
+			}
+		}
+
+		//  Add the items
+		itemsIF, err := getCollectionItems(collectionName)
+		if err != nil {
+			return err
+		}
+		items := make([]map[string]interface{}, len(itemsIF))
+		for idx, itemIF := range itemsIF {
+			items[idx] = itemIF.(map[string]interface{})
+		}
+		if _, err := client.CreateData(colId, items); err != nil {
+			return err
 		}
 	}
-	return true, "", nil
+	return nil
 }
 
-func system_diff(systemKey, dir string, cli *cb.DevClient) ([]string, error) {
-	sys_meta, err := pullSystemMeta(systemKey, cli)
-	if err != nil {
-		return nil, err
+func enableLogs(service map[string]interface{}) bool {
+	logVal, ok := service["logging_enabled"]
+	if !ok {
+		return false
 	}
-	changed := make([]string, 0)
-	for k, _ := range sys_meta.Services {
-		if has_changed, err := service_changed(dir, k); err != nil {
-			return nil, err
-		} else if has_changed {
-			changed = append(changed, k)
-		}
+	switch logVal.(type) {
+	case string:
+		return logVal.(string) == "true"
+	case bool:
+		return logVal.(bool) == true
 	}
-	return changed, nil
+	return false
 }
 
-func prompt(msg string) string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("%s: ", msg)
-	response, _ := reader.ReadString('\n')
-	return response
+func mkSvcParams(params []interface{}) []string {
+	rval := []string{}
+	for _, val := range params {
+		rval = append(rval, val.(string))
+	}
+	return rval
 }
 
-func Pull_cmd(sysKey string) error {
+func Import_cmd() error {
+	cb.CB_ADDR = URL
 	cli, err := auth("")
 	if err != nil {
 		return err
 	}
-	if ok, msg, err := ok_to_pull(sysKey, cli); !ok && err != nil {
-		return err
-	} else if !ok {
-		resp := strings.TrimSpace(strings.ToLower(prompt(msg)))
-		switch resp {
-		case "yes", "y", "ye":
-
-		case "no", "n":
-			return fmt.Errorf("Did not pull because of unresolved changes")
-		default:
-			return fmt.Errorf("Invalid response: '%s', looking for 'yes' or 'no'", resp)
-		}
-	}
-
-	sys_meta, err := pullSystemMeta(sysKey, cli)
+	fmt.Printf("Reading system configuration files...")
+	users, err := getArray("users.json")
 	if err != nil {
 		return err
 	}
-	services, svcErr := pullServices(sysKey, cli)
-	if svcErr != nil {
-		return svcErr
-	}
-	dir := strings.Replace(sys_meta.Name, " ", "_", -1)
-	if err := storeServices(dir, services, sys_meta); err != nil {
-		return err
-	}
-	fmt.Printf("Code for %s has been successfully pulled and put in a directory %s\n", sysKey, dir)
-	return nil
-}
 
-func service_params(dir, name string) ([]string, error) {
-	meta, err := load_sys_meta(dir)
-	if err != nil {
-		return nil, err
-	}
-	if svc_meta, extant := meta.Services[name]; extant {
-		return svc_meta.Params, nil
-	} else {
-		return nil, fmt.Errorf("service does not exist locally")
-	}
-}
-
-func push(systemKey, dir string, services []string, cli *cb.DevClient) error {
-	for _, svc := range services {
-
-		svc_bytes, err := ioutil.ReadFile(dir + "/code/" + svc + ".js")
-		if err != nil {
-			return err
-		}
-		svc_bytes = []byte(strings.Replace(strings.Replace(string(svc_bytes), "\\n", "\n", -1), "\n", "\\n", -1))
-		params, err := service_params(dir, svc)
-		if err != nil {
-			return err
-		}
-		if put_err := cli.UpdateService(systemKey, svc, string(svc_bytes), params); put_err != nil {
-			return put_err
-		}
-	}
-	return nil
-}
-
-func Push_cmd(systemKey, dir string) error {
-	cli, err := auth("")
+	systemInfo, err := getDict("system.json")
 	if err != nil {
 		return err
 	}
-	sys_meta, err := pullSystemMeta(systemKey, cli)
-	if err != nil {
+	fmt.Printf("Done.\nImporting system...")
+	if err := createSystem(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
+	}
+	fmt.Printf("Done.\nImporting users...")
+	if err := createUsers(systemInfo, users, cli); err != nil {
+		return fmt.Errorf("Could not create users: %s", err.Error())
+	}
+	fmt.Printf("Done.\nImporting collections...")
+	if err := createCollections(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create collections: %s", err.Error())
+	}
+	fmt.Printf("Done.\nImporting code services...")
+	if err := createServices(systemInfo, cli); err != nil {
 		return err
 	}
-	if dir == "" {
-		dir = strings.Replace(sys_meta.Name, " ", "_", -1)
-	}
-
-	if svcs, err := system_diff(systemKey, dir, cli); err != nil {
-		return err
-	} else if len(svcs) == 0 {
-		return fmt.Errorf("No services have changed, nothing to push")
-	} else {
-		if err := push(systemKey, dir, svcs, cli); err != nil {
-			return err
-		} else {
-			// XXX SWM FIX THIS
-			/*
-				if store_err := store_meta(dir, sys_meta); store_err != nil {
-					return store_err
-				}
-			*/
-			fmt.Printf("Push successful\n")
-			return nil
-		}
-	}
-}
-
-func Init_cmd() error {
-	cli, auth_err := auth("")
-	if auth_err != nil {
-		return auth_err
-	}
-	if AuthInfoFile == "" {
-		fmt.Printf("UserToken: %s\n", cli.DevToken)
-		return nil
-	}
-	return save_auth_info(AuthInfoFile, cli.DevToken)
-}
-
-func Import_cmd(dir, devToken string) error {
-
-	cli, err := auth(devToken)
-	if err != nil {
+	fmt.Printf("Done.\nImporting code libraries...")
+	if err := createLibraries(systemInfo, cli); err != nil {
 		return err
 	}
-	old_sys_meta, err := load_sys_meta(dir)
-	if dir == "" {
-		dir = strings.Replace(old_sys_meta.Name, " ", "_", -1)
+	fmt.Printf("Done.\nImporting triggers...")
+	if err := createTriggers(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create triggers: %s", err.Error())
 	}
-	if err != nil {
-		fmt.Printf("Import failed - loading system metadata\n")
-		return err
-	}
-	sysKey, err := CreateSystem(cli, old_sys_meta)
-	if err != nil {
-		fmt.Printf("Import failed - uploading system metadata\n")
-		return err
+	fmt.Printf("Done.\nImporting timers...")
+	if err := createTimers(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create timers: %s", err.Error())
 	}
 
-	old_collection_meta, err := load_collection_meta(dir)
-	if err != nil {
-		fmt.Printf("Import failed - loading collection metadata\n")
-		return err
-	}
-	newCollections, err := CreateCollections(cli, sysKey, old_collection_meta)
-	if err != nil {
-		fmt.Printf("Import failed - uploading collection metadata\n")
-		return err
-	}
-
-	old_services, err := load_services(dir, old_sys_meta)
-	if err != nil {
-		fmt.Printf("Import failed - loading service info\n")
-		return err
-	}
-
-	err = CreateServices(cli, sysKey, old_services)
-	if err != nil {
-		fmt.Printf("Import failed - uploading service info\n")
-		return err
-	}
-
-	old_roles, err := load_roles(dir)
-	if err != nil {
-		fmt.Printf("Import failed - retrieving roles info\n")
-	}
-
-	err = CreateRoles(cli, sysKey, old_roles, newCollections)
-	if err != nil {
-		fmt.Printf("Import failed - uploading service info\n")
-		return err
-	}
-
-	old_user_columns, err := load_user_columns(dir)
-	if err != nil {
-		fmt.Printf("Import failed - retrieving user columns\n")
-		return err
-	}
-
-	err = CreateUserColumns(cli, sysKey, old_user_columns)
-	if err != nil {
-		fmt.Printf("Import failed - uploading user column info\n")
-		return err
-	}
-
-	if ShouldImportCollectionRows {
-		err = migrateRows(cli, old_sys_meta, sysKey, old_collection_meta, newCollections)
-		if err != nil {
-			fmt.Printf("Import failed - uploading collection rows\n")
-			return err
-		}
-	}
-
-	fmt.Printf("Import successful\n")
-	return nil
-
-}
-
-func Sys_for_dir() (string, error) {
-	if _, err := os.Stat(".meta.json"); os.IsNotExist(err) {
-		return "", fmt.Errorf("No system key argument given and not in a system repository")
-	}
-	sys_meta, err := load_sys_meta(".")
-	if err != nil {
-		return "", fmt.Errorf("Error loading system meta data")
-	}
-	return sys_meta.Key, nil
-}
-
-func migrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string, oldCollections, newCollections []Collection_meta) error {
-	fmt.Println("migrating items...")
-	investigatorQuery := new(cb.Query)
-	investigatorQuery.PageNumber = 1
-	investigatorQuery.PageSize = 0
-	var oldSystemCli *cb.DevClient
-
-	if URL != oldSystemMeta.PlatformUrl {
-		cb.CB_ADDR = oldSystemMeta.PlatformUrl
-		fmt.Println("Please enter your credentials for your old system")
-		email, pass, err := auth_prompt()
-		if err != nil {
-			return err
-		}
-		oldSystemCli = cb.NewDevClient(email, pass)
-		err = oldSystemCli.Authenticate()
-		if err != nil {
-			return err
-		}
-	} else {
-		oldSystemCli = cli
-	}
-
-	for i := 0; i < len(oldCollections); i++ {
-		cb.CB_ADDR = oldSystemMeta.PlatformUrl
-		data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, investigatorQuery)
-		if err != nil {
-			return err
-		}
-		totalItems := data["TOTAL"].(float64)
-
-		for j := 0; j < int(totalItems); j += ImportPageSize {
-			cb.CB_ADDR = oldSystemMeta.PlatformUrl
-			currentQuery := new(cb.Query)
-			currentQuery.PageNumber = (j / ImportPageSize) + 1
-			currentQuery.PageSize = ImportPageSize
-			data, err := oldSystemCli.GetData(oldCollections[i].Collection_id, currentQuery)
-			if err != nil {
-				return err
-			}
-
-			typedData := data["DATA"].([]interface{})
-
-			for k := 0; k < len(typedData); k++ {
-				delete(typedData[k].(map[string]interface{}), "item_id")
-				for key, val := range typedData[k].(map[string]interface{}) {
-					if val == nil {
-						typedData[k].(map[string]interface{})[key] = getNilValue(newCollections[i].Columns, key)
-					}
-
-				}
-			}
-			cb.CB_ADDR = URL
-			err = cli.InsertData(newCollections[i].Collection_id, data["DATA"].([]interface{}))
-			if err != nil {
-				return err
-			}
-		}
-	}
+	fmt.Printf("Done\n")
 	return nil
 }

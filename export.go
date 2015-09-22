@@ -1,12 +1,9 @@
 package cblib
 
 import (
-	//"crypto/md5"
-	"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
-	"os"
 	"strings"
 )
 
@@ -15,6 +12,7 @@ func init() {
 	libCode = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
+	ImportPageSize = 100
 }
 
 func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -52,66 +50,60 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 			return nil, err
 		}
 		co["schema"] = columnsResp
+		if err := getRolesForCollection(co); err != nil {
+			return nil, err
+		}
 		rval[i] = co
+		if err := pullCollectionData(co, cli); err != nil {
+			return nil, err
+		}
 	}
 
 	return rval, nil
 }
 
-/*
-
-func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]Collection_meta, error) {
-	colls, err := cli.GetAllCollections(sysMeta.Key)
-	if err != nil {
-		return nil, err
-	}
-	collections := make([]Collection_meta, len(colls))
-	for i, col := range colls {
-		co := col.(map[string]interface{})
-		id, ok := co["collectionID"].(string)
-		if !ok {
-			return nil, fmt.Errorf("collectionID is not a string")
-		}
-		columnsResp, err := cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
-
-		if err != nil {
-			return nil, err
-		}
-		columns := make([]Column, len(columnsResp))
-		for j := 0; j < len(columnsResp); j++ {
-			columns[j] = Column{
-				ColumnName: columnsResp[j].(map[string]interface{})["ColumnName"].(string),
-				ColumnType: columnsResp[j].(map[string]interface{})["ColumnType"].(string),
+func getRolesForCollection(collection map[string]interface{}) error {
+	colName := collection["name"].(string)
+	perms := map[string]interface{}{}
+	for _, role := range rolesInfo {
+		roleName := role["Name"].(string)
+		colPerms := role["Permissions"].(map[string]interface{})["Collections"].([]interface{})
+		for _, colPermIF := range colPerms {
+			colPerm := colPermIF.(map[string]interface{})
+			if colPerm["Name"].(string) == colName {
+				perms[roleName] = colPerm["Level"]
 			}
 		}
-
-		collections[i] = Collection_meta{
-			Name:          co["name"].(string),
-			Collection_id: co["collectionID"].(string),
-			Columns:       columns,
-		}
 	}
-
-	return collections, nil
+	collection["permissions"] = perms
+	return nil
 }
 
-*/
+func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) error {
+	colId := collection["collectionID"].(string)
 
-func storeCollections(dir string, collections []Collection_meta) error {
-
-	datadir := dir + "/data"
-	if err := os.MkdirAll(datadir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(collections)
+	totalItems, err := client.GetItemCount(colId)
 	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(datadir+"/collections.json", meta_bytes, 0777); err != nil {
-		return err
+		return fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}
 
-	return nil
+	dataQuery := &cb.Query{}
+	dataQuery.PageSize = ImportPageSize
+	allData := []interface{}{}
+	for j := 0; j < totalItems; j += ImportPageSize {
+		dataQuery.PageNumber = (j / ImportPageSize) + 1
+		data, err := client.GetData(colId, dataQuery)
+		if err != nil {
+			return err
+		}
+		curData := data["DATA"].([]interface{})
+		for _, oneItemIF := range curData {
+			oneItem := oneItemIF.(map[string]interface{})
+			delete(oneItem, "item_id")
+		}
+		allData = append(allData, curData...)
+	}
+	return writeCollection(collection, allData)
 }
 
 func pullUserColumns(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -119,32 +111,15 @@ func pullUserColumns(systemKey string, cli *cb.DevClient) ([]map[string]interfac
 	if err != nil {
 		return nil, err
 	}
-	rval := make([]map[string]interface{}, len(resp))
-	for idx, colIF := range resp {
+	rval := []map[string]interface{}{}
+	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
 		if col["ColumnName"] == "email" || col["ColumnName"] == "creation_date" {
 			continue
 		}
-		rval[idx] = col
+		rval = append(rval, col)
 	}
 	return rval, nil
-}
-
-func storeUserColumns(dir string, meta User_meta) error {
-
-	userdir := dir + "/user"
-	if err := os.MkdirAll(userdir, 0777); err != nil {
-		return err
-	}
-	meta_bytes, err := json.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(userdir+"/columns.json", meta_bytes, 0777); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -234,20 +209,6 @@ func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 		return nil, err
 	}
 	serv_metas := make(map[string]Service_meta)
-	/*
-		svcs, err := pullServices(systemKey, cli)
-		if err != nil {
-			return nil, err
-		}
-		for _, svc := range svcs {
-			serv_metas[svc.Name] = Service_meta{
-				Name:    svc.Name,
-				Version: svc.Version,
-				Hash:    fmt.Sprintf("%x", md5.Sum([]byte(svc.Code))),
-				Params:  svc.Params,
-			}
-		}
-	*/
 	sysMeta := &System_meta{
 		Name:        sys.Name,
 		Key:         sys.Key,
