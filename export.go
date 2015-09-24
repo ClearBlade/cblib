@@ -12,7 +12,6 @@ func init() {
 	libCode = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
-	ImportPageSize = 100
 }
 
 func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {

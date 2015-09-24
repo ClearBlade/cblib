@@ -14,10 +14,12 @@ import (
 
 var (
 	AuthInfoFile string
+	MetaInfoFile string
 )
 
 func init() {
 	flag.StringVar(&AuthInfoFile, "authinfo", homedir()+"/.cbauth", "File in which you wish to store auth info")
+	flag.StringVar(&MetaInfoFile, "metainfo", "./.cbmeta", "File in which you wish to store meta?! info")
 }
 
 func homedir() string {

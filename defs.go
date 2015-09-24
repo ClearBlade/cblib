@@ -2,6 +2,7 @@ package cblib
 
 var (
 	URL                        string
+	SchemaDir                  string
 	ShouldImportCollectionRows bool
 	ImportPageSize             int
 	systemDotJSON              map[string]interface{}
