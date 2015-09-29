@@ -1,19 +1,25 @@
 package cblib
 
 import (
-	"flag"
+	//"flag"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"time"
+)
+
+var (
+	importRows  bool
+	importUsers bool
 )
 
 func init() {
 	myImportCommand := &SubCommand{
 		name:  "import",
 		usage: "just import stuff",
-		flags: flag.FlagSet{},
 		run:   doImport,
 	}
+	myImportCommand.flags.BoolVar(&importRows, "importrows", false, "imports all data into all collections")
+	myImportCommand.flags.BoolVar(&importUsers, "importusers", false, "imports all users into the system")
 	AddCommand("import", myImportCommand)
 	AddCommand("imp", myImportCommand)
 	AddCommand("im", myImportCommand)
@@ -49,6 +55,10 @@ func createUsers(systemInfo map[string]interface{}, users []interface{}, client 
 		if err := client.CreateUserColumn(sysKey, columnName, columnType); err != nil {
 			return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
 		}
+	}
+
+	if !importUsers {
+		return nil
 	}
 
 	// Now, create users -- register, update roles, and update user-def colunms
@@ -229,6 +239,9 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 				fmt.Printf("Add column: %s, %s, %s\n", collectionName, colName, colType)
 				return err
 			}
+		}
+		if !importRows {
+			continue
 		}
 
 		//  Add the items

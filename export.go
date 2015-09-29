@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	email    string
-	password string
+	exportRows  bool
+	exportUsers bool
 )
 
 func init() {
@@ -24,10 +24,12 @@ func init() {
 		run:   doExport,
 		//  TODO -- add help, usage, etc.
 	}
+	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
+	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
 	AddCommand("ex", myExportCommand)
 	AddCommand("exp", myExportCommand)
-	ImportPageSize = 100
+	ImportPageSize = 100 // TODO -- fix this
 }
 
 func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -69,8 +71,10 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 			return nil, err
 		}
 		rval[i] = co
-		if err := pullCollectionData(co, cli); err != nil {
-			return nil, err
+		if exportRows {
+			if err := pullCollectionData(co, cli); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -275,6 +279,27 @@ func storeMeta(meta *System_meta) {
 	systemDotJSON["auth"] = true
 }
 
+func pullUsers(sysMeta *System_meta, cli *cb.DevClient) error {
+	sysKey := sysMeta.Key
+	if !exportUsers {
+		return nil
+	}
+	allUsers, err := cli.GetAllUsers(sysKey)
+	if err != nil {
+		return fmt.Errorf("Could not get all users: %s", err.Error())
+	}
+	for _, aUser := range allUsers {
+		userId := aUser["user_id"].(string)
+		roles, err := cli.GetUserRoles(sysKey, userId)
+		if err != nil {
+			return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
+		}
+		aUser["roles"] = roles
+	}
+	writeUsersFile(allUsers)
+	return nil
+}
+
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	fmt.Printf("In do export: Args: %v\n", args)
 	if len(args) == 0 {
@@ -351,19 +376,10 @@ func export(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["data"] = colls
 
 	fmt.Printf("Done.\nExporting Users...")
-	allUsers, err := cli.GetAllUsers(sysKey)
+	err = pullUsers(sysMeta, cli)
 	if err != nil {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
 	}
-	for _, aUser := range allUsers {
-		userId := aUser["user_id"].(string)
-		roles, err := cli.GetUserRoles(sysKey, userId)
-		if err != nil {
-			return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
-		}
-		aUser["roles"] = roles
-	}
-	writeUsersFile(allUsers)
 
 	userColumns, err := pullUserColumns(sysKey, cli)
 	if err != nil {
