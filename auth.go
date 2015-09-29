@@ -30,7 +30,7 @@ func homedir() string {
 	return usr.HomeDir
 }
 
-func auth_prompt() (string, string, error) {
+func Auth_prompt() (string, string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("Enter your email: ")
 	email, _ := reader.ReadString('\n')
@@ -42,7 +42,15 @@ func auth_prompt() (string, string, error) {
 	return email, pass, nil
 }
 
-func auth(devToken string) (*cb.DevClient, error) {
+func AuthUserPass(email, password string) (*cb.DevClient, error) {
+	cli := cb.NewDevClient(email, password)
+	if err := cli.Authenticate(); err != nil {
+		return nil, err
+	}
+	return cli, save_auth_info(AuthInfoFile, cli.DevToken)
+}
+
+func Auth(devToken string) (*cb.DevClient, error) {
 	var cli *cb.DevClient
 	if devToken != "" {
 		cli = &cb.DevClient{
@@ -51,7 +59,7 @@ func auth(devToken string) (*cb.DevClient, error) {
 		return cli, nil
 	}
 	if _, err := os.Stat(AuthInfoFile); os.IsNotExist(err) {
-		email, pass, prompt_err := auth_prompt()
+		email, pass, prompt_err := Auth_prompt()
 		if prompt_err != nil {
 			return nil, prompt_err
 		}

@@ -376,7 +376,7 @@ func prompt(msg string) string {
 }
 
 func Pull_cmd(sysKey string) error {
-	cli, err := auth("")
+	cli, err := Auth("")
 	if err != nil {
 		return err
 	}
@@ -442,7 +442,7 @@ func push(systemKey, dir string, services []string, cli *cb.DevClient) error {
 }
 
 func Push_cmd(systemKey, dir string) error {
-	cli, err := auth("")
+	cli, err := Auth("")
 	if err != nil {
 		return err
 	}
@@ -475,7 +475,7 @@ func Push_cmd(systemKey, dir string) error {
 }
 
 func Init_cmd() error {
-	cli, auth_err := auth("")
+	cli, auth_err := Auth("")
 	if auth_err != nil {
 		return auth_err
 	}
@@ -588,7 +588,7 @@ func migrateRows(cli *cb.DevClient, oldSystemMeta *System_meta, newSysKey string
 	if URL != oldSystemMeta.PlatformUrl {
 		cb.CB_ADDR = oldSystemMeta.PlatformUrl
 		fmt.Println("Please enter your credentials for your old system")
-		email, pass, err := auth_prompt()
+		email, pass, err := Auth_prompt()
 		if err != nil {
 			return err
 		}

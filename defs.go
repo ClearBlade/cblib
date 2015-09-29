@@ -1,14 +1,43 @@
 package cblib
 
+//
+//  These are variables that can be used as
+//  flags to a main package using this library, or
+//  they can be set directly by unit tests, etc.
+//  My, there are a lot of these...
+//
 var (
 	URL                        string
-	SchemaDir                  string
 	ShouldImportCollectionRows bool
+	ImportRows                 bool
+	ExportRows                 bool
+	ImportUsers                bool
+	ExportUsers                bool
+	UserSchema                 bool
 	ImportPageSize             int
-	systemDotJSON              map[string]interface{}
-	libCode                    map[string]interface{}
-	svcCode                    map[string]interface{}
-	rolesInfo                  []map[string]interface{}
+	ExportPageSize             int
+	SystemKey                  string
+	Email                      string
+	Password                   string
+	ServiceName                string
+	LibraryName                string
+	CollectionName             string
+	CollectionId               string
+	User                       string
+	RoleName                   string
+	TriggerName                string
+	TimerName                  string
+	Message                    bool
+	Topic                      string
+	Payload                    string
+	Help                       bool
+)
+
+var (
+	systemDotJSON map[string]interface{}
+	libCode       map[string]interface{}
+	svcCode       map[string]interface{}
+	rolesInfo     []map[string]interface{}
 )
 
 type Role_meta struct {

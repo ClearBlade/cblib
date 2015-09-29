@@ -1,12 +1,22 @@
 package cblib
 
 import (
+	"flag"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"time"
 )
 
 func init() {
+	myImportCommand := &SubCommand{
+		name:  "import",
+		usage: "just import stuff",
+		flags: flag.FlagSet{},
+		run:   doImport,
+	}
+	AddCommand("import", myImportCommand)
+	AddCommand("imp", myImportCommand)
+	AddCommand("im", myImportCommand)
 }
 
 func createSystem(system map[string]interface{}, client *cb.DevClient) error {
@@ -41,7 +51,7 @@ func createUsers(systemInfo map[string]interface{}, users []interface{}, client 
 		}
 	}
 
-	// Now, create users
+	// Now, create users -- register, update roles, and update user-def colunms
 	for _, userIF := range users {
 		user := userIF.(map[string]interface{})
 		email := user["email"].(string)
@@ -59,6 +69,29 @@ func createUsers(systemInfo map[string]interface{}, users []interface{}, client 
 			if err := client.AddUserToRoles(sysKey, userId, niceRoles); err != nil {
 				return err
 			}
+		}
+
+		if len(userCols) == 0 {
+			continue
+		}
+
+		updates := map[string]interface{}{}
+		for _, columnIF := range userCols {
+			column := columnIF.(map[string]interface{})
+			columnName := column["ColumnName"].(string)
+			if userVal, ok := user[columnName]; ok {
+				if userVal != nil {
+					updates[columnName] = userVal
+				}
+			}
+		}
+
+		if len(updates) == 0 {
+			continue
+		}
+
+		if err := client.UpdateUser(sysKey, userId, updates); err != nil {
+			return fmt.Errorf("Could not update user: %s", err.Error())
 		}
 	}
 
@@ -134,6 +167,12 @@ func createServices(systemInfo map[string]interface{}, client *cb.DevClient) err
 				return err
 			}
 		}
+		permissions := service["permissions"].(map[string]interface{})
+		for roleId, level := range permissions {
+			if err := client.AddServiceToRole(sysKey, svcName, roleId, int(level.(float64))); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -187,6 +226,7 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 				continue
 			}
 			if err := client.AddColumn(colId, colName, colType); err != nil {
+				fmt.Printf("Add column: %s, %s, %s\n", collectionName, colName, colType)
 				return err
 			}
 		}
@@ -195,6 +235,9 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 		itemsIF, err := getCollectionItems(collectionName)
 		if err != nil {
 			return err
+		}
+		if len(itemsIF) == 0 {
+			continue
 		}
 		items := make([]map[string]interface{}, len(itemsIF))
 		for idx, itemIF := range itemsIF {
@@ -229,12 +272,12 @@ func mkSvcParams(params []interface{}) []string {
 	return rval
 }
 
-func Import_cmd() error {
+func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+	return importIt(cli)
+}
+
+func importIt(cli *cb.DevClient) error {
 	cb.CB_ADDR = URL
-	cli, err := auth("")
-	if err != nil {
-		return err
-	}
 	fmt.Printf("Reading system configuration files...")
 	users, err := getArray("users.json")
 	if err != nil {

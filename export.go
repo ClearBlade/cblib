@@ -4,7 +4,13 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
+	"os"
 	"strings"
+)
+
+var (
+	email    string
+	password string
 )
 
 func init() {
@@ -12,6 +18,18 @@ func init() {
 	libCode = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
+	myExportCommand := &SubCommand{
+		name:  "export",
+		usage: "Ain't no thing",
+		run:   doExport,
+		//  TODO -- add help, usage, etc.
+	}
+	myExportCommand.flags.StringVar(&email, "email", "", "developer email")
+	myExportCommand.flags.StringVar(&password, "password", "", "developer password")
+	AddCommand("export", myExportCommand)
+	AddCommand("ex", myExportCommand)
+	AddCommand("exp", myExportCommand)
+	ImportPageSize = 100
 }
 
 func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -259,15 +277,22 @@ func storeMeta(meta *System_meta) {
 	systemDotJSON["auth"] = true
 }
 
-func Export_cmd(sysKey, devToken string) error {
-	fmt.Printf("Initializing...")
-	cb.CB_ADDR = URL
-	cli, err := auth(devToken)
-	if err != nil {
-		return err
+func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	fmt.Printf("In do export: Args: %v\n", args)
+	if len(args) == 0 {
+		fmt.Printf("export command: missing system key\n")
+		os.Exit(1)
+	} else if len(args) > 1 {
+		fmt.Printf("export command: too many arguments\n")
+		os.Exit(1)
 	}
-	fmt.Printf("Done.\nExporting System Info...")
+	return export(client, args[0])
+}
 
+func export(cli *cb.DevClient, sysKey string) error {
+	cb.CB_ADDR = URL
+
+	fmt.Printf("Exporting System Info...")
 	sysMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
 		return err
