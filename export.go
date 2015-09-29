@@ -24,8 +24,6 @@ func init() {
 		run:   doExport,
 		//  TODO -- add help, usage, etc.
 	}
-	myExportCommand.flags.StringVar(&email, "email", "", "developer email")
-	myExportCommand.flags.StringVar(&password, "password", "", "developer password")
 	AddCommand("export", myExportCommand)
 	AddCommand("ex", myExportCommand)
 	AddCommand("exp", myExportCommand)
