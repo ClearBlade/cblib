@@ -70,12 +70,18 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if err := getRolesForCollection(co); err != nil {
 			return nil, err
 		}
-		rval[i] = co
+		co["items"] = []interface{}{}
 		if exportRows {
-			if err := pullCollectionData(co, cli); err != nil {
+			items, err := pullCollectionData(co, cli)
+			if err != nil {
 				return nil, err
 			}
+			co["items"] = items
 		}
+		if err := writeCollection(co["name"].(string), co); err != nil {
+			return nil, err
+		}
+		rval[i] = co
 	}
 
 	return rval, nil
@@ -98,12 +104,12 @@ func getRolesForCollection(collection map[string]interface{}) error {
 	return nil
 }
 
-func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) error {
+func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {
 	colId := collection["collectionID"].(string)
 
 	totalItems, err := client.GetItemCount(colId)
 	if err != nil {
-		return fmt.Errorf("GetItemCount Failed: %s", err.Error())
+		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}
 
 	dataQuery := &cb.Query{}
@@ -113,7 +119,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 		dataQuery.PageNumber = (j / ImportPageSize) + 1
 		data, err := client.GetData(colId, dataQuery)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
 		for _, oneItemIF := range curData {
@@ -122,10 +128,11 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 		}
 		allData = append(allData, curData...)
 	}
-	return writeCollection(collection, allData)
+	return allData, nil
+	//return writeCollection(collection, allData)
 }
 
-func pullUserColumns(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullUserSchemaInfo(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	resp, err := cli.GetUserColumns(systemKey)
 	if err != nil {
 		return nil, err
@@ -137,6 +144,14 @@ func pullUserColumns(systemKey string, cli *cb.DevClient) ([]map[string]interfac
 			continue
 		}
 		rval = append(rval, col)
+	}
+	tablePerms := getUserTablePermissions()
+	schema := map[string]interface{}{
+		"columns":     rval,
+		"permissions": tablePerms,
+	}
+	if err := writeUser("schema", schema); err != nil {
+		return nil, err
 	}
 	return rval, nil
 }
@@ -154,6 +169,11 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 		}
 		service["code"] = strings.Replace(service["code"].(string), "\\n", "\n", -1)
 		services[i] = service
+		/*
+			storeService(service)
+			cleanService(service)
+		*/
+		writeService(service["name"].(string), service)
 	}
 	return services, nil
 }
@@ -174,6 +194,7 @@ func pullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 		delete(thisLib, "library_key")
 		delete(thisLib, "system_key")
 		libraries = append(libraries, thisLib)
+		writeLibrary(thisLib["name"].(string), thisLib)
 	}
 	return libraries, nil
 }
@@ -199,6 +220,7 @@ func pullTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfa
 		delete(thisTrig, "system_key")
 		delete(thisTrig, "system_secret")
 		triggers = append(triggers, thisTrig)
+		writeTrigger(thisTrig["name"].(string), thisTrig)
 	}
 	return triggers, nil
 }
@@ -218,6 +240,7 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 		delete(thisTimer, "user_id")
 		delete(thisTimer, "user_token")
 		timers = append(timers, thisTimer)
+		writeTimer(thisTimer["name"].(string), thisTimer)
 	}
 	return timers, nil
 }
@@ -254,20 +277,42 @@ func getRolesForThing(name, key string) map[string]interface{} {
 	return rval
 }
 
+func getUserTablePermissions() map[string]interface{} {
+	rval := map[string]interface{}{}
+	for _, roleInfo := range rolesInfo {
+		roleName := roleInfo["Name"].(string)
+		roleUsers := roleInfo["Permissions"].(map[string]interface{})["UsersList"].(map[string]interface{})
+		level := int(roleUsers["Level"].(float64))
+		if level != 0 {
+			rval[roleName] = level
+		}
+	}
+	return rval
+}
+
+func cleanService(service map[string]interface{}) {
+	service["source"] = service["name"].(string) + ".js"
+	service["permissions"] = getRolesForThing(service["name"].(string), "CodeServices")
+	delete(service, "code")
+}
+
 func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 	for _, service := range services {
-		service["source"] = service["name"].(string) + ".js"
-		service["permissions"] = getRolesForThing(service["name"].(string), "CodeServices")
-		delete(service, "code")
+		cleanService(service)
 	}
 	return services
 }
 
+func storeService(service map[string]interface{}) error {
+	if err := ioutil.WriteFile(svcDir+"/"+service["name"].(string)+".js", []byte(service["code"].(string)), 0666); err != nil {
+		return err
+	}
+	return nil
+}
+
 func storeServices(dir string, services []map[string]interface{}, meta *System_meta) error {
 	for _, service := range services {
-		if err := ioutil.WriteFile(svcDir+"/"+service["name"].(string)+".js", []byte(service["code"].(string)), 0666); err != nil {
-			return err
-		}
+		storeService(service)
 	}
 	return nil
 }
@@ -295,13 +340,12 @@ func pullUsers(sysMeta *System_meta, cli *cb.DevClient) error {
 			return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 		}
 		aUser["roles"] = roles
+		writeUser(aUser["email"].(string), aUser)
 	}
-	writeUsersFile(allUsers)
 	return nil
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
-	fmt.Printf("In do export: Args: %v\n", args)
 	if len(args) == 0 {
 		fmt.Printf("export command: missing system key\n")
 		os.Exit(1)
@@ -321,7 +365,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	dir := rootDir
+	//dir := rootDir
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
@@ -339,10 +383,13 @@ func export(cli *cb.DevClient, sysKey string) error {
 	if err != nil {
 		return err
 	}
-	if err := storeServices(dir, services, sysMeta); err != nil {
-		return err
-	}
-	systemDotJSON["services"] = cleanServices(services)
+	/*
+		if err := storeServices(dir, services, sysMeta); err != nil {
+			return err
+		}
+	*/
+	//systemDotJSON["services"] = cleanServices(services)
+	systemDotJSON["services"] = services
 
 	fmt.Printf("Done.\nExporting Libraries...")
 	libraries, err := pullLibraries(sysMeta, cli)
@@ -381,7 +428,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
 	}
 
-	userColumns, err := pullUserColumns(sysKey, cli)
+	userColumns, err := pullUserSchemaInfo(sysKey, cli)
 	if err != nil {
 		return err
 	}
