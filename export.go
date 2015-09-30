@@ -58,32 +58,34 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	}
 	rval := make([]map[string]interface{}, len(colls))
 	for i, col := range colls {
-		co := col.(map[string]interface{})
-		id := co["collectionID"].(string)
+		rval[i] = pullCollection(sysMeta, col.(map[string]interface{}), cli)
+	}
+	return rval, nil
+}
 
-		columnsResp, err := cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
+func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
+	id := co["collectionID"].(string)
+	columnsResp, err := cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
+	if err != nil {
+		return nil, err
+	}
+	co["schema"] = columnsResp
+	if err := getRolesForCollection(co); err != nil {
+		return nil, err
+	}
+	co["items"] = []interface{}{}
+	co["items"] = []interface{}{}
+	if exportRows {
+		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
 		}
-		co["schema"] = columnsResp
-		if err := getRolesForCollection(co); err != nil {
-			return nil, err
-		}
-		co["items"] = []interface{}{}
-		if exportRows {
-			items, err := pullCollectionData(co, cli)
-			if err != nil {
-				return nil, err
-			}
-			co["items"] = items
-		}
-		if err := writeCollection(co["name"].(string), co); err != nil {
-			return nil, err
-		}
-		rval[i] = co
+		co["items"] = items
 	}
-
-	return rval, nil
+	if err := writeCollection(co["name"].(string), co); err != nil {
+		return nil, err
+	}
+	return co, nil
 }
 
 func getRolesForCollection(collection map[string]interface{}) error {
@@ -162,17 +164,7 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 	}
 	services := make([]map[string]interface{}, len(svcs))
 	for i, svc := range svcs {
-		service, err := cli.GetServiceRaw(systemKey, svc)
-		if err != nil {
-			return nil, err
-		}
-		service["code"] = strings.Replace(service["code"].(string), "\\n", "\n", -1)
-		services[i] = service
-		/*
-			storeService(service)
-			cleanService(service)
-		*/
-		writeService(service["name"].(string), service)
+		services[i] = pullService(systemKey, svc, cli)
 	}
 	return services, nil
 }
