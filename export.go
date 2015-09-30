@@ -3,7 +3,7 @@ package cblib
 import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	"io/ioutil"
+	//"io/ioutil"
 	"os"
 	"strings"
 )
@@ -15,7 +15,6 @@ var (
 
 func init() {
 	systemDotJSON = map[string]interface{}{}
-	libCode = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myExportCommand := &SubCommand{
@@ -189,24 +188,10 @@ func pullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 		if thisLib["visibility"] == "global" {
 			continue
 		}
-		libCode[thisLib["name"].(string)] = thisLib["code"].(string)
-		delete(thisLib, "code")
-		delete(thisLib, "library_key")
-		delete(thisLib, "system_key")
 		libraries = append(libraries, thisLib)
 		writeLibrary(thisLib["name"].(string), thisLib)
 	}
 	return libraries, nil
-}
-
-func storeLibraries() error {
-	for name, code := range libCode {
-		fileName := libDir + "/" + name + ".js"
-		if err := ioutil.WriteFile(fileName, []byte(code.(string)), 0666); err != nil {
-			return fmt.Errorf("Could not store library %s: %s", fileName, err.Error())
-		}
-	}
-	return nil
 }
 
 func pullTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -303,20 +288,6 @@ func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 	return services
 }
 
-func storeService(service map[string]interface{}) error {
-	if err := ioutil.WriteFile(svcDir+"/"+service["name"].(string)+".js", []byte(service["code"].(string)), 0666); err != nil {
-		return err
-	}
-	return nil
-}
-
-func storeServices(dir string, services []map[string]interface{}, meta *System_meta) error {
-	for _, service := range services {
-		storeService(service)
-	}
-	return nil
-}
-
 func storeMeta(meta *System_meta) {
 	systemDotJSON["platformURL"] = URL
 	systemDotJSON["name"] = meta.Name
@@ -366,6 +337,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 	}
 
 	//dir := rootDir
+	setRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
@@ -397,9 +369,11 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["libraries"] = libraries
-	if err := storeLibraries(); err != nil {
-		return err
-	}
+	/*
+		if err := storeLibraries(); err != nil {
+			return err
+		}
+	*/
 
 	fmt.Printf("Done.\nExporting Triggers...")
 	if triggers, err := pullTriggers(sysMeta, cli); err != nil {

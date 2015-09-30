@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
+	//"strings"
 )
 
 var (
@@ -19,14 +19,25 @@ var (
 	triggersDir string
 )
 
-func setupDirectoryStructure(sys *System_meta) error {
-	rootDir = strings.Replace(sys.Name, " ", "_", -1)
+func setRootDir(theRootDir string) {
+	rootDir = theRootDir
 	svcDir = rootDir + "/code/services"
 	libDir = rootDir + "/code/libraries"
 	dataDir = rootDir + "/data"
 	usersDir = rootDir + "/users"
 	timersDir = rootDir + "/timers"
 	triggersDir = rootDir + "/triggers"
+}
+func setupDirectoryStructure(sys *System_meta) error {
+	/*
+		rootDir = strings.Replace(sys.Name, " ", "_", -1)
+		svcDir = rootDir + "/code/services"
+		libDir = rootDir + "/code/libraries"
+		dataDir = rootDir + "/data"
+		usersDir = rootDir + "/users"
+		timersDir = rootDir + "/timers"
+		triggersDir = rootDir + "/triggers"
+	*/
 	if err := os.MkdirAll(rootDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", rootDir, err.Error())
 	}
@@ -187,11 +198,175 @@ func writeService(name string, data map[string]interface{}) error {
 	if err := ioutil.WriteFile(mySvcDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
-
 	cleanService(data)
 	return writeEntity(mySvcDir, name, data)
 }
 
 func writeLibrary(name string, data map[string]interface{}) error {
-	return writeEntity(libDir, name, data)
+	myLibDir := libDir + "/" + name
+	if err := os.MkdirAll(myLibDir, 0777); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(myLibDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
+		return err
+	}
+	delete(data, "code")
+	delete(data, "library_key")
+	delete(data, "system_key")
+	return writeEntity(myLibDir, name, data)
+}
+
+func isException(name string, exceptions []string) bool {
+	if name == "." || name == ".." {
+		return false
+	}
+	for _, exception := range exceptions {
+		if name == exception {
+			return true
+		}
+	}
+	return false
+}
+
+func getFileList(dirName string, exceptions []string) ([]string, error) {
+	rval := []string{}
+	fileList, err := ioutil.ReadDir(dirName)
+	if err != nil {
+		return nil, err
+	}
+	for _, oneFile := range fileList {
+		if isException(oneFile.Name(), exceptions) {
+			continue
+		}
+		rval = append(rval, oneFile.Name())
+	}
+	return rval, nil
+}
+
+func getObjectList(dirName string, exceptions []string) ([]map[string]interface{}, error) {
+	rval := []map[string]interface{}{}
+	fileList, err := ioutil.ReadDir(dirName)
+	if err != nil {
+		return nil, err
+	}
+	for _, oneFile := range fileList {
+		if isException(oneFile.Name(), exceptions) {
+			continue
+		}
+		objMap, err := getObject(dirName, oneFile.Name())
+		if err != nil {
+			return nil, err
+		}
+		rval = append(rval, objMap)
+	}
+	return rval, nil
+}
+
+func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
+	dirList, err := getFileList(dirName, []string{})
+	rval := []map[string]interface{}{}
+	if err != nil {
+		return nil, err
+	}
+	for _, realDirName := range dirList {
+		myRootDir := dirName + "/" + realDirName + "/"
+		myObj, err := getObject(myRootDir, realDirName+".json")
+		if err != nil {
+			return nil, err
+		}
+		byts, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js")
+		if err != nil {
+			return nil, err
+		}
+		myObj["code"] = string(byts)
+		delete(myObj, "source")
+		rval = append(rval, myObj)
+	}
+	return rval, nil
+}
+
+func getLibraries() ([]map[string]interface{}, error) {
+	return getCodeStuff(libDir)
+}
+
+func getServices() ([]map[string]interface{}, error) {
+	return getCodeStuff(svcDir)
+}
+
+func getUsers() ([]map[string]interface{}, error) {
+	return getObjectList(usersDir, []string{"schema.json"})
+}
+
+func getCollections() ([]map[string]interface{}, error) {
+	return getObjectList(dataDir, []string{})
+}
+
+func getTriggers() ([]map[string]interface{}, error) {
+	return getObjectList(triggersDir, []string{})
+}
+
+func getTimers() ([]map[string]interface{}, error) {
+	return getObjectList(timersDir, []string{})
+}
+
+//  For most of these calls below (getUser, etc) the second arg
+//  is really the filename as obtained by ReadDir, not the actual object
+//  name -- it is <object name>.json
+
+func getObject(dirName, objName string) (map[string]interface{}, error) {
+	return getDict(dirName + "/" + objName)
+}
+
+func getUserSchema() (map[string]interface{}, error) {
+	return getObject(usersDir, "schema.json")
+}
+
+func getUser(email string) (map[string]interface{}, error) {
+	return getObject(usersDir, email)
+}
+
+func getTrigger(name string) (map[string]interface{}, error) {
+	return getObject(triggersDir, name)
+}
+
+func getTimer(name string) (map[string]interface{}, error) {
+	return getObject(timersDir, name)
+}
+
+func getCollection(name string) (map[string]interface{}, error) {
+	return getObject(dataDir, name)
+}
+
+func getService(name string) (map[string]interface{}, error) {
+	svcRootDir := svcDir + "/" + name
+	codeFile := name + ".js"
+	schemaFile := name + ".json"
+
+	svcMap, err := getObject(svcRootDir, schemaFile)
+	if err != nil {
+		return nil, err
+	}
+	byts, err := ioutil.ReadFile(svcRootDir + "/" + codeFile)
+	if err != nil {
+		return nil, err
+	}
+	svcMap["code"] = string(byts)
+	return svcMap, nil
+}
+
+func getLibrary(name string) (map[string]interface{}, error) {
+	libRootDir := libDir + "/" + name
+	codeFile := name + ".js"
+	schemaFile := name + ".json"
+
+	libMap, err := getObject(libRootDir, schemaFile)
+	if err != nil {
+		return nil, err
+	}
+	byts, err := ioutil.ReadFile(libRootDir + "/" + codeFile)
+	if err != nil {
+		return nil, err
+	}
+	libMap["code"] = string(byts)
+	return libMap, nil
 }

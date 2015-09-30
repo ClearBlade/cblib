@@ -42,12 +42,18 @@ func createSystem(system map[string]interface{}, client *cb.DevClient) error {
 	return nil
 }
 
-func createUsers(systemInfo map[string]interface{}, users []interface{}, client *cb.DevClient) error {
+//func createUsers(systemInfo map[string]interface{}, users []interface{}, client *cb.DevClient) error {
+func createUsers(systemInfo map[string]interface{}, users []map[string]interface{}, client *cb.DevClient) error {
 
 	//  Create user columns first -- if any
 	sysKey := systemInfo["systemKey"].(string)
 	sysSec := systemInfo["systemSecret"].(string)
-	userCols := systemInfo["users"].([]interface{})
+	//userCols := systemInfo["users"].([]interface{})
+	userSchema, err := getUserSchema()
+	userCols := userSchema["columns"].([]interface{})
+	if err != nil {
+		return err
+	}
 	for _, columnIF := range userCols {
 		column := columnIF.(map[string]interface{})
 		columnName := column["ColumnName"].(string)
@@ -57,13 +63,16 @@ func createUsers(systemInfo map[string]interface{}, users []interface{}, client 
 		}
 	}
 
+	//  XXXSWM TODO -- add permissions to the users table:
+	//  userTablePerms := userSchema["permissions"]
+
 	if !importUsers {
 		return nil
 	}
 
 	// Now, create users -- register, update roles, and update user-def colunms
-	for _, userIF := range users {
-		user := userIF.(map[string]interface{})
+	for _, user := range users {
+		//user := userIF.(map[string]interface{})
 		email := user["email"].(string)
 		password := "password"
 		if pwd, ok := user["password"]; ok {
@@ -122,9 +131,14 @@ func mungeRoles(roles []interface{}) []string {
 
 func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
-	triggers := systemInfo["triggers"].([]interface{})
-	for _, triggerIF := range triggers {
-		trigger := triggerIF.(map[string]interface{})
+	//triggers := systemInfo["triggers"].([]interface{})
+	triggers, err := getTriggers()
+	if err != nil {
+		return err
+	}
+	//for _, triggerIF := range triggers {
+	for _, trigger := range triggers {
+		//trigger := triggerIF.(map[string]interface{})
 		triggerName := trigger["name"].(string)
 		triggerDef := trigger["event_definition"].(map[string]interface{})
 		trigger["def_module"] = triggerDef["def_module"]
@@ -141,9 +155,14 @@ func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) err
 
 func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
-	timers := systemInfo["timers"].([]interface{})
-	for _, timerIF := range timers {
-		timer := timerIF.(map[string]interface{})
+	//timers := systemInfo["timers"].([]interface{})
+	timers, err := getTimers()
+	if err != nil {
+		return err
+	}
+	//for _, timerIF := range timers {
+	for _, timer := range timers {
+		//timer := timerIF.(map[string]interface{})
 		timerName := timer["name"].(string)
 		delete(timer, "name")
 		startTime := timer["start_time"].(string)
@@ -158,14 +177,21 @@ func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error
 }
 
 func createServices(systemInfo map[string]interface{}, client *cb.DevClient) error {
-	services := systemInfo["services"].([]interface{})
+	//services := systemInfo["services"].([]interface{})
+	services, err := getServices()
+	if err != nil {
+		return err
+	}
 	sysKey := systemInfo["systemKey"].(string)
-	for _, serviceIF := range services {
-		service := serviceIF.(map[string]interface{})
+	//for _, serviceIF := range services {
+	for _, service := range services {
+		//service := serviceIF.(map[string]interface{})
 		svcName := service["name"].(string)
 		svcParams := mkSvcParams(service["params"].([]interface{}))
 		svcDeps := service["dependencies"].(string)
-		svcCode, err := getServiceCode(svcName)
+		//svcCode, err := getServiceCode(svcName)
+		svcCode := service["code"].(string)
+		delete(service, "code")
 		if err != nil {
 			return err
 		}
@@ -188,16 +214,23 @@ func createServices(systemInfo map[string]interface{}, client *cb.DevClient) err
 }
 
 func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) error {
-	libraries := systemInfo["libraries"].([]interface{})
+	//libraries := systemInfo["libraries"].([]interface{})
+	libraries, err := getLibraries()
+	if err != nil {
+		return err
+	}
 	sysKey := systemInfo["systemKey"].(string)
-	for _, libraryIF := range libraries {
-		library := libraryIF.(map[string]interface{})
+	//for _, libraryIF := range libraries {
+	for _, library := range libraries {
+		//library := libraryIF.(map[string]interface{})
 		libName := library["name"].(string)
-		libCode, err := getLibraryCode(libName)
-		if err != nil {
-			return err
-		}
-		library["code"] = libCode
+		/*
+			libCode, err := getLibraryCode(libName)
+			if err != nil {
+				return err
+			}
+			library["code"] = libCode
+		*/
 		delete(library, "name")
 		delete(library, "version")
 		if _, err := client.CreateLibrary(sysKey, libName, library); err != nil {
@@ -209,10 +242,14 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 
 func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
-	collections := systemInfo["data"].([]interface{})
-	for _, collectionIF := range collections {
+	//collections := systemInfo["data"].([]interface{})
+	collections, err := getCollections()
+	if err != nil {
+		return err
+	}
+	for _, collection := range collections {
 		//  Create the collection
-		collection := collectionIF.(map[string]interface{})
+		//collection := collectionIF.(map[string]interface{})
 		collectionName := collection["name"].(string)
 		colId, err := client.NewCollection(sysKey, collectionName)
 		if err != nil {
@@ -245,7 +282,8 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 		}
 
 		//  Add the items
-		itemsIF, err := getCollectionItems(collectionName)
+		//itemsIF, err := getCollectionItems(collectionName)
+		itemsIF := collection["items"].([]interface{})
 		if err != nil {
 			return err
 		}
@@ -292,7 +330,8 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 func importIt(cli *cb.DevClient) error {
 	cb.CB_ADDR = URL
 	fmt.Printf("Reading system configuration files...")
-	users, err := getArray("users.json")
+	setRootDir(".")
+	users, err := getUsers()
 	if err != nil {
 		return err
 	}
