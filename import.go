@@ -70,6 +70,29 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 	// Now, create users -- register, update roles, and update user-def colunms
 	for _, user := range users {
 		createUser(sysKey, sysSec, user, client)
+
+		if len(userCols) == 0 {
+			continue
+		}
+
+		updates := map[string]interface{}{}
+		for _, columnIF := range userCols {
+			column := columnIF.(map[string]interface{})
+			columnName := column["ColumnName"].(string)
+			if userVal, ok := user[columnName]; ok {
+				if userVal != nil {
+					updates[columnName] = userVal
+				}
+			}
+		}
+
+		if len(updates) == 0 {
+			continue
+		}
+
+		if err := client.UpdateUser(sysKey, userId, updates); err != nil {
+			return fmt.Errorf("Could not update user: %s", err.Error())
+		}
 	}
 
 	return nil
