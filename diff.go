@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"fmt"
+	cb "github.com/clearblade/Go-SDK"
 	"reflect"
 	"strings"
 )
@@ -13,17 +14,17 @@ type Stack struct {
 }
 
 var (
-	names             *Stack
-	ignores           map[string][]string
-	uniqueKeys        map[string]string
-	suppressErrors    []int
-	printedErrorCount int
-	runtimeStack      []byte
+	names            *Stack
+	ignores          map[string][]string
+	uniqueKeys       map[string]string
+	suppressErrors   []int
+	printedDiffCount int
+	runtimeStack     []byte
 )
 
 func init() {
 	runtimeStack = make([]byte, 1000000)
-	printedErrorCount = 0
+	printedDiffCount = 0
 	suppressErrors = []int{0}
 	names = NewStack("names")
 	ignores = map[string][]string{
@@ -32,6 +33,7 @@ func init() {
 		"system.json:libraries": []string{"version"},
 		"system.json:services":  []string{"current_version"},
 		"users.json":            []string{"user_id", "creation_date"},
+		"triggers":              []string{"system_key", "system_secret"},
 	}
 	uniqueKeys = map[string]string{
 		"system.json:data":        "name",
@@ -43,11 +45,124 @@ func init() {
 		"system.json:users":       "ColumnName",
 		"users.json":              "email",
 	}
+	myDiffCommand := &SubCommand{
+		name:  "diff",
+		usage: "what's the difference?",
+		run:   doDiff,
+	}
+	myDiffCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
+	myDiffCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
+	myDiffCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
+	myDiffCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
+	myDiffCommand.flags.StringVar(&User, "user", "", "Name of user to diff")
+	myDiffCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
+	myDiffCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
+	myDiffCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
+	AddCommand("diff", myDiffCommand)
+}
+
+func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	if err := goToRepoRootDir(cmd); err != nil {
+		return err
+	}
+	setRootDir(".")
+	systemInfo, err := getDict("system.json")
+	if err != nil {
+		return err
+	}
+	if UserSchema {
+		if err := diffUserSchema(systemInfo, client); err != nil {
+			return err
+		}
+	}
+	if ServiceName != "" {
+		if err := diffService(systemInfo, client, ServiceName); err != nil {
+			return err
+		}
+	}
+	if LibraryName != "" {
+		if err := diffLibrary(systemInfo, client, LibraryName); err != nil {
+			return err
+		}
+	}
+	if CollectionName != "" {
+		if err := diffCollection(systemInfo, client, CollectionName); err != nil {
+			return err
+		}
+	}
+	if User != "" {
+		if err := diffUser(systemInfo, client, User); err != nil {
+			return err
+		}
+	}
+	if RoleName != "" {
+		if err := diffRole(systemInfo, client, RoleName); err != nil {
+			return err
+		}
+	}
+	if TriggerName != "" {
+		if err := diffTrigger(systemInfo, client, TriggerName); err != nil {
+			return err
+		}
+	}
+	if TimerName != "" {
+		if err := diffTimer(systemInfo, client, TimerName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func diffUserSchema(sys map[string]interface{}, client *cb.DevClient) error {
+	return nil
+}
+
+func diffService(sys map[string]interface{}, client *cb.DevClient, serviceName string) error {
+	return nil
+}
+
+func diffLibrary(sys map[string]interface{}, client *cb.DevClient, libraryName string) error {
+	return nil
+}
+
+func diffCollection(sys map[string]interface{}, client *cb.DevClient, collectionName string) error {
+	return nil
+}
+
+func diffUser(sys map[string]interface{}, client *cb.DevClient, userName string) error {
+	return nil
+}
+
+func diffRole(sys map[string]interface{}, client *cb.DevClient, roleName string) error {
+	return nil
+}
+
+func diffTrigger(sys map[string]interface{}, client *cb.DevClient, triggerName string) error {
+	localTrigger, err := getTrigger(triggerName + ".json")
+	if err != nil {
+		return err
+	}
+	remoteTrigger, err := pullTrigger(sys["systemKey"].(string), triggerName, client)
+	if err != nil {
+		return err
+	}
+	names.push("triggers")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localTrigger, remoteTrigger)
+	if printedDiffCount == 0 {
+		fmt.Printf("Local version of trigger '%s' is the same as the remote version\n", triggerName)
+	}
+	return nil
+}
+
+func diffTimer(sys map[string]interface{}, client *cb.DevClient, timerName string) error {
+	return nil
 }
 
 func printErr(strFmt string, args ...interface{}) {
 	if showErrors() {
-		printedErrorCount++
+		printedDiffCount++
 		newArgs := append([]interface{}{names.stringRep}, args...)
 		fmt.Printf("In %s: "+strFmt, newArgs...)
 	}
@@ -88,8 +203,8 @@ func diffSystemDotJSON(a, b map[string]interface{}) int {
 	names.push("system.json")
 	defer names.pop()
 	diffMap(a, b)
-	fmt.Printf("%d Total Errors\n", printedErrorCount)
-	return printedErrorCount
+	fmt.Printf("%d Total Errors\n", printedDiffCount)
+	return printedDiffCount
 }
 
 func diffUsersDotJSON(a, b []interface{}) int {
@@ -117,7 +232,7 @@ func diffUnknownTypes(key string, a, b interface{}) int {
 	} else if a == b {
 		return 0
 	}
-	printErr("Found differing values: %v != %v\n", a, b)
+	printErr("Found differing values: local %v != remote %v\n", a, b)
 	return 1
 }
 
@@ -133,7 +248,7 @@ func diffMap(a, b map[string]interface{}) int {
 			totalErrors += diffUnknownTypes(aKey, aVal, bVal)
 		} else {
 			totalErrors++
-			printErr("Item %s in first map missing in second map\n", aKey)
+			printErr("Item %s in local version missing in remote version\n", aKey)
 		}
 	}
 	for bKey, _ := range b {
@@ -229,7 +344,7 @@ func diffKeyedSlices(a, b []interface{}, uniqueKey string) int {
 		bVal := bValIF.(map[string]interface{})
 		if valForKey, ok := bVal[uniqueKey]; ok {
 			if !valInSlice(valForKey, seenKeyVals) {
-				printErr("Key %s with value %v not found in first system\n",
+				printErr("Key %s with value %v not found in local system\n",
 					uniqueKey, valForKey)
 				myErrors++
 			}
@@ -253,7 +368,7 @@ func diffTwoSlices(a, b []interface{}) int {
 
 func diffUnkeyedSlices(a, b []interface{}) int {
 	totalErrors := 0
-	printsBefore := printedErrorCount
+	printsBefore := printedDiffCount
 	for _, aVal := range a {
 		found := false
 		for _, bVal := range b {
@@ -267,13 +382,13 @@ func diffUnkeyedSlices(a, b []interface{}) int {
 		}
 		if !found {
 			totalErrors++
-			if printsBefore == printedErrorCount {
+			if printsBefore == printedDiffCount {
 				printErr("Could not find item %#v in other slice\n", aVal)
 			}
 		}
 	}
 
-	printsBefore = printedErrorCount
+	printsBefore = printedDiffCount
 	for _, bVal := range b {
 		found := false
 		for _, aVal := range a {
@@ -287,7 +402,7 @@ func diffUnkeyedSlices(a, b []interface{}) int {
 		}
 		if !found {
 			totalErrors++
-			if printsBefore == printedErrorCount {
+			if printsBefore == printedDiffCount {
 				printErr("Could not find item %#v in other slice\n", bVal)
 			}
 		}

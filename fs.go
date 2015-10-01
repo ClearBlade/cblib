@@ -67,6 +67,18 @@ func setupDirectoryStructure(sys *System_meta) error {
 	return nil
 }
 
+func storeCBMeta(info map[string]interface{}) error {
+	filename := ".cbmeta"
+	marshalled, err := json.MarshalIndent(info, "", "    ")
+	if err != nil {
+		return fmt.Errorf("Could not marshal .cbmeta info: %s", err.Error())
+	}
+	if err = ioutil.WriteFile(rootDir+"/"+filename, marshalled, 0666); err != nil {
+		return fmt.Errorf("Could not write to .cbmeta: %s", err.Error())
+	}
+	return nil
+}
+
 func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "services")
 	delete(systemDotJSON, "libraries")
@@ -151,7 +163,7 @@ func getLibraryCode(libraryName string) (string, error) {
 }
 
 func getCode(dirName, fileName string) (string, error) {
-	byts, err := ioutil.ReadFile("code/" + dirName + "/" + fileName + ".js")
+	byts, err := ioutil.ReadFile("code/" + dirName + "/" + fileName + "/" + fileName + ".js")
 	if err != nil {
 		return "", err
 	}
@@ -378,4 +390,24 @@ func getLibrary(name string) (map[string]interface{}, error) {
 	}
 	libMap["code"] = string(byts)
 	return libMap, nil
+}
+
+func goToRepoRootDir(cmd *SubCommand) error {
+	var err error
+	for {
+		dirname, dirErr := os.Getwd()
+		if dirErr != nil {
+			return dirErr
+		}
+		if dirname == "/" {
+			return fmt.Errorf("You must be inside of a ClearBlade export directory to run 'cb-cli %s'", cmd.name)
+		}
+		if metaInfo, err = getDict(".cbmeta"); err != nil {
+			if err = os.Chdir(".."); err != nil {
+				return fmt.Errorf("You must be inside of a ClearBlade export directory to run cb-cli %s", cmd.name)
+			}
+		} else {
+			return nil
+		}
+	}
 }
