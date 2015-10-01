@@ -374,12 +374,18 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 	}
 
 	//  Add the items
-	itemsIF, err := getCollectionItems(collectionName)
-	if err != nil {
-		return err
+	/*
+		itemsIF, err := getCollectionItems(collectionName)
+		if err != nil {
+			return err
+		}
+		items := make([]map[string]interface{}, len(itemsIF))
+	*/
+	items := collection["items"].([]interface{})
+	if len(items) == 0 {
+		return nil
 	}
-	items := make([]map[string]interface{}, len(itemsIF))
-	for idx, itemIF := range itemsIF {
+	for idx, itemIF := range items {
 		items[idx] = itemIF.(map[string]interface{})
 	}
 	if _, err := client.CreateData(colId, items); err != nil {

@@ -175,6 +175,7 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 			return nil, err
 		} else {
 			services[i] = s
+			writeService(s["name"].(string), s)
 		}
 	}
 	return services, nil
@@ -293,6 +294,8 @@ func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 
 func storeMeta(meta *System_meta) {
 	systemDotJSON["platformURL"] = URL
+	systemDotJSON["systemKey"] = meta.Key
+	systemDotJSON["systemSecret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
 	systemDotJSON["description"] = meta.Description
 	systemDotJSON["auth"] = true
@@ -413,6 +416,11 @@ func export(cli *cb.DevClient, sysKey string) error {
 	fmt.Printf("Done.\n")
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
+		return err
+	}
+
+	metaStuff := map[string]interface{}{"TODO": "Put stuff here"}
+	if err = storeCBMeta(metaStuff); err != nil {
 		return err
 	}
 
