@@ -3,7 +3,6 @@ package cblib
 import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	"time"
 )
 
 var (
@@ -69,7 +68,10 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 
 	// Now, create users -- register, update roles, and update user-def colunms
 	for _, user := range users {
-		createUser(sysKey, sysSec, user, client)
+		userId, err := createUser(sysKey, sysSec, user, client)
+		if err != nil {
+			return err
+		}
 
 		if len(userCols) == 0 {
 			continue
@@ -117,7 +119,7 @@ func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for _, trigger := range triggers {
-		createTrigger(sysKey, trigger.(map[string]interface{}), client)
+		createTrigger(sysKey, trigger, client)
 	}
 	return nil
 }

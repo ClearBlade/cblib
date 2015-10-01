@@ -6,30 +6,35 @@ import (
 	"strings"
 )
 
+func init() {
+	pullCommand := &SubCommand{
+		name:  "pull",
+		usage: "pull a specified resource from a system",
+		run:   doPull,
+	}
+	AddCommand("pull", pullCommand)
+}
+
+func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+	p := &Pull{
+		CLI:           cli,
+		SysKey:        args[0],
+		SystemDotJSON: map[string]interface{}{},
+	}
+	return p.Cmd(args[1:])
+}
+
 type Pull struct {
 	SysKey        string
-	DevToken      string
 	Service       string
 	Collection    string
 	User          string
 	Roles         []string
 	Trigger       string
 	Timer         string
-	URL           string
+	CLI           *cb.DevClient
 	SysMeta       *System_meta
 	SystemDotJSON map[string]interface{}
-}
-
-func Pull_cmd(sysKey, devToken string, args []string) error {
-	fmt.Printf("Initializing...")
-	p := &Pull{
-		URL:           URL,
-		SysKey:        sysKey,
-		DevToken:      devToken,
-		SystemDotJSON: map[string]interface{}{},
-	}
-	fmt.Printf("Done\n")
-	return p.Cmd(args[3:])
 }
 
 func (p Pull) Cmd(args []string) error {
@@ -55,40 +60,31 @@ func (p Pull) Cmd(args []string) error {
 			return fmt.Errorf("option \"%+v\" not supported", s[0])
 		}
 	}
-
-	cli, err := auth(p.DevToken)
-	if err != nil {
-		return err
-	}
-
-	if sysMeta, err := pullSystemMeta(p.SysKey, cli); err != nil {
+	if sysMeta, err := pullSystemMeta(p.SysKey, p.CLI); err != nil {
 		return err
 	} else {
 		p.SysMeta = sysMeta
 	}
+	setRootDir(strings.Replace(p.SysMeta.Name, " ", "_", -1))
 
-	if err := setupDirectoryStructure(p.SysMeta); err != nil {
-		return err
-	}
+	// if err := setupDirectoryStructure(p.SysMeta); err != nil {
+	// 	return err
+	// }
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pulling service %+v\n", val)
-		if svc, err := pullService(p.SysKey, val, cli); err != nil {
+		if svc, err := pullService(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
-			svcs := []map[string]interface{}{svc}
-			if err := storeServices("", svcs, p.SysMeta); err != nil {
-				return err
-			}
-			p.SystemDotJSON["services"] = svcs
+			p.SystemDotJSON["services"] = []map[string]interface{}{svc}
 		}
 	}
 	if val := p.Collection; len(val) > 0 {
 		fmt.Printf("Pulling collection %+v\n", val)
-		if co, err := cli.GetCollectionInfo(val); err != nil {
+		if co, err := p.CLI.GetCollectionInfo(val); err != nil {
 			return err
 		} else {
-			if data, err := pullCollection(co, p.SysMeta, cli); err != nil {
+			if data, err := pullCollection(p.SysMeta, co, p.CLI); err != nil {
 				return err
 			} else {
 				p.SystemDotJSON["data"] = data
@@ -97,7 +93,7 @@ func (p Pull) Cmd(args []string) error {
 	}
 	if val := p.User; len(val) > 0 {
 		fmt.Printf("Pulling user %+v\n", val)
-		if users, err := cli.GetAllUsers(p.SysKey); err != nil {
+		if users, err := p.CLI.GetAllUsers(p.SysKey); err != nil {
 			return err
 		} else {
 			ok := false
@@ -105,7 +101,7 @@ func (p Pull) Cmd(args []string) error {
 				if user["email"] == val {
 					ok = true
 					userId := user["user_id"].(string)
-					if roles, err := cli.GetUserRoles(p.SysKey, userId); err != nil {
+					if roles, err := p.CLI.GetUserRoles(p.SysKey, userId); err != nil {
 						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 					} else {
 						user["roles"] = roles
@@ -117,7 +113,7 @@ func (p Pull) Cmd(args []string) error {
 				return fmt.Errorf("User %+v not found\n", val)
 			}
 		}
-		if col, err := pullUserColumns(p.SysKey, cli); err != nil {
+		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI); err != nil {
 			return err
 		} else {
 			p.SystemDotJSON["users"] = col
@@ -127,7 +123,7 @@ func (p Pull) Cmd(args []string) error {
 		roles := make([]map[string]interface{}, 0)
 		for _, role := range val {
 			fmt.Printf("Pulling role %+v\n", role)
-			if r, err := pullRole(p.SysKey, role, cli); err != nil {
+			if r, err := pullRole(p.SysKey, role, p.CLI); err != nil {
 				return err
 			} else {
 				roles = append(roles, r)
@@ -137,7 +133,7 @@ func (p Pull) Cmd(args []string) error {
 	}
 	if val := p.Trigger; len(val) > 0 {
 		fmt.Printf("Pulling trigger %+v\n", val)
-		if trigg, err := pullTrigger(p.SysKey, val, cli); err != nil {
+		if trigg, err := pullTrigger(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
 			p.SystemDotJSON["triggers"] = []interface{}{trigg}
@@ -145,7 +141,7 @@ func (p Pull) Cmd(args []string) error {
 	}
 	if val := p.Timer; len(val) > 0 {
 		fmt.Printf("Pulling timer %+v\n", val)
-		if timer, err := pullTimer(p.SysKey, val, cli); err != nil {
+		if timer, err := pullTimer(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
 			p.SystemDotJSON["timer"] = []interface{}{timer}

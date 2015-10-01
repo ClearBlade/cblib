@@ -58,7 +58,11 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	}
 	rval := make([]map[string]interface{}, len(colls))
 	for i, col := range colls {
-		rval[i] = pullCollection(sysMeta, col.(map[string]interface{}), cli)
+		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
+			return nil, err
+		} else {
+			rval[i] = r
+		}
 	}
 	return rval, nil
 }
@@ -164,7 +168,11 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 	}
 	services := make([]map[string]interface{}, len(svcs))
 	for i, svc := range svcs {
-		services[i] = pullService(systemKey, svc, cli)
+		if s, err := pullService(systemKey, svc, cli); err != nil {
+			return nil, err
+		} else {
+			services[i] = s
+		}
 	}
 	return services, nil
 }
@@ -401,7 +409,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["users"] = userColumns
 	fmt.Printf("Done.\n")
 
-	if err = storeSystemDotJSON(); err != nil {
+	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
 	}
 

@@ -9,6 +9,24 @@ import (
 	"time"
 )
 
+func init() {
+	pushCommand := &SubCommand{
+		name:  "push",
+		usage: "push a specified resource to a system",
+		run:   doPush,
+	}
+	AddCommand("push", pushCommand)
+}
+
+func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+	p := &Push{
+		SysKey:  args[0],
+		CLI:     cli,
+		SysInfo: map[string]interface{}{},
+	}
+	return p.Cmd(args[1:])
+}
+
 type Push struct {
 	SysKey     string
 	DevToken   string
@@ -18,21 +36,8 @@ type Push struct {
 	Roles      []string
 	Trigger    string
 	Timer      string
-	URL        string
-	Dir        string
+	CLI        *cb.DevClient
 	SysInfo    map[string]interface{}
-}
-
-func Push_cmd(sysKey, devToken string, args []string) error {
-	fmt.Printf("Initializing...")
-	p := &Push{
-		Dir:      rootDir,
-		URL:      URL,
-		SysKey:   sysKey,
-		DevToken: devToken,
-	}
-	fmt.Printf("Done\n")
-	return p.Cmd(args[3:])
 }
 
 func (p Push) Cmd(args []string) error {
@@ -59,16 +64,12 @@ func (p Push) Cmd(args []string) error {
 		}
 	}
 
-	cli, err := auth(p.DevToken)
-	if err != nil {
-		return err
-	}
-
 	if systemInfo, err := getDict("system.json"); err != nil {
 		return err
 	} else {
 		p.SysInfo = systemInfo
 	}
+	setRootDir(strings.Replace(p.SysInfo["name"].(string), " ", "_", -1))
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pushing service %+v\n", val)
@@ -77,7 +78,7 @@ func (p Push) Cmd(args []string) error {
 			service := svc.(map[string]interface{})
 			if service["name"] == val {
 				ok = true
-				if err := createService(p.SysKey, service, cli); err != nil {
+				if err := createService(p.SysKey, service, p.CLI); err != nil {
 					return err
 				}
 			}
@@ -92,7 +93,7 @@ func (p Push) Cmd(args []string) error {
 		coll := p.SysInfo["data"].(map[string]interface{})
 		if coll["collectionID"] == val {
 			ok = true
-			if err := createCollection(p.SysKey, coll, cli); err != nil {
+			if err := createCollection(p.SysKey, coll, p.CLI); err != nil {
 				return err
 			}
 		}
@@ -102,7 +103,7 @@ func (p Push) Cmd(args []string) error {
 	}
 	if val := p.User; len(val) > 0 {
 		fmt.Printf("Pushing user %+v\n", val)
-		meta, err := pullSystemMeta(p.SysKey, cli)
+		meta, err := pullSystemMeta(p.SysKey, p.CLI)
 		if err != nil {
 			return err
 		}
@@ -119,17 +120,17 @@ func (p Push) Cmd(args []string) error {
 						column := userCol.(map[string]interface{})
 						columnName := column["ColumnName"].(string)
 						columnType := column["ColumnType"].(string)
-						if err := cli.CreateUserColumn(p.SysKey, columnName, columnType); err != nil {
+						if err := p.CLI.CreateUserColumn(p.SysKey, columnName, columnType); err != nil {
 							return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
 						}
 					}
 					userId := userMap["user_id"].(string)
-					if roles, err := cli.GetUserRoles(p.SysKey, userId); err != nil {
+					if roles, err := p.CLI.GetUserRoles(p.SysKey, userId); err != nil {
 						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 					} else {
 						userMap["roles"] = roles
 					}
-					if err := createUser(p.SysKey, sysSecret, userMap, cli); err != nil {
+					if _, err := createUser(p.SysKey, sysSecret, userMap, p.CLI); err != nil {
 						return fmt.Errorf("Could not create user %s: %s", val, err.Error())
 					}
 				}
@@ -151,7 +152,7 @@ func (p Push) Cmd(args []string) error {
 				if role["Name"] == roleName {
 					ok = true
 					fmt.Printf("Pushing role %+v\n", roleName)
-					if err := updateRole(p.SysKey, role, cli); err != nil {
+					if err := updateRole(p.SysKey, role, p.CLI); err != nil {
 						return err
 					}
 				}
@@ -172,7 +173,7 @@ func (p Push) Cmd(args []string) error {
 			trigger := triggIF.(map[string]interface{})
 			if trigger["name"] == val {
 				ok = true
-				if err := updateTrigger(p.SysKey, trigger, cli); err != nil {
+				if err := updateTrigger(p.SysKey, trigger, p.CLI); err != nil {
 					return err
 				}
 			}
@@ -192,7 +193,7 @@ func (p Push) Cmd(args []string) error {
 			timer := timerIF.(map[string]interface{})
 			if timer["name"] == val {
 				ok = true
-				if err := updateTimer(p.SysKey, timer, cli); err != nil {
+				if err := updateTimer(p.SysKey, timer, p.CLI); err != nil {
 					return err
 				}
 			}
@@ -205,7 +206,7 @@ func (p Push) Cmd(args []string) error {
 	return nil
 }
 
-func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) error {
+func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) (string, error) {
 	email := user["email"].(string)
 	password := "password"
 	if pwd, ok := user["password"]; ok {
@@ -213,16 +214,16 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 	}
 	newUser, err := client.RegisterNewUser(email, password, systemKey, systemSecret)
 	if err != nil {
-		return fmt.Errorf("Could not create user %s: %s", email, err.Error())
+		return "", fmt.Errorf("Could not create user %s: %s", email, err.Error())
 	}
 	userId := newUser["user_id"].(string)
 	niceRoles := mungeRoles(user["roles"].([]interface{}))
 	if len(niceRoles) > 0 {
 		if err := client.AddUserToRoles(systemKey, userId, niceRoles); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return userId, nil
 }
 
 func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) error {
@@ -328,7 +329,7 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 	}
 	permissions := service["permissions"].(map[string]interface{})
 	for roleId, level := range permissions {
-		if err := client.AddServiceToRole(sysKey, svcName, roleId, int(level.(float64))); err != nil {
+		if err := client.AddServiceToRole(systemKey, svcName, roleId, int(level.(float64))); err != nil {
 			return err
 		}
 	}

@@ -62,7 +62,7 @@ func setupDirectoryStructure(sys *System_meta) error {
 	return nil
 }
 
-func storeSystemDotJSON() error {
+func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "services")
 	delete(systemDotJSON, "libraries")
 	delete(systemDotJSON, "timers")
