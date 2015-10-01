@@ -64,6 +64,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
+			writeCollection(r["name"].(string), r)
 			rval[i] = r
 		}
 	}
@@ -88,9 +89,6 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 		co["items"] = items
-	}
-	if err := writeCollection(co["name"].(string), co); err != nil {
-		return nil, err
 	}
 	return co, nil
 }
