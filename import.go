@@ -40,6 +40,23 @@ func createSystem(system map[string]interface{}, client *cb.DevClient) error {
 	return nil
 }
 
+func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	roles, err := getRoles()
+	if err != nil {
+		return err
+	}
+	for _, role := range roles {
+		name := role["Name"].(string)
+		if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
+			if err := createRole(sysKey, role, client); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func createUsers(systemInfo map[string]interface{}, users []map[string]interface{}, client *cb.DevClient) error {
 
 	//  Create user columns first -- if any
@@ -229,6 +246,10 @@ func importIt(cli *cb.DevClient) error {
 	fmt.Printf("Done.\nImporting system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
+	}
+	fmt.Printf("Done.\nImporting roles...")
+	if err := createRoles(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create roles: %s", err.Error())
 	}
 	fmt.Printf("Done.\nImporting users...")
 	if err := createUsers(systemInfo, users, cli); err != nil {

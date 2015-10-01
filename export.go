@@ -136,7 +136,6 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 		allData = append(allData, curData...)
 	}
 	return allData, nil
-	//return writeCollection(collection, allData)
 }
 
 func pullUserSchemaInfo(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
