@@ -47,6 +47,7 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 	sysSec := systemInfo["systemSecret"].(string)
 	userSchema, err := getUserSchema()
 	userCols := userSchema["columns"].([]interface{})
+	userPerms := userSchema["permissions"].(map[string]interface{})
 	if err != nil {
 		return err
 	}
@@ -59,8 +60,12 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 		}
 	}
 
-	//  XXXSWM TODO -- add permissions to the users table:
-	//  userTablePerms := userSchema["permissions"]
+	for roleName, levelFloat := range userPerms {
+		level := int(levelFloat.(float64))
+		if err := client.AddGenericPermissionToRole(sysKey, roleName, "users", level); err != nil {
+			return err
+		}
+	}
 
 	if !importUsers {
 		return nil

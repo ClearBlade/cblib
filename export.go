@@ -3,7 +3,6 @@ package cblib
 import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	//"io/ioutil"
 	"os"
 	"strings"
 )
@@ -38,7 +37,11 @@ func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, e
 	}
 	rval := make([]map[string]interface{}, len(r))
 	for idx, rIF := range r {
-		rval[idx] = rIF.(map[string]interface{})
+		thisRole := rIF.(map[string]interface{})
+		rval[idx] = thisRole
+		if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
+			return nil, err
+		}
 	}
 	return rval, nil
 }

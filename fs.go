@@ -17,6 +17,7 @@ var (
 	usersDir    string
 	timersDir   string
 	triggersDir string
+	rolesDir    string
 )
 
 func setRootDir(theRootDir string) {
@@ -27,6 +28,7 @@ func setRootDir(theRootDir string) {
 	usersDir = rootDir + "/users"
 	timersDir = rootDir + "/timers"
 	triggersDir = rootDir + "/triggers"
+	rolesDir = rootDir + "/roles"
 }
 func setupDirectoryStructure(sys *System_meta) error {
 	/*
@@ -58,6 +60,9 @@ func setupDirectoryStructure(sys *System_meta) error {
 	}
 	if err := os.MkdirAll(triggersDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", triggersDir, err.Error())
+	}
+	if err := os.MkdirAll(rolesDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", rolesDir, err.Error())
 	}
 	return nil
 }
@@ -187,6 +192,10 @@ func writeTrigger(name string, data map[string]interface{}) error {
 
 func writeTimer(name string, data map[string]interface{}) error {
 	return writeEntity(timersDir, name, data)
+}
+
+func writeRole(name string, data map[string]interface{}) error {
+	return writeEntity(rolesDir, name, data)
 }
 
 func writeService(name string, data map[string]interface{}) error {
