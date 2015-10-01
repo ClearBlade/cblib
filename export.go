@@ -114,6 +114,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	colId := collection["collectionID"].(string)
 
 	totalItems, err := client.GetItemCount(colId)
+	fmt.Printf("totalItems")
 	if err != nil {
 		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}

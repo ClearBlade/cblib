@@ -73,9 +73,12 @@ func (p Push) Cmd(args []string) error {
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pushing service %+v\n", val)
+		services, err := getServices()
+		if err != nil {
+			return err
+		}
 		ok := false
-		for _, svc := range p.SysInfo["services"].([]interface{}) {
-			service := svc.(map[string]interface{})
+		for _, service := range services {
 			if service["name"] == val {
 				ok = true
 				if err := createService(p.SysKey, service, p.CLI); err != nil {
@@ -374,6 +377,7 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 	}
 
 	//  Add the items
+	fmt.Printf("collection name %+v\n", collectionName)
 	itemsIF, err := getCollectionItems(collectionName)
 	if err != nil {
 		return err
