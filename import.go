@@ -124,7 +124,9 @@ func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for _, trigger := range triggers {
-		createTrigger(sysKey, trigger, client)
+		if err := createTrigger(sysKey, trigger, client); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -136,7 +138,9 @@ func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error
 		return err
 	}
 	for _, timer := range timers {
-		createTimer(sysKey, timer, client)
+		if err := createTimer(sysKey, timer, client); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -148,7 +152,9 @@ func createServices(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for _, service := range services {
-		createService(sysKey, service, client)
+		if err := createService(sysKey, service, client); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -160,7 +166,9 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 		return err
 	}
 	for _, library := range libraries {
-		createLibrary(sysKey, library, client)
+		if err := createLibrary(sysKey, library, client); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -172,7 +180,9 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 		return err
 	}
 	for _, collection := range collections {
-		createCollection(sysKey, collection, client)
+		if err := createCollection(sysKey, collection, client); err != nil {
+			return err
+		}
 	}
 	return nil
 }
