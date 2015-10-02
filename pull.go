@@ -26,6 +26,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 type Pull struct {
 	SysKey     string
 	Service    string
+	Library    string
 	Collection string
 	User       string
 	Roles      []string
@@ -44,6 +45,8 @@ func (p Pull) Cmd(args []string) error {
 		switch s[0] {
 		case "service":
 			p.Service = s[1]
+		case "library":
+			p.Library = s[1]
 		case "collection":
 			p.Collection = s[1]
 		case "user":
@@ -71,15 +74,23 @@ func (p Pull) Cmd(args []string) error {
 	storeSystemDotJSON(systemDotJSON)
 
 	if val := p.Service; len(val) > 0 {
-		fmt.Printf("Pulling service %+v\n", val)
+		fmt.Printf("Pulling service %+s\n", val)
 		if svc, err := pullService(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
 			writeService(val, svc)
 		}
 	}
+	if val := p.Library; len(val) > 0 {
+		fmt.Printf("Pulling library %s\n", val)
+		if lib, err := pullLibrary(p.SysKey, val, p.CLI); err != nil {
+			return err
+		} else {
+			writeLibrary(lib["name"].(string), lib)
+		}
+	}
 	if val := p.Collection; len(val) > 0 {
-		fmt.Printf("Pulling collection %+v\n", val)
+		fmt.Printf("Pulling collection %+s\n", val)
 		if co, err := p.CLI.GetCollectionInfo(val); err != nil {
 			return err
 		} else {
@@ -91,7 +102,7 @@ func (p Pull) Cmd(args []string) error {
 		}
 	}
 	if val := p.User; len(val) > 0 {
-		fmt.Printf("Pulling user %+v\n", val)
+		fmt.Printf("Pulling user %+s\n", val)
 		if users, err := p.CLI.GetAllUsers(p.SysKey); err != nil {
 			return err
 		} else {
@@ -109,7 +120,7 @@ func (p Pull) Cmd(args []string) error {
 				}
 			}
 			if !ok {
-				return fmt.Errorf("User %+v not found\n", val)
+				return fmt.Errorf("User %+s not found\n", val)
 			}
 		}
 		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI, true); err != nil {
@@ -121,7 +132,7 @@ func (p Pull) Cmd(args []string) error {
 	if val := p.Roles; len(val) > 0 {
 		roles := make([]map[string]interface{}, 0)
 		for _, role := range val {
-			fmt.Printf("Pulling role %+v\n", role)
+			fmt.Printf("Pulling role %+s\n", role)
 			if r, err := pullRole(p.SysKey, role, p.CLI); err != nil {
 				return err
 			} else {
@@ -132,7 +143,7 @@ func (p Pull) Cmd(args []string) error {
 		storeRoles(roles)
 	}
 	if val := p.Trigger; len(val) > 0 {
-		fmt.Printf("Pulling trigger %+v\n", val)
+		fmt.Printf("Pulling trigger %+s\n", val)
 		if trigg, err := pullTrigger(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
@@ -140,7 +151,7 @@ func (p Pull) Cmd(args []string) error {
 		}
 	}
 	if val := p.Timer; len(val) > 0 {
-		fmt.Printf("Pulling timer %+v\n", val)
+		fmt.Printf("Pulling timer %+s\n", val)
 		if timer, err := pullTimer(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
