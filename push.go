@@ -31,6 +31,7 @@ type Push struct {
 	SysKey     string
 	DevToken   string
 	Service    string
+	Library    string
 	Collection string
 	User       string
 	Roles      []string
@@ -49,6 +50,8 @@ func (p Push) Cmd(args []string) error {
 		switch s[0] {
 		case "service":
 			p.Service = s[1]
+		case "library":
+			p.Library = s[1]
 		case "collection":
 			p.Collection = s[1]
 		case "user":
@@ -72,7 +75,7 @@ func (p Push) Cmd(args []string) error {
 	setRootDir(".")
 
 	if val := p.Service; len(val) > 0 {
-		fmt.Printf("Pushing service %+v\n", val)
+		fmt.Printf("Pushing service %+s\n", val)
 		services, err := getServices()
 		if err != nil {
 			return err
@@ -87,11 +90,30 @@ func (p Push) Cmd(args []string) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Service %+v not found\n", val)
+			return fmt.Errorf("Service %+s not found\n", val)
+		}
+	}
+	if val := p.Library; len(val) > 0 {
+		fmt.Printf("Pushing library %+s\n", val)
+		libraries, err := getLibraries()
+		if err != nil {
+			return err
+		}
+		ok := false
+		for _, library := range libraries {
+			if library["name"] == val {
+				ok = true
+				if err := updateLibrary(p.SysKey, library, p.CLI); err != nil {
+					return err
+				}
+			}
+		}
+		if !ok {
+			return fmt.Errorf("Library %+s not found\n", val)
 		}
 	}
 	if val := p.Collection; len(val) > 0 {
-		fmt.Printf("Pushing collection %+v\n", val)
+		fmt.Printf("Pushing collection %+s\n", val)
 		ok := false
 		coll := p.SysInfo["data"].(map[string]interface{})
 		if coll["collectionID"] == val {
@@ -101,11 +123,11 @@ func (p Push) Cmd(args []string) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Collection %+v not found\n", val)
+			return fmt.Errorf("Collection %+s not found\n", val)
 		}
 	}
 	if val := p.User; len(val) > 0 {
-		fmt.Printf("Pushing user %+v\n", val)
+		fmt.Printf("Pushing user %+s\n", val)
 		meta, err := pullSystemMeta(p.SysKey, p.CLI)
 		if err != nil {
 			return err
@@ -139,7 +161,7 @@ func (p Push) Cmd(args []string) error {
 				}
 			}
 			if !ok {
-				return fmt.Errorf("User %+v not found\n", val)
+				return fmt.Errorf("User %+s not found\n", val)
 			}
 		}
 	}
@@ -154,7 +176,7 @@ func (p Push) Cmd(args []string) error {
 			for _, roleName := range p.Roles {
 				if role["Name"] == roleName {
 					ok = true
-					fmt.Printf("Pushing role %+v\n", roleName)
+					fmt.Printf("Pushing role %+s\n", roleName)
 					if err := updateRole(p.SysKey, role, p.CLI); err != nil {
 						return err
 					}
@@ -162,11 +184,11 @@ func (p Push) Cmd(args []string) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Role %+v not found\n", val)
+			return fmt.Errorf("Role %+s not found\n", val)
 		}
 	}
 	if val := p.Trigger; len(val) > 0 {
-		fmt.Printf("Pushing trigger %+v\n", val)
+		fmt.Printf("Pushing trigger %+s\n", val)
 		triggers, ok := p.SysInfo["triggers"]
 		if !ok {
 			return fmt.Errorf("No triggers found locally.\n")
@@ -182,11 +204,11 @@ func (p Push) Cmd(args []string) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Trigger %+v not found\n", val)
+			return fmt.Errorf("Trigger %+s not found\n", val)
 		}
 	}
 	if val := p.Timer; len(val) > 0 {
-		fmt.Printf("Pushing timer %+v\n", val)
+		fmt.Printf("Pushing timer %+s\n", val)
 		timers, ok := p.SysInfo["timers"]
 		if !ok {
 			return fmt.Errorf("No timers found locally.\n")
@@ -202,7 +224,7 @@ func (p Push) Cmd(args []string) error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Timer %+v not found\n", val)
+			return fmt.Errorf("Timer %+s not found\n", val)
 		}
 	}
 
@@ -259,7 +281,7 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 	delete(trigger, "name")
 	delete(trigger, "event_definition")
 	if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
-		fmt.Printf("Could not update trigger %s\n", triggerName)
+		fmt.Printf("Could not find trigger %s\n", triggerName)
 		fmt.Printf("Would you like to create a new trigger named %s? (Y/n)", triggerName)
 		reader := bufio.NewReader(os.Stdin)
 		if text, err := reader.ReadString('\n'); err != nil {
@@ -300,7 +322,7 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 		timer["start_time"] = time.Now().Format(time.RFC3339)
 	}
 	if _, err := client.UpdateTimer(systemKey, timerName, timer); err != nil {
-		fmt.Printf("Could not update timer %s\n", timerName)
+		fmt.Printf("Could not find timer %s\n", timerName)
 		fmt.Printf("Would you like to create a new timer named %s? (Y/n)", timerName)
 		reader := bufio.NewReader(os.Stdin)
 		if text, err := reader.ReadString('\n'); err != nil {
@@ -328,7 +350,7 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 		svcParams = append(svcParams, params.(string))
 	}
 	if err := client.UpdateService(systemKey, svcName, svcCode, svcParams); err != nil {
-		fmt.Printf("Could not update service %s\n", svcName)
+		fmt.Printf("Could not find service %s\n", svcName)
 		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
 		reader := bufio.NewReader(os.Stdin)
 		if text, err := reader.ReadString('\n'); err != nil {
@@ -376,6 +398,33 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 	for roleId, level := range roleIds {
 		if err := client.AddServiceToRole(systemKey, svcName, roleId, level); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func updateLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
+	libName := library["name"].(string)
+	delete(library, "name")
+	delete(library, "version")
+	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
+		libName := libName + "2"
+		fmt.Printf("Could not find library %s\n", libName)
+		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				library["name"] = libName
+				if err := createLibrary(systemKey, library, client); err != nil {
+					return fmt.Errorf("Could not create library %s: %s", libName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new library %s\n", libName)
+				}
+			} else {
+				fmt.Printf("Library will not be created.\n")
+			}
 		}
 	}
 	return nil
