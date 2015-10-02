@@ -2,8 +2,12 @@ package cblib
 
 import (
 	//"encoding/json"
+	"bytes"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 )
@@ -149,6 +153,52 @@ func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
 }
 
 func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
+	localService, err := getService(serviceName)
+	if err != nil {
+		return err
+	}
+
+	remoteService, err := pullService(sys.Key, serviceName, client)
+	if err != nil {
+		return err
+	}
+	lCode := localService["code"].(string)
+	rCode := remoteService["code"].(string)
+	if lCode[len(lCode)-1] != '\n' {
+		lCode = lCode + "\n"
+	}
+	if rCode[len(rCode)-1] != '\n' {
+		rCode = rCode + "\n"
+	}
+	delete(localService, "code")
+	delete(remoteService, "code")
+
+	myPid := os.Getpid()
+	localFile := fmt.Sprintf("/tmp/%d-local.js", myPid)
+	remoteFile := fmt.Sprintf("/tmp/%d-remote.js", myPid)
+
+	if err = ioutil.WriteFile(localFile, []byte(lCode), 0666); err != nil {
+		return err
+	}
+	if err = ioutil.WriteFile(remoteFile, []byte(rCode), 0666); err != nil {
+		return err
+	}
+	diffCmd := exec.Command("/usr/bin/diff", localFile, remoteFile)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	diffCmd.Stdout = &stdout
+	diffCmd.Stderr = &stderr
+	if err := diffCmd.Run(); err != nil && err.Error() != "exit status 1" {
+		return fmt.Errorf("Internal error, exec failed: %s: %s", err.Error(), stderr.String())
+	}
+	if stdout.String() != "" {
+		printErr("Local version of code for '%s' is different from remote:\n%s\n", serviceName, stdout.String())
+	}
+
+	/*
+		os.Remove(localFile)
+		os.Remove(remoteFile)
+	*/
 	return nil
 }
 
@@ -363,7 +413,6 @@ func diffMap(a, b map[string]interface{}) int {
 		if bVal, ok := b[aKey]; ok {
 			totalErrors += diffUnknownTypes(aKey, aVal, bVal)
 		} else {
-			fmt.Printf("HMMM: %v, %v\n", a, b)
 			totalErrors++
 			printErr("Item %s in local version missing in remote version\n", aKey)
 		}
