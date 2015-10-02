@@ -54,6 +54,12 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 			}
 		}
 	}
+	// ids were created on import for the new roles, grab those
+	rolesInfo, err = pullRoles(sysKey, client, false) // global :(
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -77,12 +83,8 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 		}
 	}
 	// same thing as with code services, we need role ID not name
-	roles, err := pullRoles(sysKey, client, false)
-	if err != nil {
-		return err
-	}
 	roleIds := map[string]int{}
-	for _, role := range roles {
+	for _, role := range rolesInfo {
 		for roleName, level := range userPerms {
 			if role["Name"] == roleName {
 				id := role["ID"].(string)

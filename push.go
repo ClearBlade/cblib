@@ -335,12 +335,8 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 	}
 	permissions := service["permissions"].(map[string]interface{})
 	//fetch roles again, find new id of role with same name
-	roles, err := pullRoles(systemKey, client, false)
-	if err != nil {
-		return err
-	}
 	roleIds := map[string]int{}
-	for _, role := range roles {
+	for _, role := range rolesInfo {
 		for roleName, level := range permissions {
 			if role["Name"] == roleName {
 				id := role["ID"].(string)
@@ -376,13 +372,9 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 
 	permissions := collection["permissions"].(map[string]interface{})
 
-	roles, err := pullRoles(sysKey, client, false)
-	if err != nil {
-		return err
-	}
 	roleIds := map[string]int{}
-	for _, role := range roles {
-		for roleName, level := range userPerms {
+	for _, role := range rolesInfo {
+		for roleName, level := range permissions {
 			if role["Name"] == roleName {
 				id := role["ID"].(string)
 				roleIds[id] = int(level.(float64))
