@@ -116,6 +116,14 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
+func dumbDownSchemaColumns(cols []map[string]interface{}) []interface{} {
+	rval := make([]interface{}, len(cols))
+	for idx, val := range cols {
+		rval[idx] = val
+	}
+	return rval
+}
+
 func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
 	localSchema, err := getUserSchema()
 	if err != nil {
@@ -127,6 +135,7 @@ func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
 		return err
 	}
 	remoteSchema, err := pullUserSchemaInfo(sys.Key, client, false)
+	remoteSchema["columns"] = dumbDownSchemaColumns(remoteSchema["columns"].([]map[string]interface{}))
 	if err != nil {
 		return err
 	}

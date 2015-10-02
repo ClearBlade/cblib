@@ -352,10 +352,11 @@ func export(cli *cb.DevClient, sysKey string) error {
 	storeMeta(sysMeta)
 	fmt.Printf("Done.\nExporting Roles...")
 
-	rolesInfo, err := pullRoles(sysKey, cli, true)
+	roles, err := pullRoles(sysKey, cli, true)
 	if err != nil {
 		return err
 	}
+	rolesInfo = roles
 	storeRoles(rolesInfo)
 
 	fmt.Printf("Done.\nExporting Services...")
