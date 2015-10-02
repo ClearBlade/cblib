@@ -185,7 +185,7 @@ func writeUser(email string, data map[string]interface{}) error {
 	return writeEntity(usersDir, email, data)
 }
 
-func writeUserSchema(data []map[string]interface{}) error {
+func writeUserSchema(data map[string]interface{}) error {
 	return writeEntity(usersDir, "schema", data)
 }
 
@@ -356,10 +356,6 @@ func getTimer(name string) (map[string]interface{}, error) {
 
 func getCollection(name string) (map[string]interface{}, error) {
 	return getObject(dataDir, name)
-}
-
-func getRole(name string) (map[string]interface{}, error) {
-	return getObject(rolesDir, name)
 }
 
 func getService(name string) (map[string]interface{}, error) {
