@@ -69,7 +69,7 @@ func (p Push) Cmd(args []string) error {
 	} else {
 		p.SysInfo = systemInfo
 	}
-	setRootDir(strings.Replace(p.SysInfo["name"].(string), " ", "_", -1))
+	setRootDir(".")
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pushing service %+v\n", val)
@@ -81,7 +81,7 @@ func (p Push) Cmd(args []string) error {
 		for _, service := range services {
 			if service["name"] == val {
 				ok = true
-				if err := createService(p.SysKey, service, p.CLI); err != nil {
+				if err := updateService(p.SysKey, service, p.CLI); err != nil {
 					return err
 				}
 			}
@@ -314,6 +314,34 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 				}
 			} else {
 				fmt.Printf("Timer will not be created.\n")
+			}
+		}
+	}
+	return nil
+}
+
+func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
+	svcName := service["name"].(string)
+	svcCode := service["code"].(string)
+	svcParams := []string{}
+	for _, params := range service["params"].([]interface{}) {
+		svcParams = append(svcParams, params.(string))
+	}
+	if err := client.UpdateService(systemKey, svcName, svcCode, svcParams); err != nil {
+		fmt.Printf("Could not update service %s\n", svcName)
+		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				if err := createService(systemKey, service, client); err != nil {
+					return fmt.Errorf("Could not create service %s: %s", svcName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new service %s\n", svcName)
+				}
+			} else {
+				fmt.Printf("Service will not be created.\n")
 			}
 		}
 	}
