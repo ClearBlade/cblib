@@ -17,24 +17,22 @@ func init() {
 
 func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	p := &Pull{
-		CLI:           cli,
-		SysKey:        args[0],
-		SystemDotJSON: map[string]interface{}{},
+		CLI:    cli,
+		SysKey: args[0],
 	}
 	return p.Cmd(args[1:])
 }
 
 type Pull struct {
-	SysKey        string
-	Service       string
-	Collection    string
-	User          string
-	Roles         []string
-	Trigger       string
-	Timer         string
-	CLI           *cb.DevClient
-	SysMeta       *System_meta
-	SystemDotJSON map[string]interface{}
+	SysKey     string
+	Service    string
+	Collection string
+	User       string
+	Roles      []string
+	Trigger    string
+	Timer      string
+	CLI        *cb.DevClient
+	SysMeta    *System_meta
 }
 
 func (p Pull) Cmd(args []string) error {
@@ -66,17 +64,18 @@ func (p Pull) Cmd(args []string) error {
 		p.SysMeta = sysMeta
 	}
 	setRootDir(strings.Replace(p.SysMeta.Name, " ", "_", -1))
-
-	// if err := setupDirectoryStructure(p.SysMeta); err != nil {
-	// 	return err
-	// }
+	if err := setupDirectoryStructure(p.SysMeta); err != nil {
+		return err
+	}
+	storeMeta(p.SysMeta)
+	storeSystemDotJSON(systemDotJSON)
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pulling service %+v\n", val)
 		if svc, err := pullService(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
-			p.SystemDotJSON["services"] = []map[string]interface{}{svc}
+			writeService(val, svc)
 		}
 	}
 	if val := p.Collection; len(val) > 0 {
@@ -87,7 +86,7 @@ func (p Pull) Cmd(args []string) error {
 			if data, err := pullCollection(p.SysMeta, co, p.CLI); err != nil {
 				return err
 			} else {
-				p.SystemDotJSON["data"] = data
+				writeCollection(data["name"].(string), data)
 			}
 		}
 	}
@@ -106,7 +105,7 @@ func (p Pull) Cmd(args []string) error {
 					} else {
 						user["roles"] = roles
 					}
-					writeUsersFile([]map[string]interface{}{user})
+					writeUser(val, user)
 				}
 			}
 			if !ok {
@@ -116,7 +115,7 @@ func (p Pull) Cmd(args []string) error {
 		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI, true); err != nil {
 			return err
 		} else {
-			p.SystemDotJSON["users"] = col
+			writeUserSchema(col)
 		}
 	}
 	if val := p.Roles; len(val) > 0 {
@@ -127,16 +126,17 @@ func (p Pull) Cmd(args []string) error {
 				return err
 			} else {
 				roles = append(roles, r)
+				writeRole(role, r)
 			}
 		}
-		p.SystemDotJSON["roles"] = roles
+		storeRoles(roles)
 	}
 	if val := p.Trigger; len(val) > 0 {
 		fmt.Printf("Pulling trigger %+v\n", val)
 		if trigg, err := pullTrigger(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
-			p.SystemDotJSON["triggers"] = []interface{}{trigg}
+			writeTrigger(val, trigg)
 		}
 	}
 	if val := p.Timer; len(val) > 0 {
@@ -144,14 +144,9 @@ func (p Pull) Cmd(args []string) error {
 		if timer, err := pullTimer(p.SysKey, val, p.CLI); err != nil {
 			return err
 		} else {
-			p.SystemDotJSON["timer"] = []interface{}{timer}
+			writeTimer(val, timer)
 		}
 	}
-
-	if err := storeSystemDotJSON(p.SystemDotJSON); err != nil {
-		return err
-	}
-
 	return nil
 }
 

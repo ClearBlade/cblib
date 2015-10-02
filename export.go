@@ -65,6 +65,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
+			writeCollection(r["name"].(string), r)
 			rval[i] = r
 		}
 	}
@@ -89,9 +90,6 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 		co["items"] = items
-	}
-	if err := writeCollection(co["name"].(string), co); err != nil {
-		return nil, err
 	}
 	return co, nil
 }
@@ -138,7 +136,6 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 		allData = append(allData, curData...)
 	}
 	return allData, nil
-	//return writeCollection(collection, allData)
 }
 
 func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
@@ -261,7 +258,7 @@ func getRolesForThing(name, key string) map[string]interface{} {
 		roleSvcs := roleInfo["Permissions"].(map[string]interface{})[key].([]interface{}) // Mouthful
 		for _, roleEntIF := range roleSvcs {
 			roleEnt := roleEntIF.(map[string]interface{})
-			if roleEnt["Name"].(string) != name {
+			if roleEnt["Name"].(string) == name {
 				rval[roleName] = roleEnt["Level"]
 			}
 		}

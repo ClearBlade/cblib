@@ -73,9 +73,12 @@ func (p Push) Cmd(args []string) error {
 
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pushing service %+v\n", val)
+		services, err := getServices()
+		if err != nil {
+			return err
+		}
 		ok := false
-		for _, svc := range p.SysInfo["services"].([]interface{}) {
-			service := svc.(map[string]interface{})
+		for _, service := range services {
 			if service["name"] == val {
 				ok = true
 				if err := createService(p.SysKey, service, p.CLI); err != nil {
@@ -206,6 +209,13 @@ func (p Push) Cmd(args []string) error {
 	return nil
 }
 
+func createRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
+	if _, err := client.CreateRole(systemKey, role["Name"].(string)); err != nil {
+		return err
+	}
+	return nil
+}
+
 func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) (string, error) {
 	email := user["email"].(string)
 	password := "password"
@@ -314,11 +324,7 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 	svcName := service["name"].(string)
 	svcParams := mkSvcParams(service["params"].([]interface{}))
 	svcDeps := service["dependencies"].(string)
-	svcCode, err := getServiceCode(svcName)
-	delete(service, "code")
-	if err != nil {
-		return err
-	}
+	svcCode := service["code"].(string)
 	if err := client.NewServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); err != nil {
 		return err
 	}
@@ -372,15 +378,6 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 			return err
 		}
 	}
-
-	//  Add the items
-	/*
-		itemsIF, err := getCollectionItems(collectionName)
-		if err != nil {
-			return err
-		}
-		items := make([]map[string]interface{}, len(itemsIF))
-	*/
 	items := collection["items"].([]interface{})
 	if len(items) == 0 {
 		return nil

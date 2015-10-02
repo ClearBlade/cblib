@@ -210,6 +210,7 @@ func writeService(name string, data map[string]interface{}) error {
 	if err := ioutil.WriteFile(mySvcDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
+
 	cleanService(data)
 	return writeEntity(mySvcDir, name, data)
 }
@@ -305,6 +306,10 @@ func getServices() ([]map[string]interface{}, error) {
 	return getCodeStuff(svcDir)
 }
 
+func getRoles() ([]map[string]interface{}, error) {
+	return getObjectList(rolesDir, []string{})
+}
+
 func getUsers() ([]map[string]interface{}, error) {
 	return getObjectList(usersDir, []string{"schema.json"})
 }
@@ -331,6 +336,10 @@ func getObject(dirName, objName string) (map[string]interface{}, error) {
 
 func getUserSchema() (map[string]interface{}, error) {
 	return getObject(usersDir, "schema.json")
+}
+
+func getRole(name string) (map[string]interface{}, error) {
+	return getObject(rolesDir, name)
 }
 
 func getUser(email string) (map[string]interface{}, error) {
