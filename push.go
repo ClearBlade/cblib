@@ -334,8 +334,23 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 		}
 	}
 	permissions := service["permissions"].(map[string]interface{})
-	for roleId, level := range permissions {
-		if err := client.AddServiceToRole(systemKey, svcName, roleId, int(level.(float64))); err != nil {
+	//fetch roles again, find new id of role with same name
+	roles, err := pullRoles(systemKey, client, false)
+	if err != nil {
+		return err
+	}
+	roleIds := map[string]int{}
+	for _, role := range roles {
+		for roleName, level := range permissions {
+			if role["Name"] == roleName {
+				id := role["ID"].(string)
+				roleIds[id] = int(level.(float64))
+			}
+		}
+	}
+	// now can iterate over ids instead of permission name
+	for roleId, level := range roleIds {
+		if err := client.AddServiceToRole(systemKey, svcName, roleId, level); err != nil {
 			return err
 		}
 	}

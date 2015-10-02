@@ -76,10 +76,23 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 			return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
 		}
 	}
+	// same thing as with code services, we need role ID not name
+	roles, err := pullRoles(sysKey, client, false)
+	if err != nil {
+		return err
+	}
+	roleIds := map[string]int{}
+	for _, role := range roles {
+		for roleName, level := range userPerms {
+			if role["Name"] == roleName {
+				id := role["ID"].(string)
+				roleIds[id] = int(level.(float64))
+			}
+		}
+	}
 
-	for roleName, levelFloat := range userPerms {
-		level := int(levelFloat.(float64))
-		if err := client.AddGenericPermissionToRole(sysKey, roleName, "users", level); err != nil {
+	for roleID, level := range roleIds {
+		if err := client.AddGenericPermissionToRole(sysKey, roleID, "users", level); err != nil {
 			return err
 		}
 	}
