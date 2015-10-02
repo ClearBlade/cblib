@@ -219,6 +219,7 @@ func writeService(name string, data map[string]interface{}) error {
 	if err := ioutil.WriteFile(mySvcDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
+
 	cleanService(data)
 	return writeEntity(mySvcDir, name, data)
 }

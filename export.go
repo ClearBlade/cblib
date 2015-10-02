@@ -114,7 +114,6 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	colId := collection["collectionID"].(string)
 
 	totalItems, err := client.GetItemCount(colId)
-	fmt.Printf("totalItems")
 	if err != nil {
 		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}
@@ -256,7 +255,7 @@ func getRolesForThing(name, key string) map[string]interface{} {
 		roleSvcs := roleInfo["Permissions"].(map[string]interface{})[key].([]interface{}) // Mouthful
 		for _, roleEntIF := range roleSvcs {
 			roleEnt := roleEntIF.(map[string]interface{})
-			if roleEnt["Name"].(string) != name {
+			if roleEnt["Name"].(string) == name {
 				rval[roleName] = roleEnt["Level"]
 			}
 		}
