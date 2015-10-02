@@ -113,7 +113,7 @@ func (p Pull) Cmd(args []string) error {
 				return fmt.Errorf("User %+v not found\n", val)
 			}
 		}
-		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI); err != nil {
+		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI, true); err != nil {
 			return err
 		} else {
 			p.SystemDotJSON["users"] = col

@@ -30,7 +30,7 @@ func init() {
 	ImportPageSize = 100 // TODO -- fix this
 }
 
-func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[string]interface{}, error) {
 	r, err := cli.GetAllRoles(systemKey)
 	if err != nil {
 		return nil, err
@@ -39,14 +39,15 @@ func pullRoles(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, e
 	for idx, rIF := range r {
 		thisRole := rIF.(map[string]interface{})
 		rval[idx] = thisRole
-		if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
-			return nil, err
+		if writeThem {
+			if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return rval, nil
 }
 func storeRoles(roles []map[string]interface{}) {
-	rolesInfo = roles
 	roleList := make([]string, len(roles))
 	for idx, role := range roles {
 		roleList[idx] = role["Name"].(string)
@@ -140,28 +141,30 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	//return writeCollection(collection, allData)
 }
 
-func pullUserSchemaInfo(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
 	resp, err := cli.GetUserColumns(systemKey)
 	if err != nil {
 		return nil, err
 	}
-	rval := []map[string]interface{}{}
+	columns := []map[string]interface{}{}
 	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
 		if col["ColumnName"] == "email" || col["ColumnName"] == "creation_date" {
 			continue
 		}
-		rval = append(rval, col)
+		columns = append(columns, col)
 	}
 	tablePerms := getUserTablePermissions()
 	schema := map[string]interface{}{
-		"columns":     rval,
+		"columns":     columns,
 		"permissions": tablePerms,
 	}
-	if err := writeUser("schema", schema); err != nil {
-		return nil, err
+	if writeThem {
+		if err := writeUser("schema", schema); err != nil {
+			return nil, err
+		}
 	}
-	return rval, nil
+	return schema, nil
 }
 
 func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -301,25 +304,27 @@ func storeMeta(meta *System_meta) {
 	systemDotJSON["auth"] = true
 }
 
-func pullUsers(sysMeta *System_meta, cli *cb.DevClient) error {
+func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	if !exportUsers {
-		return nil
+		return []map[string]interface{}{}, nil
 	}
 	allUsers, err := cli.GetAllUsers(sysKey)
 	if err != nil {
-		return fmt.Errorf("Could not get all users: %s", err.Error())
+		return nil, fmt.Errorf("Could not get all users: %s", err.Error())
 	}
 	for _, aUser := range allUsers {
 		userId := aUser["user_id"].(string)
 		roles, err := cli.GetUserRoles(sysKey, userId)
 		if err != nil {
-			return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
+			return nil, fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 		}
 		aUser["roles"] = roles
-		writeUser(aUser["email"].(string), aUser)
+		if saveThem {
+			writeUser(aUser["email"].(string), aUser)
+		}
 	}
-	return nil
+	return allUsers, nil
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
@@ -350,11 +355,11 @@ func export(cli *cb.DevClient, sysKey string) error {
 	storeMeta(sysMeta)
 	fmt.Printf("Done.\nExporting Roles...")
 
-	roles, err := pullRoles(sysKey, cli)
+	rolesInfo, err := pullRoles(sysKey, cli, true)
 	if err != nil {
 		return err
 	}
-	storeRoles(roles)
+	storeRoles(rolesInfo)
 
 	fmt.Printf("Done.\nExporting Services...")
 	services, err := pullServices(sysKey, cli)
@@ -403,23 +408,27 @@ func export(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["data"] = colls
 
 	fmt.Printf("Done.\nExporting Users...")
-	err = pullUsers(sysMeta, cli)
+	_, err = pullUsers(sysMeta, cli, true)
 	if err != nil {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
 	}
 
-	userColumns, err := pullUserSchemaInfo(sysKey, cli)
+	userSchema, err := pullUserSchemaInfo(sysKey, cli, true)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["users"] = userColumns
+	systemDotJSON["users"] = userSchema
 	fmt.Printf("Done.\n")
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
 	}
 
-	metaStuff := map[string]interface{}{"TODO": "Put stuff here"}
+	metaStuff := map[string]interface{}{
+		"platformURL":       URL,
+		"developerEmail":    Email,
+		"assetRefreshDates": []interface{}{},
+	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
 	}

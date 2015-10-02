@@ -117,6 +117,15 @@ func mungeRoles(roles []interface{}) []string {
 	return rval
 }
 
+func unMungeRoles(roles []string) []interface{} {
+	rval := []interface{}{}
+
+	for _, role := range roles {
+		rval = append(rval, role)
+	}
+	return rval
+}
+
 func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	triggers, err := getTriggers()

@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	//"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"reflect"
@@ -33,17 +34,19 @@ func init() {
 		"system.json:libraries": []string{"version"},
 		"system.json:services":  []string{"current_version"},
 		"users.json":            []string{"user_id", "creation_date"},
-		"triggers":              []string{"system_key", "system_secret"},
+		"trigger":               []string{"system_key", "system_secret"},
+		"timer":                 []string{"system_key", "system_secret"},
 	}
 	uniqueKeys = map[string]string{
-		"system.json:data":        "name",
-		"system.json:data:schema": "ColumnName",
-		"system.json:libraries":   "name",
-		"system.json:services":    "name",
-		"system.json:timers":      "name",
-		"system.json:triggers":    "name",
-		"system.json:users":       "ColumnName",
-		"users.json":              "email",
+		"role:Permissions:CodeServices": "Name",
+		"system.json:data":              "name",
+		"system.json:data:schema":       "ColumnName",
+		"system.json:libraries":         "name",
+		"system.json:services":          "name",
+		"system.json:timers":            "name",
+		"system.json:triggers":          "name",
+		"system.json:users":             "ColumnName",
+		"users.json":                    "email",
 	}
 	myDiffCommand := &SubCommand{
 		name:  "diff",
@@ -66,7 +69,7 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 	setRootDir(".")
-	systemInfo, err := getDict("system.json")
+	systemInfo, err := getSysMeta()
 	if err != nil {
 		return err
 	}
@@ -113,50 +116,136 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func diffUserSchema(sys map[string]interface{}, client *cb.DevClient) error {
+func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
+	localSchema, err := getUserSchema()
+	if err != nil {
+		return err
+	}
+	roles, err := pullRoles(sys.Key, client, false)
+	rolesInfo = roles
+	if err != nil {
+		return err
+	}
+	remoteSchema, err := pullUserSchemaInfo(sys.Key, client, false)
+	if err != nil {
+		return err
+	}
+	names.push("UserSchema")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localSchema, remoteSchema)
+	printSummary("user schema", "schema.json")
 	return nil
 }
 
-func diffService(sys map[string]interface{}, client *cb.DevClient, serviceName string) error {
+func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
 	return nil
 }
 
-func diffLibrary(sys map[string]interface{}, client *cb.DevClient, libraryName string) error {
+func diffLibrary(sys *System_meta, client *cb.DevClient, libraryName string) error {
 	return nil
 }
 
-func diffCollection(sys map[string]interface{}, client *cb.DevClient, collectionName string) error {
+func diffCollection(sys *System_meta, client *cb.DevClient, collectionName string) error {
+	localCollection, err := getCollection(collectionName + ".json")
+	if err != nil {
+		return err
+	}
+	delete(localCollection, "items")
+	exportRows = false
+	//remoteCollection, err := pullCollection(daMeta, )
 	return nil
 }
 
-func diffUser(sys map[string]interface{}, client *cb.DevClient, userName string) error {
+func diffUser(sys *System_meta, client *cb.DevClient, userName string) error {
+	exportUsers = true
+	allUsers, err := pullUsers(sys, client, false)
+	if err != nil {
+		return err
+	}
+	var remoteUser map[string]interface{} = nil
+	for _, user := range allUsers {
+		if user["email"].(string) == userName {
+			remoteUser = user
+			remoteUser["roles"] = unMungeRoles(remoteUser["roles"].([]string))
+			break
+		}
+	}
+	if remoteUser == nil {
+		return fmt.Errorf("Remote user '%s' not found", userName)
+	}
+	localUser, err := getUser(userName + ".json")
+	if err != nil {
+		return err
+	}
+	names.push("user")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localUser, remoteUser)
+	printSummary("user", userName)
 	return nil
 }
 
-func diffRole(sys map[string]interface{}, client *cb.DevClient, roleName string) error {
+func diffRole(sys *System_meta, client *cb.DevClient, roleName string) error {
+	localRole, err := getRole(roleName + ".json")
+	if err != nil {
+		return err
+	}
+
+	daRoles, err := pullRoles(sys.Key, client, false)
+	if err != nil {
+		return err
+	}
+
+	var remoteRole map[string]interface{}
+	for _, daRole := range daRoles {
+		if daRole["Name"].(string) == roleName {
+			remoteRole = daRole
+			break
+		}
+	}
+	if remoteRole == nil {
+		return fmt.Errorf("Could not find remote role '%s'\n", roleName)
+	}
+	names.push("role")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localRole, remoteRole)
+	printSummary("role", roleName)
 	return nil
 }
 
-func diffTrigger(sys map[string]interface{}, client *cb.DevClient, triggerName string) error {
+func diffTrigger(sys *System_meta, client *cb.DevClient, triggerName string) error {
 	localTrigger, err := getTrigger(triggerName + ".json")
 	if err != nil {
 		return err
 	}
-	remoteTrigger, err := pullTrigger(sys["systemKey"].(string), triggerName, client)
+	remoteTrigger, err := pullTrigger(sys.Key, triggerName, client)
 	if err != nil {
 		return err
 	}
-	names.push("triggers")
+	names.push("trigger")
 	defer names.pop()
 	printedDiffCount = 0
 	diffMap(localTrigger, remoteTrigger)
-	if printedDiffCount == 0 {
-		fmt.Printf("Local version of trigger '%s' is the same as the remote version\n", triggerName)
-	}
+	printSummary("trigger", triggerName)
 	return nil
 }
 
-func diffTimer(sys map[string]interface{}, client *cb.DevClient, timerName string) error {
+func diffTimer(sys *System_meta, client *cb.DevClient, timerName string) error {
+	localTimer, err := getTimer(timerName + ".json")
+	if err != nil {
+		return err
+	}
+	remoteTimer, err := pullTimer(sys.Key, timerName, client)
+	if err != nil {
+		return err
+	}
+	names.push("timer")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localTimer, remoteTimer)
+	printSummary("timer", timerName)
 	return nil
 }
 
@@ -217,7 +306,9 @@ func diffUnknownTypes(key string, a, b interface{}) int {
 	if !sameTypes(a, b) {
 		return 1
 	}
-	if outerType(a) == "map" {
+	if a == nil {
+		return 0
+	} else if outerType(a) == "map" {
 		if key != "" {
 			names.push(key)
 			defer names.pop()
@@ -232,7 +323,7 @@ func diffUnknownTypes(key string, a, b interface{}) int {
 	} else if a == b {
 		return 0
 	}
-	printErr("Found differing values: local %v != remote %v\n", a, b)
+	printErr("Found differing values: local '%v' != remote '%v'\n", a, b)
 	return 1
 }
 
@@ -247,6 +338,7 @@ func diffMap(a, b map[string]interface{}) int {
 		if bVal, ok := b[aKey]; ok {
 			totalErrors += diffUnknownTypes(aKey, aVal, bVal)
 		} else {
+			fmt.Printf("HMMM: %v, %v\n", a, b)
 			totalErrors++
 			printErr("Item %s in local version missing in remote version\n", aKey)
 		}
@@ -330,10 +422,11 @@ func diffKeyedSlices(a, b []interface{}, uniqueKey string) int {
 			if bVal == nil {
 				myErrors++
 				printErr("Item %s:%v not found in other system\n", uniqueKey, valForKey)
+			} else {
+				pushErrorContext()
+				defer popErrorContext()
+				myErrors += diffMap(aVal, bVal)
 			}
-			pushErrorContext()
-			defer popErrorContext()
-			myErrors += diffMap(aVal, bVal)
 		} else {
 			printErr("Item supposedly with uniqueKey doesn't have one: %#v\n", aVal)
 			return -1
@@ -383,7 +476,7 @@ func diffUnkeyedSlices(a, b []interface{}) int {
 		if !found {
 			totalErrors++
 			if printsBefore == printedDiffCount {
-				printErr("Could not find item %#v in other slice\n", aVal)
+				printErr("Could not find item %#v in remote version\n", aVal)
 			}
 		}
 	}
@@ -403,7 +496,7 @@ func diffUnkeyedSlices(a, b []interface{}) int {
 		if !found {
 			totalErrors++
 			if printsBefore == printedDiffCount {
-				printErr("Could not find item %#v in other slice\n", bVal)
+				printErr("Could not find item %#v in local version\n", bVal)
 			}
 		}
 	}
@@ -422,6 +515,18 @@ func shouldIgnore(key string) bool {
 }
 
 func sameTypes(a, b interface{}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	outerA := outerType(a)
+	outerB := outerType(b)
+	if outerA == "slice" && outerB == "slice" {
+		return true
+	}
+
 	typeA := reflect.TypeOf(a).String()
 	typeB := reflect.TypeOf(b).String()
 	rval := typeA == typeB
@@ -453,4 +558,12 @@ func blockErrors() {
 
 func unblockErrors() {
 	suppressErrors[len(suppressErrors)-1] = suppressErrors[len(suppressErrors)-1] - 1
+}
+
+func printSummary(objectType, objectName string) {
+	if printedDiffCount == 0 {
+		fmt.Printf("Local version of %s '%s' is the same as the remote version\n", objectType, objectName)
+	} else {
+		fmt.Printf("Found %d differences between local and remote versions of %s '%s'\n", printedDiffCount, objectType, objectName)
+	}
 }

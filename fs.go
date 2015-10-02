@@ -31,15 +31,6 @@ func setRootDir(theRootDir string) {
 	rolesDir = rootDir + "/roles"
 }
 func setupDirectoryStructure(sys *System_meta) error {
-	/*
-		rootDir = strings.Replace(sys.Name, " ", "_", -1)
-		svcDir = rootDir + "/code/services"
-		libDir = rootDir + "/code/libraries"
-		dataDir = rootDir + "/data"
-		usersDir = rootDir + "/users"
-		timersDir = rootDir + "/timers"
-		triggersDir = rootDir + "/triggers"
-	*/
 	if err := os.MkdirAll(rootDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", rootDir, err.Error())
 	}
@@ -358,6 +349,10 @@ func getCollection(name string) (map[string]interface{}, error) {
 	return getObject(dataDir, name)
 }
 
+func getRole(name string) (map[string]interface{}, error) {
+	return getObject(rolesDir, name)
+}
+
 func getService(name string) (map[string]interface{}, error) {
 	svcRootDir := svcDir + "/" + name
 	codeFile := name + ".js"
@@ -410,4 +405,19 @@ func goToRepoRootDir(cmd *SubCommand) error {
 			return nil
 		}
 	}
+}
+
+func getSysMeta() (*System_meta, error) {
+	dict, err := getDict("system.json")
+	if err != nil {
+		return nil, err
+	}
+	rval := &System_meta{
+		Name:        dict["name"].(string),
+		Key:         dict["systemKey"].(string),
+		Secret:      dict["systemSecret"].(string),
+		Description: dict["description"].(string),
+		PlatformUrl: dict["platformURL"].(string),
+	}
+	return rval, nil
 }
