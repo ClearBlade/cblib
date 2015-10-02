@@ -375,8 +375,22 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 	}
 
 	permissions := collection["permissions"].(map[string]interface{})
-	for roleId, level := range permissions {
-		if err := client.AddCollectionToRole(systemKey, colId, roleId, int(level.(float64))); err != nil {
+
+	roles, err := pullRoles(sysKey, client, false)
+	if err != nil {
+		return err
+	}
+	roleIds := map[string]int{}
+	for _, role := range roles {
+		for roleName, level := range userPerms {
+			if role["Name"] == roleName {
+				id := role["ID"].(string)
+				roleIds[id] = int(level.(float64))
+			}
+		}
+	}
+	for roleId, level := range roleIds {
+		if err := client.AddCollectionToRole(systemKey, colId, roleId, level); err != nil {
 			return err
 		}
 	}
