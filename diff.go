@@ -47,6 +47,7 @@ func init() {
 		"system.json:triggers":          "name",
 		"system.json:users":             "ColumnName",
 		"users.json":                    "email",
+		"UserSchema:columns":            "ColumnName",
 	}
 	myDiffCommand := &SubCommand{
 		name:  "diff",
@@ -311,6 +312,20 @@ func diffUsersDotJSON(a, b []interface{}) int {
 	return diffSlice(a, b)
 }
 
+func valuesAreEqual(a, b interface{}) bool {
+	aVal := a
+	bVal := b
+	switch a.(type) {
+	case float64:
+		aVal = int(a.(float64))
+	}
+	switch b.(type) {
+	case float64:
+		bVal = int(b.(float64))
+	}
+	return aVal == bVal
+}
+
 func diffUnknownTypes(key string, a, b interface{}) int {
 	if !sameTypes(a, b) {
 		return 1
@@ -328,11 +343,12 @@ func diffUnknownTypes(key string, a, b interface{}) int {
 			names.push(key)
 			defer names.pop()
 		}
-		return diffSlice(a.([]interface{}), b.([]interface{}))
-	} else if a == b {
+		//return diffSlice(a.([]interface{}), b.([]interface{}))
+		return diffSlice(a, b)
+	} else if valuesAreEqual(a, b) {
 		return 0
 	}
-	printErr("Found differing values: local '%v' != remote '%v'\n", a, b)
+	printErr("Found differing values for '%s': local '%v' != remote '%v'\n", key, a, b)
 	return 1
 }
 
@@ -365,7 +381,9 @@ func diffMap(a, b map[string]interface{}) int {
 	return totalErrors
 }
 
-func diffSlice(a, b []interface{}) int {
+func diffSlice(aIF, bIF interface{}) int {
+	a := aIF.([]interface{})
+	b := bIF.([]interface{})
 	if len(a) > 0 {
 		if reflect.TypeOf(a[0]).String() == "map[string]interface {}" {
 			pushErrorContext()
@@ -533,6 +551,9 @@ func sameTypes(a, b interface{}) bool {
 	outerA := outerType(a)
 	outerB := outerType(b)
 	if outerA == "slice" && outerB == "slice" {
+		return true
+	}
+	if (outerA == "float64" && outerB == "int") || (outerA == "int" && outerB == "float64") {
 		return true
 	}
 
