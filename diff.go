@@ -231,13 +231,28 @@ func diffLibrary(sys *System_meta, client *cb.DevClient, libraryName string) err
 }
 
 func diffCollection(sys *System_meta, client *cb.DevClient, collectionName string) error {
+	roles, err := pullRoles(sys.Key, client, false)
+	rolesInfo = roles
+	if err != nil {
+		return err
+	}
 	localCollection, err := getCollection(collectionName + ".json")
 	if err != nil {
 		return err
 	}
-	delete(localCollection, "items")
+	colId := localCollection["collectionID"].(string)
 	exportRows = false
-	//remoteCollection, err := pullCollection(daMeta, )
+	remoteCollection, err := pullCollectionAndInfo(sys, colId, client)
+	if err != nil {
+		return err
+	}
+	delete(localCollection, "items")
+	delete(remoteCollection, "items")
+	names.push("collection")
+	defer names.pop()
+	printedDiffCount = 0
+	diffMap(localCollection, remoteCollection)
+	printSummary("collection", collectionName)
 	return nil
 }
 

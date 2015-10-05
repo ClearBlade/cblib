@@ -83,7 +83,6 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 		return nil, err
 	}
 	co["items"] = []interface{}{}
-	co["items"] = []interface{}{}
 	if exportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
@@ -92,6 +91,15 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 		co["items"] = items
 	}
 	return co, nil
+}
+
+func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (map[string]interface{}, error) {
+
+	colInfo, err := cli.GetCollectionInfo(id)
+	if err != nil {
+		return nil, err
+	}
+	return pullCollection(sysMeta, colInfo, cli)
 }
 
 func getRolesForCollection(collection map[string]interface{}) error {
