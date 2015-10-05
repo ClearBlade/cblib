@@ -157,7 +157,7 @@ func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
 type LocalFunc func(name string) (map[string]interface{}, error)
 type RemoteFunc func(key, name string, client *cb.DevClient) (map[string]interface{}, error)
 
-func diffDemCodeThangs(sys *System_meta, client *cb.DevClient, thangType, thangName string, lf LocalFunc, rf RemoteFunc) error {
+func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangName string, lf LocalFunc, rf RemoteFunc) error {
 	roles, err := pullRoles(sys.Key, client, false)
 	rolesInfo = roles
 	if err != nil {
@@ -223,11 +223,11 @@ func diffDemCodeThangs(sys *System_meta, client *cb.DevClient, thangType, thangN
 }
 
 func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
-	return diffDemCodeThangs(sys, client, "service", serviceName, getService, pullService)
+	return diffCodeAndMeta(sys, client, "service", serviceName, getService, pullService)
 }
 
 func diffLibrary(sys *System_meta, client *cb.DevClient, libraryName string) error {
-	return diffDemCodeThangs(sys, client, "library", libraryName, getLibrary, pullLibrary)
+	return diffCodeAndMeta(sys, client, "library", libraryName, getLibrary, pullLibrary)
 }
 
 func diffCollection(sys *System_meta, client *cb.DevClient, collectionName string) error {
