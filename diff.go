@@ -1,8 +1,8 @@
 package cblib
 
 import (
-	//"encoding/json"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
@@ -40,6 +40,8 @@ func init() {
 		"users.json":            []string{"user_id", "creation_date"},
 		"trigger":               []string{"system_key", "system_secret"},
 		"timer":                 []string{"system_key", "system_secret"},
+		"service":               []string{"source"},
+		"library":               []string{"source"},
 	}
 	uniqueKeys = map[string]string{
 		"role:Permissions:CodeServices": "Name",
@@ -152,26 +154,39 @@ func diffUserSchema(sys *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
-	localService, err := getService(serviceName)
+type LocalFunc func(name string) (map[string]interface{}, error)
+type RemoteFunc func(key, name string, client *cb.DevClient) (map[string]interface{}, error)
+
+func diffDemCodeThangs(sys *System_meta, client *cb.DevClient, thangType, thangName string, lf LocalFunc, rf RemoteFunc) error {
+	roles, err := pullRoles(sys.Key, client, false)
+	rolesInfo = roles
+	if err != nil {
+		return err
+	}
+	byts, _ := json.MarshalIndent(rolesInfo, "", "    ")
+	fmt.Printf("RolesInfo: %s\n", string(byts))
+	localThang, err := lf(thangName)
 	if err != nil {
 		return err
 	}
 
-	remoteService, err := pullService(sys.Key, serviceName, client)
+	remoteThang, err := rf(sys.Key, thangName, client)
 	if err != nil {
 		return err
 	}
-	lCode := localService["code"].(string)
-	rCode := remoteService["code"].(string)
+	lCode := localThang["code"].(string)
+	rCode := remoteThang["code"].(string)
+	if thangType == "service" {
+		cleanService(remoteThang)
+	}
 	if lCode[len(lCode)-1] != '\n' {
 		lCode = lCode + "\n"
 	}
 	if rCode[len(rCode)-1] != '\n' {
 		rCode = rCode + "\n"
 	}
-	delete(localService, "code")
-	delete(remoteService, "code")
+	delete(localThang, "code")
+	delete(remoteThang, "code")
 
 	myPid := os.Getpid()
 	localFile := fmt.Sprintf("/tmp/%d-local.js", myPid)
@@ -188,22 +203,31 @@ func diffService(sys *System_meta, client *cb.DevClient, serviceName string) err
 	var stderr bytes.Buffer
 	diffCmd.Stdout = &stdout
 	diffCmd.Stderr = &stderr
+	names.push(thangType)
+	defer names.pop()
 	if err := diffCmd.Run(); err != nil && err.Error() != "exit status 1" {
 		return fmt.Errorf("Internal error, exec failed: %s: %s", err.Error(), stderr.String())
 	}
 	if stdout.String() != "" {
-		printErr("Local version of code for '%s' is different from remote:\n%s\n", serviceName, stdout.String())
+		printErr("Local version of code for '%s' is different from remote:\n%s\n", thangName, stdout.String())
 	}
 
-	/*
-		os.Remove(localFile)
-		os.Remove(remoteFile)
-	*/
+	os.Remove(localFile)
+	os.Remove(remoteFile)
+
+	// Now, diff the meta data...
+	printedDiffCount = 0
+	diffMap(localThang, remoteThang)
+	printSummary(thangType+" meta", thangName)
 	return nil
 }
 
+func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
+	return diffDemCodeThangs(sys, client, "service", serviceName, getService, pullService)
+}
+
 func diffLibrary(sys *System_meta, client *cb.DevClient, libraryName string) error {
-	return nil
+	return diffDemCodeThangs(sys, client, "library", libraryName, getLibrary, pullLibrary)
 }
 
 func diffCollection(sys *System_meta, client *cb.DevClient, collectionName string) error {
@@ -414,7 +438,7 @@ func diffMap(a, b map[string]interface{}) int {
 			totalErrors += diffUnknownTypes(aKey, aVal, bVal)
 		} else {
 			totalErrors++
-			printErr("Item %s in local version missing in remote version\n", aKey)
+			printErr("Item '%s' in local version missing in remote version\n", aKey)
 		}
 	}
 	for bKey, _ := range b {
@@ -423,7 +447,7 @@ func diffMap(a, b map[string]interface{}) int {
 			continue
 		}
 		if _, ok := a[bKey]; !ok {
-			printErr("Item %s in second map missing in first map\n", bKey)
+			printErr("Item '%s' in remote version missing in local version\n", bKey)
 			totalErrors++
 		}
 	}
