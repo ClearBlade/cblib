@@ -90,14 +90,30 @@ func (p Pull) Cmd(args []string) error {
 		}
 	}
 	if val := p.Collection; len(val) > 0 {
+		exportRows = true
 		fmt.Printf("Pulling collection %+s\n", val)
-		if co, err := p.CLI.GetCollectionInfo(val); err != nil {
+		if allColls, err := p.CLI.GetAllCollections(p.SysKey); err != nil {
 			return err
 		} else {
-			if data, err := pullCollection(p.SysMeta, co, p.CLI); err != nil {
+			var collID string
+			// iterate over allColls and find one with matching name
+			for _, c := range allColls {
+				coll := c.(map[string]interface{})
+				if val == coll["name"] {
+					collID = coll["collectionID"].(string)
+				}
+			}
+			if len(collID) < 1 {
+				return fmt.Errorf("Collection %s not found.", val)
+			}
+			if coll, err := p.CLI.GetCollectionInfo(collID); err != nil {
 				return err
 			} else {
-				writeCollection(data["name"].(string), data)
+				if data, err := pullCollection(p.SysMeta, coll, p.CLI); err != nil {
+					return err
+				} else {
+					writeCollection(data["name"].(string), data)
+				}
 			}
 		}
 	}
