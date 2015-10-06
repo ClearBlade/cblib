@@ -73,6 +73,12 @@ func (p Pull) Cmd(args []string) error {
 	storeMeta(p.SysMeta)
 	storeSystemDotJSON(systemDotJSON)
 
+	if r, err := pullRoles(p.SysKey, p.CLI, false); err != nil {
+		return err
+	} else {
+		rolesInfo = r
+	}
+
 	if val := p.Service; len(val) > 0 {
 		fmt.Printf("Pulling service %+s\n", val)
 		if svc, err := pullService(p.SysKey, val, p.CLI); err != nil {
