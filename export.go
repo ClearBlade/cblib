@@ -93,6 +93,15 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 	return co, nil
 }
 
+func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (map[string]interface{}, error) {
+
+	colInfo, err := cli.GetCollectionInfo(id)
+	if err != nil {
+		return nil, err
+	}
+	return pullCollection(sysMeta, colInfo, cli)
+}
+
 func getRolesForCollection(collection map[string]interface{}) error {
 	colName := collection["name"].(string)
 	perms := map[string]interface{}{}
@@ -335,8 +344,6 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func export(cli *cb.DevClient, sysKey string) error {
-	cb.CB_ADDR = URL
-
 	fmt.Printf("Exporting System Info...")
 	sysMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {

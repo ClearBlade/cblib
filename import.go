@@ -255,7 +255,6 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 }
 
 func importIt(cli *cb.DevClient) error {
-	cb.CB_ADDR = URL
 	fmt.Printf("Reading system configuration files...")
 	setRootDir(".")
 	users, err := getUsers()

@@ -98,21 +98,6 @@ func writeUsersFile(allUsers []map[string]interface{}) error {
 	return nil
 }
 
-/*
-func writeCollection(collection map[string]interface{}, allData []interface{}) error {
-	colName := collection["name"].(string)
-	fileName := dataDir + "/" + colName + ".json"
-	marshalled, err := json.MarshalIndent(allData, "", "    ")
-	if err != nil {
-		return fmt.Errorf("Could not marshall collection data for: %s", colName)
-	}
-	if err = ioutil.WriteFile(fileName, marshalled, 0666); err != nil {
-		return fmt.Errorf("Could not write to %s: %s", fileName, err.Error())
-	}
-	return nil
-}
-*/
-
 func getDict(filename string) (map[string]interface{}, error) {
 	jsonStr, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -390,26 +375,6 @@ func getLibrary(name string) (map[string]interface{}, error) {
 	}
 	libMap["code"] = string(byts)
 	return libMap, nil
-}
-
-func goToRepoRootDir(cmd *SubCommand) error {
-	var err error
-	for {
-		dirname, dirErr := os.Getwd()
-		if dirErr != nil {
-			return dirErr
-		}
-		if dirname == "/" {
-			return fmt.Errorf("You must be inside of a ClearBlade export directory to run 'cb-cli %s'", cmd.name)
-		}
-		if metaInfo, err = getDict(".cbmeta"); err != nil {
-			if err = os.Chdir(".."); err != nil {
-				return fmt.Errorf("You must be inside of a ClearBlade export directory to run cb-cli %s", cmd.name)
-			}
-		} else {
-			return nil
-		}
-	}
 }
 
 func getSysMeta() (*System_meta, error) {
