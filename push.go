@@ -114,16 +114,28 @@ func (p Push) Cmd(args []string) error {
 	}
 	if val := p.Collection; len(val) > 0 {
 		fmt.Printf("Pushing collection %+s\n", val)
-		ok := false
-		coll := p.SysInfo["data"].(map[string]interface{})
-		if coll["collectionID"] == val {
-			ok = true
-			if err := createCollection(p.SysKey, coll, p.CLI); err != nil {
+		if collections, err := getCollections(); err != nil {
+			return err
+		} else {
+			var (
+				ok   = false
+				coll map[string]interface{}
+			)
+			for _, c := range collections {
+				if c["name"] == val {
+					ok = true
+					coll = c
+				}
+			}
+			if !ok {
+				return fmt.Errorf("Collection %+s not found\n", val)
+			}
+			// if err := createCollection(p.SysKey, coll, p.CLI); err != nil {
+			// 	return err
+			// }
+			if err := updateCollection(p.SysKey, coll, p.CLI); err != nil {
 				return err
 			}
-		}
-		if !ok {
-			return fmt.Errorf("Collection %+s not found\n", val)
 		}
 	}
 	if val := p.User; len(val) > 0 {
@@ -408,7 +420,6 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	delete(library, "name")
 	delete(library, "version")
 	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
-		libName := libName + "2"
 		fmt.Printf("Could not find library %s\n", libName)
 		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
 		reader := bufio.NewReader(os.Stdin)
@@ -436,6 +447,41 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 	delete(library, "version")
 	if _, err := client.CreateLibrary(systemKey, libName, library); err != nil {
 		return fmt.Errorf("Could not create library %s: %s", libName, err.Error())
+	}
+	return nil
+}
+
+func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
+	var err error
+	collection_id := collection["collectionID"].(string)
+	items := collection["items"].([]interface{})
+	for _, row := range items {
+		query := cb.NewQuery()
+		// query.EqualTo(field, value)
+		if err = client.UpdateData(collection_id, query, row.(map[string]interface{})); err != nil {
+			break
+		}
+	}
+	if err != nil {
+		collName := collection["name"].(string)
+		fmt.Printf("Error updating collection %s.\n", collName)
+		collName = collName + "2"
+		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				collection["name"] = collName
+				if err := createCollection(systemKey, collection, client); err != nil {
+					return fmt.Errorf("Could not create collection %s: %s", collName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new collection %s\n", collName)
+				}
+			} else {
+				fmt.Printf("Collection will not be created.\n")
+			}
+		}
 	}
 	return nil
 }
