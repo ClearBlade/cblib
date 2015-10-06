@@ -72,9 +72,6 @@ func init() {
 }
 
 func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
-	if err := goToRepoRootDir(cmd); err != nil {
-		return err
-	}
 	setRootDir(".")
 	systemInfo, err := getSysMeta()
 	if err != nil {

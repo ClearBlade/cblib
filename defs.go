@@ -38,7 +38,7 @@ var (
 	libCode       map[string]interface{}
 	svcCode       map[string]interface{}
 	rolesInfo     []map[string]interface{}
-	metaInfo      map[string]interface{}
+	MetaInfo      map[string]interface{}
 )
 
 type Role_meta struct {

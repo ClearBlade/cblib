@@ -344,8 +344,6 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func export(cli *cb.DevClient, sysKey string) error {
-	cb.CB_ADDR = URL
-
 	fmt.Printf("Exporting System Info...")
 	sysMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
