@@ -2,7 +2,7 @@ package cblib
 
 import (
 	"bytes"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
@@ -160,8 +160,10 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	if err != nil {
 		return err
 	}
-	byts, _ := json.MarshalIndent(rolesInfo, "", "    ")
-	fmt.Printf("RolesInfo: %s\n", string(byts))
+	/*
+		byts, _ := json.MarshalIndent(rolesInfo, "", "    ")
+		fmt.Printf("RolesInfo: %s\n", string(byts))
+	*/
 	localThang, err := lf(thangName)
 	if err != nil {
 		return err

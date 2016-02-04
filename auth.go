@@ -94,7 +94,9 @@ func Auth(devToken string) (*cb.DevClient, error) {
 }
 
 func save_auth_info(filename, token string) error {
-	return ioutil.WriteFile(filename, []byte(token), 0600)
+	DevToken = token
+	return nil
+	//return ioutil.WriteFile(filename, []byte(token), 0600)
 }
 
 func Load_auth_info(filename string) (string, error) {

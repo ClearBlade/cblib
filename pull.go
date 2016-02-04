@@ -12,110 +12,71 @@ func init() {
 		usage: "pull a specified resource from a system",
 		run:   doPull,
 	}
+	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
+	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
+	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
+	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
+	pullCommand.flags.StringVar(&User, "user", "", "Name of user to diff")
+	pullCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
+	pullCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
+	pullCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
 	AddCommand("pull", pullCommand)
 }
 
 func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-	p := &Pull{
-		CLI:    cli,
-		SysKey: args[0],
-	}
-	return p.Cmd(args[1:])
-}
-
-type Pull struct {
-	SysKey     string
-	Service    string
-	Library    string
-	Collection string
-	User       string
-	Roles      []string
-	Trigger    string
-	Timer      string
-	CLI        *cb.DevClient
-	SysMeta    *System_meta
-}
-
-func (p Pull) Cmd(args []string) error {
-	for _, arg := range args {
-		s := strings.Split(arg, "=")
-		if len(s) != 2 {
-			return fmt.Errorf("invalid argument for %+v\n", s[0])
-		}
-		switch s[0] {
-		case "service":
-			p.Service = s[1]
-		case "library":
-			p.Library = s[1]
-		case "collection":
-			p.Collection = s[1]
-		case "user":
-			p.User = s[1]
-		case "roles":
-			p.Roles = strings.Split(s[1], ",")
-		case "trigger":
-			p.Trigger = s[1]
-		case "timer":
-			p.Timer = s[1]
-		default:
-			return fmt.Errorf("option \"%+v\" not supported", s[0])
-		}
-	}
-	if sysMeta, err := pullSystemMeta(p.SysKey, p.CLI); err != nil {
-		return err
-	} else {
-		p.SysMeta = sysMeta
-	}
-	setRootDir(strings.Replace(p.SysMeta.Name, " ", "_", -1))
-	if err := setupDirectoryStructure(p.SysMeta); err != nil {
+	setRootDir(".")
+	systemInfo, err := getSysMeta()
+	setupDirectoryStructure(systemInfo)
+	if err != nil {
 		return err
 	}
-	storeMeta(p.SysMeta)
-	storeSystemDotJSON(systemDotJSON)
 
-	if r, err := pullRoles(p.SysKey, p.CLI, false); err != nil {
+	// ??? we already have them locally
+	if r, err := pullRoles(systemInfo.Key, cli, false); err != nil {
 		return err
 	} else {
 		rolesInfo = r
 	}
 
-	if val := p.Service; len(val) > 0 {
-		fmt.Printf("Pulling service %+s\n", val)
-		if svc, err := pullService(p.SysKey, val, p.CLI); err != nil {
+	if ServiceName != "" {
+		fmt.Printf("Pulling service %+s\n", ServiceName)
+		if svc, err := pullService(systemInfo.Key, ServiceName, cli); err != nil {
 			return err
 		} else {
-			writeService(val, svc)
+			writeService(ServiceName, svc)
 		}
 	}
-	if val := p.Library; len(val) > 0 {
-		fmt.Printf("Pulling library %s\n", val)
-		if lib, err := pullLibrary(p.SysKey, val, p.CLI); err != nil {
+
+	if LibraryName != "" {
+		fmt.Printf("Pulling library %s\n", LibraryName)
+		if lib, err := pullLibrary(systemInfo.Key, LibraryName, cli); err != nil {
 			return err
 		} else {
 			writeLibrary(lib["name"].(string), lib)
 		}
 	}
-	if val := p.Collection; len(val) > 0 {
+
+	if CollectionName != "" {
 		exportRows = true
-		fmt.Printf("Pulling collection %+s\n", val)
-		if allColls, err := p.CLI.GetAllCollections(p.SysKey); err != nil {
+		fmt.Printf("Pulling collection %+s\n", CollectionName)
+		if allColls, err := cli.GetAllCollections(systemInfo.Key); err != nil {
 			return err
 		} else {
 			var collID string
 			// iterate over allColls and find one with matching name
 			for _, c := range allColls {
 				coll := c.(map[string]interface{})
-				if val == coll["name"] {
+				if CollectionName == coll["name"] {
 					collID = coll["collectionID"].(string)
 				}
 			}
 			if len(collID) < 1 {
-				return fmt.Errorf("Collection %s not found.", val)
+				return fmt.Errorf("Collection %s not found.", CollectionName)
 			}
-			if coll, err := p.CLI.GetCollectionInfo(collID); err != nil {
+			if coll, err := cli.GetCollectionInfo(collID); err != nil {
 				return err
 			} else {
-				if data, err := pullCollection(p.SysMeta, coll, p.CLI); err != nil {
+				if data, err := pullCollection(systemInfo, coll, cli); err != nil {
 					return err
 				} else {
 					writeCollection(data["name"].(string), data)
@@ -123,39 +84,42 @@ func (p Pull) Cmd(args []string) error {
 			}
 		}
 	}
-	if val := p.User; len(val) > 0 {
-		fmt.Printf("Pulling user %+s\n", val)
-		if users, err := p.CLI.GetAllUsers(p.SysKey); err != nil {
+
+	if User != "" {
+		fmt.Printf("Pulling user %+s\n", User)
+		if users, err := cli.GetAllUsers(systemInfo.Key); err != nil {
 			return err
 		} else {
 			ok := false
 			for _, user := range users {
-				if user["email"] == val {
+				if user["email"] == User {
 					ok = true
 					userId := user["user_id"].(string)
-					if roles, err := p.CLI.GetUserRoles(p.SysKey, userId); err != nil {
+					if roles, err := cli.GetUserRoles(systemInfo.Key, userId); err != nil {
 						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 					} else {
 						user["roles"] = roles
 					}
-					writeUser(val, user)
+					writeUser(User, user)
 				}
 			}
 			if !ok {
-				return fmt.Errorf("User %+s not found\n", val)
+				return fmt.Errorf("User %+s not found\n", User)
 			}
 		}
-		if col, err := pullUserSchemaInfo(p.SysKey, p.CLI, true); err != nil {
+		if col, err := pullUserSchemaInfo(systemInfo.Key, cli, true); err != nil {
 			return err
 		} else {
 			writeUserSchema(col)
 		}
 	}
-	if val := p.Roles; len(val) > 0 {
+
+	if RoleName != "" {
 		roles := make([]map[string]interface{}, 0)
-		for _, role := range val {
+		splitRoles := strings.Split(RoleName, ",")
+		for _, role := range splitRoles {
 			fmt.Printf("Pulling role %+s\n", role)
-			if r, err := pullRole(p.SysKey, role, p.CLI); err != nil {
+			if r, err := pullRole(systemInfo.Key, role, cli); err != nil {
 				return err
 			} else {
 				roles = append(roles, r)
@@ -164,20 +128,22 @@ func (p Pull) Cmd(args []string) error {
 		}
 		storeRoles(roles)
 	}
-	if val := p.Trigger; len(val) > 0 {
-		fmt.Printf("Pulling trigger %+s\n", val)
-		if trigg, err := pullTrigger(p.SysKey, val, p.CLI); err != nil {
+
+	if TriggerName != "" {
+		fmt.Printf("Pulling trigger %+s\n", TriggerName)
+		if trigg, err := pullTrigger(systemInfo.Key, TriggerName, cli); err != nil {
 			return err
 		} else {
-			writeTrigger(val, trigg)
+			writeTrigger(TriggerName, trigg)
 		}
 	}
-	if val := p.Timer; len(val) > 0 {
-		fmt.Printf("Pulling timer %+s\n", val)
-		if timer, err := pullTimer(p.SysKey, val, p.CLI); err != nil {
+
+	if TimerName != "" {
+		fmt.Printf("Pulling timer %+s\n", TimerName)
+		if timer, err := pullTimer(systemInfo.Key, TimerName, cli); err != nil {
 			return err
 		} else {
-			writeTimer(val, timer)
+			writeTimer(TimerName, timer)
 		}
 	}
 	return nil

@@ -15,105 +15,67 @@ func init() {
 		usage: "push a specified resource to a system",
 		run:   doPush,
 	}
+	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
+	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
+	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
+	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
+	pushCommand.flags.StringVar(&User, "user", "", "Name of user to diff")
+	pushCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
+	pushCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
+	pushCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
 	AddCommand("push", pushCommand)
 }
 
 func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-	p := &Push{
-		SysKey:  args[0],
-		CLI:     cli,
-		SysInfo: map[string]interface{}{},
-	}
-	return p.Cmd(args[1:])
-}
 
-type Push struct {
-	SysKey     string
-	DevToken   string
-	Service    string
-	Library    string
-	Collection string
-	User       string
-	Roles      []string
-	Trigger    string
-	Timer      string
-	CLI        *cb.DevClient
-	SysInfo    map[string]interface{}
-}
-
-func (p Push) Cmd(args []string) error {
-	for _, arg := range args {
-		s := strings.Split(arg, "=")
-		if len(s) != 2 {
-			return fmt.Errorf("invalid argument for %+v\n", s[0])
-		}
-		switch s[0] {
-		case "service":
-			p.Service = s[1]
-		case "library":
-			p.Library = s[1]
-		case "collection":
-			p.Collection = s[1]
-		case "user":
-			p.User = s[1]
-		case "roles":
-			p.Roles = strings.Split(s[1], ",")
-		case "trigger":
-			p.Trigger = s[1]
-		case "timer":
-			p.Timer = s[1]
-		default:
-			return fmt.Errorf("option \"%+v\" not supported", s[0])
-		}
-	}
-
-	if systemInfo, err := getDict("system.json"); err != nil {
+	systemInfo, err := getSysMeta()
+	if err != nil {
 		return err
-	} else {
-		p.SysInfo = systemInfo
 	}
 	setRootDir(".")
 
-	if val := p.Service; len(val) > 0 {
-		fmt.Printf("Pushing service %+s\n", val)
+	if ServiceName != "" {
+		fmt.Printf("Pushing service %+s\n", ServiceName)
 		services, err := getServices()
 		if err != nil {
 			return err
 		}
 		ok := false
 		for _, service := range services {
-			if service["name"] == val {
+			if service["name"] == ServiceName {
 				ok = true
-				if err := updateService(p.SysKey, service, p.CLI); err != nil {
+				if err := updateService(systemInfo.Key, service, cli); err != nil {
 					return err
 				}
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Service %+s not found\n", val)
+			return fmt.Errorf("Service %+s not found\n", ServiceName)
 		}
 	}
-	if val := p.Library; len(val) > 0 {
-		fmt.Printf("Pushing library %+s\n", val)
+
+	if LibraryName != "" {
+		fmt.Printf("Pushing library %+s\n", LibraryName)
 		libraries, err := getLibraries()
 		if err != nil {
 			return err
 		}
 		ok := false
 		for _, library := range libraries {
-			if library["name"] == val {
+			if library["name"] == LibraryName {
 				ok = true
-				if err := updateLibrary(p.SysKey, library, p.CLI); err != nil {
+				if err := updateLibrary(systemInfo.Key, library, cli); err != nil {
 					return err
 				}
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Library %+s not found\n", val)
+			return fmt.Errorf("Library %+s not found\n", LibraryName)
 		}
 	}
-	if val := p.Collection; len(val) > 0 {
-		fmt.Printf("Pushing collection %+s\n", val)
+
+	if CollectionName != "" {
+		fmt.Printf("Pushing collection %+s\n", CollectionName)
 		if collections, err := getCollections(); err != nil {
 			return err
 		} else {
@@ -122,121 +84,117 @@ func (p Push) Cmd(args []string) error {
 				coll map[string]interface{}
 			)
 			for _, c := range collections {
-				if c["name"] == val {
+				if c["name"] == CollectionName {
 					ok = true
 					coll = c
 				}
 			}
 			if !ok {
-				return fmt.Errorf("Collection %+s not found\n", val)
+				return fmt.Errorf("Collection %+s not found\n", CollectionName)
 			}
-			// if err := createCollection(p.SysKey, coll, p.CLI); err != nil {
-			// 	return err
-			// }
-			if err := updateCollection(p.SysKey, coll, p.CLI); err != nil {
+			if err := updateCollection(systemInfo.Key, coll, cli); err != nil {
 				return err
 			}
 		}
 	}
-	if val := p.User; len(val) > 0 {
-		fmt.Printf("Pushing user %+s\n", val)
-		meta, err := pullSystemMeta(p.SysKey, p.CLI)
-		if err != nil {
-			return err
-		}
-		sysSecret := meta.Secret
-		if users, err := getArray("users.json"); err != nil {
+
+	/***** XXXSWM -- need to fix this
+	if User != "" {
+		fmt.Printf("Pushing user %+s\n", User)
+		sysSecret := systemInfo.Secret
+		if users, err := getUsers(); err != nil {
 			return err
 		} else {
 			ok := false
 			for _, user := range users {
 				userMap := user.(map[string]interface{})
-				if userMap["email"] == val {
+				if userMap["email"] == User {
 					ok = true
 					for _, userCol := range p.SysInfo["users"].([]interface{}) {
 						column := userCol.(map[string]interface{})
 						columnName := column["ColumnName"].(string)
 						columnType := column["ColumnType"].(string)
-						if err := p.CLI.CreateUserColumn(p.SysKey, columnName, columnType); err != nil {
+						if err := cli.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
 							return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
 						}
 					}
 					userId := userMap["user_id"].(string)
-					if roles, err := p.CLI.GetUserRoles(p.SysKey, userId); err != nil {
+					if roles, err := cli.GetUserRoles(systemInfo.Key, userId); err != nil {
 						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 					} else {
 						userMap["roles"] = roles
 					}
-					if _, err := createUser(p.SysKey, sysSecret, userMap, p.CLI); err != nil {
-						return fmt.Errorf("Could not create user %s: %s", val, err.Error())
+					if _, err := createUser(systemInfo.Key, sysSecret, userMap, cli); err != nil {
+						return fmt.Errorf("Could not create user %s: %s", User, err.Error())
 					}
 				}
 			}
 			if !ok {
-				return fmt.Errorf("User %+s not found\n", val)
+				return fmt.Errorf("User %+s not found\n", User)
 			}
 		}
 	}
-	if val := p.Roles; len(val) > 0 {
+	************************/
+
+	if RoleName != "" {
 		ok := false
-		roles, ok := p.SysInfo["roles"]
-		if !ok {
-			return fmt.Errorf("No roles found locally.\n")
+		roles, err := getRoles()
+		if err != nil {
+			return fmt.Errorf("Could not get local roles: %s", err.Error())
 		}
-		for _, roleIF := range roles.([]interface{}) {
-			role := roleIF.(map[string]interface{})
-			for _, roleName := range p.Roles {
-				if role["Name"] == roleName {
-					ok = true
-					fmt.Printf("Pushing role %+s\n", roleName)
-					if err := updateRole(p.SysKey, role, p.CLI); err != nil {
-						return err
-					}
-				}
-			}
-		}
-		if !ok {
-			return fmt.Errorf("Role %+s not found\n", val)
-		}
-	}
-	if val := p.Trigger; len(val) > 0 {
-		fmt.Printf("Pushing trigger %+s\n", val)
-		triggers, ok := p.SysInfo["triggers"]
-		if !ok {
-			return fmt.Errorf("No triggers found locally.\n")
-		}
-		ok = false
-		for _, triggIF := range triggers.([]interface{}) {
-			trigger := triggIF.(map[string]interface{})
-			if trigger["name"] == val {
+		for _, role := range roles {
+			//role := roleIF.(map[string]interface{})
+			if role["Name"] == RoleName {
 				ok = true
-				if err := updateTrigger(p.SysKey, trigger, p.CLI); err != nil {
+				fmt.Printf("Pushing role %s\n", RoleName)
+				if err := updateRole(systemInfo.Key, role, cli); err != nil {
 					return err
 				}
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Trigger %+s not found\n", val)
+			return fmt.Errorf("Role %s not found\n", RoleName)
 		}
 	}
-	if val := p.Timer; len(val) > 0 {
-		fmt.Printf("Pushing timer %+s\n", val)
-		timers, ok := p.SysInfo["timers"]
-		if !ok {
-			return fmt.Errorf("No timers found locally.\n")
+
+	if TriggerName != "" {
+		fmt.Printf("Pushing trigger %+s\n", TriggerName)
+		triggers, err := getTriggers()
+		if err != nil {
+			return fmt.Errorf("Could not get local triggers: %s", err.Error())
 		}
-		ok = false
-		for _, timerIF := range timers.([]interface{}) {
-			timer := timerIF.(map[string]interface{})
-			if timer["name"] == val {
+		ok := false
+		for _, trigger := range triggers {
+			//trigger := triggIF.(map[string]interface{})
+			if trigger["name"] == TriggerName {
 				ok = true
-				if err := updateTimer(p.SysKey, timer, p.CLI); err != nil {
+				if err := updateTrigger(systemInfo.Key, trigger, cli); err != nil {
 					return err
 				}
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Timer %+s not found\n", val)
+			return fmt.Errorf("Trigger %+s not found\n", TriggerName)
+		}
+	}
+
+	if TimerName != "" {
+		fmt.Printf("Pushing timer %+s\n", TimerName)
+		timers, err := getTimers()
+		if err != nil {
+			return fmt.Errorf("Could not get local timers: %s", err.Error())
+		}
+		ok := false
+		for _, timer := range timers {
+			if timer["name"] == TimerName {
+				ok = true
+				if err := updateTimer(systemInfo.Key, timer, cli); err != nil {
+					return err
+				}
+			}
+		}
+		if !ok {
+			return fmt.Errorf("Timer %+s not found\n", TimerName)
 		}
 	}
 

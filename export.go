@@ -432,6 +432,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		"platformURL":       URL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
+		"token":             DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err

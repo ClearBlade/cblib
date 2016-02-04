@@ -77,6 +77,7 @@ func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "triggers")
 	delete(systemDotJSON, "users")
 	delete(systemDotJSON, "data")
+	delete(systemDotJSON, "roles")
 	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall system.json: %s", err.Error())
