@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	"io/ioutil"
+	//"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
@@ -88,7 +88,7 @@ func Auth(devToken string) (*cb.DevClient, error) {
 		cli = &cb.DevClient{
 			DevToken: token,
 		}
-		fmt.Println("Using developer token from " + homedir() + "/.cbauth")
+		//fmt.Println("Using developer token from " + homedir() + "/.cbauth")
 		return cli, nil
 	}
 }
@@ -100,11 +100,14 @@ func save_auth_info(filename, token string) error {
 }
 
 func Load_auth_info(filename string) (string, error) {
-	if data, err := ioutil.ReadFile(filename); err != nil {
-		return "", err
-	} else {
-		return string(data), nil
-	}
+	return DevToken, nil
+	/*
+		if data, err := ioutil.ReadFile(filename); err != nil {
+			return "", err
+		} else {
+			return string(data), nil
+		}
+	*/
 }
 
 func GoToRepoRootDir() error {
