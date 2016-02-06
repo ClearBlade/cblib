@@ -312,6 +312,19 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 	return nil
 }
 
+func findService(systemKey, serviceName string) (map[string]interface{}, error) {
+	services, err := getServices()
+	if err != nil {
+		return nil, err
+	}
+	for _, service := range services {
+		if service["name"] == serviceName {
+			return service, nil
+		}
+	}
+	return nil, fmt.Errorf(NotExistErrorString)
+}
+
 func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
 	svcCode := service["code"].(string)

@@ -6,6 +6,11 @@ package cblib
 //  they can be set directly by unit tests, etc.
 //  My, there are a lot of these...
 //
+
+const (
+	NotExistErrorString = "Does not exist"
+)
+
 var (
 	URL                        string
 	ShouldImportCollectionRows bool
@@ -31,6 +36,8 @@ var (
 	Topic                      string
 	Payload                    string
 	Help                       bool
+	Params                     string
+	Push                       bool
 )
 
 var (
