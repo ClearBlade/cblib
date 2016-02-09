@@ -10,6 +10,7 @@ import (
 var (
 	exportRows  bool
 	exportUsers bool
+	inARepo     bool
 )
 
 func init() {
@@ -17,16 +18,20 @@ func init() {
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myExportCommand := &SubCommand{
-		name:  "export",
-		usage: "Ain't no thing",
-		run:   doExport,
+		name:         "export",
+		usage:        "Ain't no thing",
+		needsAuth:    false,
+		mustBeInRepo: false,
+		run:          doExport,
 		//  TODO -- add help, usage, etc.
 	}
+	myExportCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
+	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
+	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
+	myExportCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
-	AddCommand("ex", myExportCommand)
-	AddCommand("exp", myExportCommand)
 	ImportPageSize = 100 // TODO -- fix this
 }
 
@@ -179,6 +184,7 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 	}
 	services := make([]map[string]interface{}, len(svcs))
 	for i, svc := range svcs {
+		fmt.Printf(" %s", svc)
 		if s, err := pullService(systemKey, svc, cli); err != nil {
 			return nil, err
 		} else {
@@ -200,6 +206,7 @@ func pullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 		if thisLib["visibility"] == "global" {
 			continue
 		}
+		fmt.Printf(" %s", thisLib["name"].(string))
 		libraries = append(libraries, thisLib)
 		writeLibrary(thisLib["name"].(string), thisLib)
 	}
@@ -333,19 +340,42 @@ func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[st
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
-	if len(args) == 0 {
-		fmt.Printf("export command: missing system key\n")
-		os.Exit(1)
-	} else if len(args) > 1 {
-		fmt.Printf("export command: too many arguments\n")
-		os.Exit(1)
+	if len(args) != 0 {
+		return fmt.Errorf("export command takes no arguments; only options\n")
 	}
-	return export(client, args[0])
+	inARepo = MetaInfo != nil
+	if inARepo {
+		if exportOptionsExist() {
+			return fmt.Errorf("When in a repo, you cannot have command line options")
+		}
+		/*
+			if err := os.Chdir(".."); err != nil {
+				return fmt.Errorf("Could not change to parent directory: %s", err.Error())
+			}
+		*/
+		setupFromRepo()
+	}
+	client, err := Authorize()
+	if err != nil {
+		return err
+	}
+	return export(client, SystemKey)
+}
+
+func exportOptionsExist() bool {
+	return URL != "" || SystemKey != "" || Email != "" || Password != ""
 }
 
 func export(cli *cb.DevClient, sysKey string) error {
 	fmt.Printf("Exporting System Info...")
-	sysMeta, err := pullSystemMeta(sysKey, cli)
+	var sysMeta *System_meta
+	var err error
+	if inARepo {
+		sysMeta, err = getSysMeta()
+		os.Chdir("..")
+	} else {
+		sysMeta, err = pullSystemMeta(sysKey, cli)
+	}
 	if err != nil {
 		return err
 	}
@@ -356,7 +386,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	storeMeta(sysMeta)
-	fmt.Printf("Done.\nExporting Roles...")
+	fmt.Printf(" Done.\nExporting Roles...")
 
 	roles, err := pullRoles(sysKey, cli, true)
 	if err != nil {
@@ -365,7 +395,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 	rolesInfo = roles
 	storeRoles(rolesInfo)
 
-	fmt.Printf("Done.\nExporting Services...")
+	fmt.Printf(" Done.\nExporting Services...")
 	services, err := pullServices(sysKey, cli)
 	if err != nil {
 		return err
@@ -378,7 +408,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 	//systemDotJSON["services"] = cleanServices(services)
 	systemDotJSON["services"] = services
 
-	fmt.Printf("Done.\nExporting Libraries...")
+	fmt.Printf(" Done.\nExporting Libraries...")
 	libraries, err := pullLibraries(sysMeta, cli)
 	if err != nil {
 		return err
@@ -390,28 +420,28 @@ func export(cli *cb.DevClient, sysKey string) error {
 		}
 	*/
 
-	fmt.Printf("Done.\nExporting Triggers...")
+	fmt.Printf(" Done.\nExporting Triggers...")
 	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["triggers"] = triggers
 	}
 
-	fmt.Printf("Done.\nExporting Timers...")
+	fmt.Printf(" Done.\nExporting Timers...")
 	if timers, err := pullTimers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["timers"] = timers
 	}
 
-	fmt.Printf("Done.\nExporting Collections...")
+	fmt.Printf(" Done.\nExporting Collections...")
 	colls, err := pullCollections(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["data"] = colls
 
-	fmt.Printf("Done.\nExporting Users...")
+	fmt.Printf(" Done.\nExporting Users...")
 	_, err = pullUsers(sysMeta, cli, true)
 	if err != nil {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
@@ -422,7 +452,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["users"] = userSchema
-	fmt.Printf("Done.\n")
+	fmt.Printf(" Done.\n")
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
@@ -432,7 +462,7 @@ func export(cli *cb.DevClient, sysKey string) error {
 		"platformURL":       URL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
-		"token":             DevToken,
+		"token":             cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
@@ -440,4 +470,18 @@ func export(cli *cb.DevClient, sysKey string) error {
 
 	fmt.Printf("System '%s' has been exported into directory %s\n", sysMeta.Name, strings.Replace(sysMeta.Name, " ", "_", -1))
 	return nil
+}
+
+func setupFromRepo() {
+	sysMeta, err := getSysMeta()
+	if err != nil {
+		fmt.Printf("Error getting sys meta: %s\n", err.Error())
+		curDir, _ := os.Getwd()
+		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
+	}
+	fmt.Printf("SYSMETA: %+v\n", sysMeta)
+	Email = MetaInfo["developerEmail"].(string)
+	URL = MetaInfo["platformURL"].(string)
+	DevToken = MetaInfo["token"].(string)
+	SystemKey = sysMeta.Key
 }

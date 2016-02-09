@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	//"flag"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
@@ -12,23 +13,36 @@ func init() {
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myInitCommand := &SubCommand{
-		name:  "export",
-		usage: "Ain't no thing",
-		run:   doInit,
+		name:         "export",
+		usage:        "Ain't no thing",
+		needsAuth:    false,
+		mustBeInRepo: false,
+		run:          doInit,
 		//  TODO -- add help, usage, etc.
 	}
+	myInitCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
+	myInitCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
+	myInitCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
+	myInitCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	AddCommand("init", myInitCommand)
 }
 
 func doInit(cmd *SubCommand, client *cb.DevClient, args ...string) error {
-	if len(args) == 0 {
-		fmt.Printf("init command: missing system key\n")
-		os.Exit(1)
-	} else if len(args) > 1 {
-		fmt.Printf("init command: too many arguments\n")
+	if len(args) != 0 {
+		fmt.Printf("init command takes no arguments; only options: '%+v'\n", args)
 		os.Exit(1)
 	}
-	return reallyInit(client, args[0])
+	if inARepo := MetaInfo != nil; inARepo {
+		if err := os.Chdir(".."); err != nil {
+			return fmt.Errorf("Could not move up to parent directory: %s", err.Error())
+		}
+	}
+	MetaInfo = nil
+	client, err := Authorize()
+	if err != nil {
+		return err
+	}
+	return reallyInit(client, SystemKey)
 }
 
 func reallyInit(cli *cb.DevClient, sysKey string) error {
@@ -51,7 +65,7 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		"platformURL":       URL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
-		"token":             DevToken,
+		"token":             cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err

@@ -56,9 +56,11 @@ func init() {
 		"UserSchema:columns":            "ColumnName",
 	}
 	myDiffCommand := &SubCommand{
-		name:  "diff",
-		usage: "what's the difference?",
-		run:   doDiff,
+		name:         "diff",
+		usage:        "what's the difference?",
+		needsAuth:    true,
+		mustBeInRepo: true,
+		run:          doDiff,
 	}
 	myDiffCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
 	myDiffCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")

@@ -11,70 +11,136 @@ import (
 
 func init() {
 	pushCommand := &SubCommand{
-		name:  "push",
-		usage: "push a specified resource to a system",
-		run:   doPush,
+		name:         "push",
+		usage:        "push a specified resource to a system",
+		needsAuth:    true,
+		mustBeInRepo: true,
+		run:          doPush,
 	}
-	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
-	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
-	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
-	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
-	pushCommand.flags.StringVar(&User, "user", "", "Name of user to diff")
-	pushCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
-	pushCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
-	pushCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
+	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
+	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
+	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
+	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
+	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
+	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to push")
+	pushCommand.flags.StringVar(&User, "user", "", "Name of user to push")
+	pushCommand.flags.StringVar(&RoleName, "role", "", "Name of role to push")
+	pushCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to push")
+	pushCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to push")
 	AddCommand("push", pushCommand)
 }
 
-func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func checkPushArgsAndFlags(args []string) error {
+	if len(args) != 0 {
+		return fmt.Errorf("There are no arguments to the push command, only command line options\n")
+	}
+	if AllServices && ServiceName != "" {
+		return fmt.Errorf("Cannot specify both -all-services and -service=<service_name>\n")
+	}
+	if AllLibraries && LibraryName != "" {
+		return fmt.Errorf("Cannot specify both -all-libraries and -library=<library_name>\n")
+	}
+	return nil
+}
 
+func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing service %+s\n", ServiceName)
+	services, err := getServices()
+	if err != nil {
+		return err
+	}
+	for _, service := range services {
+		if service["name"] == ServiceName {
+			return updateService(systemInfo.Key, service, cli)
+		}
+	}
+	return fmt.Errorf("Service '%s' not found\n", ServiceName)
+}
+
+func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
+	services, err := getServices()
+	if err != nil {
+		return err
+	}
+	for _, service := range services {
+		fmt.Printf("Pushing service %+s\n", service["name"].(string))
+		if err := updateService(systemInfo.Key, service, cli); err != nil {
+			return fmt.Errorf("Error updating service '%s': %s\n", service["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing library %+s\n", LibraryName)
+	libraries, err := getLibraries()
+	if err != nil {
+		return err
+	}
+	for _, library := range libraries {
+		if library["name"] == LibraryName {
+			return updateLibrary(systemInfo.Key, library, cli)
+		}
+	}
+	return fmt.Errorf("Library '%s' not found\n", LibraryName)
+}
+
+func pushAllLibraries(systemInfo *System_meta, cli *cb.DevClient) error {
+	libraries, err := getLibraries()
+	if err != nil {
+		return err
+	}
+	for _, library := range libraries {
+		fmt.Printf("Pushing library %+s\n", library["name"].(string))
+		if err := updateLibrary(systemInfo.Key, library, cli); err != nil {
+			return fmt.Errorf("Error updating library '%s': %s\n", library["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
+func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+	if err := checkPushArgsAndFlags(args); err != nil {
+		return err
+	}
 	systemInfo, err := getSysMeta()
 	if err != nil {
 		return err
 	}
 	setRootDir(".")
 
-	if ServiceName != "" {
-		fmt.Printf("Pushing service %+s\n", ServiceName)
-		services, err := getServices()
-		if err != nil {
+	didSomething := false
+
+	if AllServices {
+		didSomething = true
+		if err := pushAllServices(systemInfo, cli); err != nil {
 			return err
 		}
-		ok := false
-		for _, service := range services {
-			if service["name"] == ServiceName {
-				ok = true
-				if err := updateService(systemInfo.Key, service, cli); err != nil {
-					return err
-				}
-			}
+	}
+
+	if ServiceName != "" {
+		didSomething = true
+		if err := pushOneService(systemInfo, cli); err != nil {
+			return err
 		}
-		if !ok {
-			return fmt.Errorf("Service %+s not found\n", ServiceName)
+	}
+
+	if AllLibraries {
+		didSomething = true
+		if err := pushAllLibraries(systemInfo, cli); err != nil {
+			return err
 		}
 	}
 
 	if LibraryName != "" {
-		fmt.Printf("Pushing library %+s\n", LibraryName)
-		libraries, err := getLibraries()
-		if err != nil {
+		didSomething = true
+		if err := pushOneLibrary(systemInfo, cli); err != nil {
 			return err
-		}
-		ok := false
-		for _, library := range libraries {
-			if library["name"] == LibraryName {
-				ok = true
-				if err := updateLibrary(systemInfo.Key, library, cli); err != nil {
-					return err
-				}
-			}
-		}
-		if !ok {
-			return fmt.Errorf("Library %+s not found\n", LibraryName)
 		}
 	}
 
 	if CollectionName != "" {
+		didSomething = true
 		fmt.Printf("Pushing collection %+s\n", CollectionName)
 		if collections, err := getCollections(); err != nil {
 			return err
@@ -137,6 +203,7 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	************************/
 
 	if RoleName != "" {
+		didSomething = true
 		ok := false
 		roles, err := getRoles()
 		if err != nil {
@@ -158,6 +225,7 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if TriggerName != "" {
+		didSomething = true
 		fmt.Printf("Pushing trigger %+s\n", TriggerName)
 		triggers, err := getTriggers()
 		if err != nil {
@@ -179,6 +247,7 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if TimerName != "" {
+		didSomething = true
 		fmt.Printf("Pushing timer %+s\n", TimerName)
 		timers, err := getTimers()
 		if err != nil {
@@ -196,6 +265,9 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		if !ok {
 			return fmt.Errorf("Timer %+s not found\n", TimerName)
 		}
+	}
+	if !didSomething {
+		fmt.Printf("Nothing to push -- you must specify something to push (ie, -service=<svc_name>)\n")
 	}
 
 	return nil

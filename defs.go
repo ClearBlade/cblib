@@ -8,11 +8,14 @@ package cblib
 //
 
 const (
-	NotExistErrorString = "Does not exist"
+	NotExistErrorString  = "Does not exist"
+	SpecialNoCBMetaError = "No cbmeta file"
 )
 
 var (
 	URL                        string
+	SystemKey                  string
+	DevToken                   string
 	ShouldImportCollectionRows bool
 	ImportRows                 bool
 	ExportRows                 bool
@@ -21,7 +24,6 @@ var (
 	UserSchema                 bool
 	ImportPageSize             int
 	ExportPageSize             int
-	SystemKey                  string
 	Email                      string
 	Password                   string
 	ServiceName                string
@@ -38,6 +40,8 @@ var (
 	Help                       bool
 	Params                     string
 	Push                       bool
+	AllServices                bool
+	AllLibraries               bool
 )
 
 var (

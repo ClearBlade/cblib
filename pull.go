@@ -8,18 +8,22 @@ import (
 
 func init() {
 	pullCommand := &SubCommand{
-		name:  "pull",
-		usage: "pull a specified resource from a system",
-		run:   doPull,
+		name:         "pull",
+		usage:        "pull a specified resource from a system",
+		needsAuth:    true,
+		mustBeInRepo: true,
+		run:          doPull,
 	}
-	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
-	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
-	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
-	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
-	pullCommand.flags.StringVar(&User, "user", "", "Name of user to diff")
-	pullCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
-	pullCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
-	pullCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
+	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
+	pullCommand.flags.BoolVar(&AllServices, "all-services", false, "pull all services from system")
+	pullCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "pull all libraries from system")
+	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
+	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
+	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to pull")
+	pullCommand.flags.StringVar(&User, "user", "", "Name of user to pull")
+	pullCommand.flags.StringVar(&RoleName, "role", "", "Name of role to pull")
+	pullCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to pull")
+	pullCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to pull")
 	AddCommand("pull", pullCommand)
 }
 
@@ -38,7 +42,19 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		rolesInfo = r
 	}
 
+	didSomething := false
+
+	if AllServices {
+		didSomething = true
+		fmt.Printf("Pulling all services:")
+		if _, err := pullServices(systemInfo.Key, cli); err != nil {
+			return err
+		}
+		fmt.Printf("\n")
+	}
+
 	if ServiceName != "" {
+		didSomething = true
 		fmt.Printf("Pulling service %+s\n", ServiceName)
 		if svc, err := pullService(systemInfo.Key, ServiceName, cli); err != nil {
 			return err
@@ -48,6 +64,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if LibraryName != "" {
+		didSomething = true
 		fmt.Printf("Pulling library %s\n", LibraryName)
 		if lib, err := pullLibrary(systemInfo.Key, LibraryName, cli); err != nil {
 			return err
@@ -57,6 +74,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if CollectionName != "" {
+		didSomething = true
 		exportRows = true
 		fmt.Printf("Pulling collection %+s\n", CollectionName)
 		if allColls, err := cli.GetAllCollections(systemInfo.Key); err != nil {
@@ -86,6 +104,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if User != "" {
+		didSomething = true
 		fmt.Printf("Pulling user %+s\n", User)
 		if users, err := cli.GetAllUsers(systemInfo.Key); err != nil {
 			return err
@@ -115,6 +134,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if RoleName != "" {
+		didSomething = true
 		roles := make([]map[string]interface{}, 0)
 		splitRoles := strings.Split(RoleName, ",")
 		for _, role := range splitRoles {
@@ -130,6 +150,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if TriggerName != "" {
+		didSomething = true
 		fmt.Printf("Pulling trigger %+s\n", TriggerName)
 		if trigg, err := pullTrigger(systemInfo.Key, TriggerName, cli); err != nil {
 			return err
@@ -139,12 +160,16 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 
 	if TimerName != "" {
+		didSomething = true
 		fmt.Printf("Pulling timer %+s\n", TimerName)
 		if timer, err := pullTimer(systemInfo.Key, TimerName, cli); err != nil {
 			return err
 		} else {
 			writeTimer(TimerName, timer)
 		}
+	}
+	if !didSomething {
+		fmt.Printf("Nothing to pull -- you must specify something to pull (ie, -service=<svc_name>)\n")
 	}
 	return nil
 }

@@ -12,12 +12,17 @@ var (
 
 func init() {
 	myImportCommand := &SubCommand{
-		name:  "import",
-		usage: "just import stuff",
-		run:   doImport,
+		name:         "import",
+		usage:        "just import stuff",
+		needsAuth:    false,
+		mustBeInRepo: true,
+		run:          doImport,
 	}
 	myImportCommand.flags.BoolVar(&importRows, "importrows", false, "imports all data into all collections")
 	myImportCommand.flags.BoolVar(&importUsers, "importusers", false, "imports all users into the system")
+	myImportCommand.flags.StringVar(&URL, "url", "", "URL for import destination")
+	myImportCommand.flags.StringVar(&Email, "email", "", "Developer email for login to import destination")
+	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
 	AddCommand("import", myImportCommand)
 	AddCommand("imp", myImportCommand)
 	AddCommand("im", myImportCommand)
@@ -254,8 +259,21 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	return importIt(cli)
 }
 
+func hijackAuthorize() (*cb.DevClient, error) {
+	svMetaInfo := MetaInfo
+	MetaInfo = nil
+	SystemKey = "DummyTemporaryPlaceholder"
+	cli, err := Authorize()
+	if err != nil {
+		return nil, err
+	}
+	SystemKey = ""
+	MetaInfo = svMetaInfo
+	return cli, nil
+}
+
 func importIt(cli *cb.DevClient) error {
-	fmt.Printf("Reading system configuration files...")
+	//fmt.Printf("Reading system configuration files...")
 	setRootDir(".")
 	users, err := getUsers()
 	if err != nil {
@@ -266,7 +284,14 @@ func importIt(cli *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Done.\nImporting system...")
+	// The DevClient should be null at this point because we are delaying auth until
+	// Now.
+	cli, err = hijackAuthorize()
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("Done.\nImporting system...")
+	fmt.Printf("Importing system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
 	}

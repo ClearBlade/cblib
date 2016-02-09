@@ -11,9 +11,11 @@ func init() {
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myTestCommand := &SubCommand{
-		name:  "test",
-		usage: "<fill this in>",
-		run:   doTest,
+		name:         "test",
+		usage:        "<fill this in>",
+		run:          doTest,
+		needsAuth:    true,
+		mustBeInRepo: true,
 		//  TODO -- add help, usage, etc.
 	}
 	myTestCommand.flags.StringVar(&ServiceName, "service", "", "name of service to test")
