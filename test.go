@@ -26,6 +26,12 @@ func init() {
 	AddCommand("test", myTestCommand)
 }
 
+func printResults(res map[string]interface{}) {
+	fmt.Printf("\tSuccess: %v\n", res["success"])
+	fmt.Printf("\tResults: %v\n", res["results"])
+	fmt.Printf("\tLogs: %v\n", res["logs"])
+}
+
 func doTest(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("Extra arguments passed to test command:%s\n", args)
@@ -49,7 +55,8 @@ func doTest(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			fmt.Printf("Failed\n")
 			return err
 		}
-		fmt.Printf("Succeeded\nResults: %+v\n", resMap)
+		fmt.Printf("Finished\n")
+		printResults(resMap)
 	} else if Topic != "" {
 		if err = doPublishMessage(systemInfo.Key, client); err != nil {
 			return err
