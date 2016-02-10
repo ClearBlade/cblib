@@ -35,7 +35,7 @@ func init() {
 	ignores = map[string][]string{
 		"system.json":           []string{"platformURL"},
 		"system.json:data":      []string{"appID", "collectionID"},
-		"system.json:libraries": []string{"version"},
+		"system.json:libraries": []string{"version", "system_key", "library_key"},
 		"system.json:services":  []string{"current_version"},
 		"users.json":            []string{"user_id", "creation_date"},
 		"trigger":               []string{"system_key", "system_secret"},
@@ -63,6 +63,8 @@ func init() {
 		run:          doDiff,
 	}
 	myDiffCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
+	myDiffCommand.flags.BoolVar(&AllServices, "all-services", false, "diff all of the services stored locally")
+	myDiffCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "diff all of the libraries stored locally")
 	myDiffCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to diff")
 	myDiffCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to diff")
 	myDiffCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to diff")
@@ -73,7 +75,25 @@ func init() {
 	AddCommand("diff", myDiffCommand)
 }
 
+func checkDiffArgsAndFlags(args []string) error {
+	if len(args) != 0 {
+		return fmt.Errorf("There are no arguments to the diff command, only command line options\n")
+	}
+
+	if AllServices && ServiceName != "" {
+		return fmt.Errorf("Cannot specify both -all-services and -service=<service_name>\n")
+	}
+
+	if AllLibraries && LibraryName != "" {
+		return fmt.Errorf("Cannot specify both -all-libraries and -library=<library_name>\n")
+	}
+	return nil
+}
+
 func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	if err := checkDiffArgsAndFlags(args); err != nil {
+		return err
+	}
 	setRootDir(".")
 	systemInfo, err := getSysMeta()
 	if err != nil {
@@ -84,16 +104,31 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			return err
 		}
 	}
+
+	if AllServices {
+		if err := diffAllServices(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if ServiceName != "" {
 		if err := diffService(systemInfo, client, ServiceName); err != nil {
 			return err
 		}
 	}
+
+	if AllLibraries {
+		if err := diffAllLibraries(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if LibraryName != "" {
 		if err := diffLibrary(systemInfo, client, LibraryName); err != nil {
 			return err
 		}
 	}
+
 	if CollectionName != "" {
 		if err := diffCollection(systemInfo, client, CollectionName); err != nil {
 			return err
@@ -188,6 +223,8 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	}
 	delete(localThang, "code")
 	delete(remoteThang, "code")
+	delete(remoteThang, "system_key")
+	delete(remoteThang, "library_key")
 
 	myPid := os.Getpid()
 	localFile := fmt.Sprintf("/tmp/%d-local.js", myPid)
@@ -223,8 +260,38 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	return nil
 }
 
+func diffAllServices(sys *System_meta, client *cb.DevClient) error {
+	services, err := getServices()
+	if err != nil {
+		return err
+	}
+	for _, service := range services {
+		svcName := service["name"].(string)
+		fmt.Printf("Diffing service %s\n", svcName)
+		if err := diffService(sys, client, svcName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func diffService(sys *System_meta, client *cb.DevClient, serviceName string) error {
 	return diffCodeAndMeta(sys, client, "service", serviceName, getService, pullService)
+}
+
+func diffAllLibraries(sys *System_meta, client *cb.DevClient) error {
+	libraries, err := getLibraries()
+	if err != nil {
+		return err
+	}
+	for _, library := range libraries {
+		libName := library["name"].(string)
+		fmt.Printf("Diffing library %s\n", libName)
+		if err := diffLibrary(sys, client, libName); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func diffLibrary(sys *System_meta, client *cb.DevClient, libraryName string) error {
