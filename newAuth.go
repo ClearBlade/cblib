@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	urlPrompt       = "Platform URL: "
-	systemKeyPrompt = "System Key: "
-	emailPrompt     = "Developer Email: "
+	urlPrompt       = "Platform URL"
+	systemKeyPrompt = "System Key"
+	emailPrompt     = "Developer Email"
 	passwordPrompt  = "Password: "
 )
 
@@ -31,28 +31,46 @@ func getOneItem(prompt string, isASecret bool) string {
 			fmt.Printf("Error getting password: %s\n", err.Error())
 			os.Exit(1)
 		}
-		return thing
+		return strings.TrimSpace(thing)
 	}
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("%s", prompt)
+	fmt.Printf("%s: ", prompt)
 	thing, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Printf("Error reading answer: %s\n", err.Error())
 		os.Exit(1)
 	}
-	return strings.Trim(thing, "\n")
+	return strings.TrimSpace(thing)
 }
 
-func fillInTheBlanks() {
+func buildPrompt(basicPrompt, defaultValue string) string {
+	if defaultValue == "" {
+		return basicPrompt
+	}
+	return fmt.Sprintf("%s (%s)", basicPrompt, defaultValue)
+}
+
+func getAnswer(entered, defaultValue string) string {
+	if entered != "" {
+		return entered
+	}
+	return defaultValue
+}
+
+func fillInTheBlanks(defaults *DefaultInfo) {
+	var defaultUrl, defaultEmail, defaultSys string
+	if defaults != nil {
+		defaultUrl, defaultEmail, defaultSys = defaults.url, defaults.email, defaults.systemKey
+	}
 	if URL == "" {
-		URL = getOneItem(urlPrompt, false)
+		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultUrl), false), defaultUrl)
 		cb.CB_ADDR = URL
 	}
 	if SystemKey == "" {
-		SystemKey = getOneItem(systemKeyPrompt, false)
+		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
 	}
 	if Email == "" {
-		Email = getOneItem(emailPrompt, false)
+		Email = getAnswer(getOneItem(buildPrompt(emailPrompt, defaultEmail), false), defaultEmail)
 	}
 	if Password == "" {
 		Password = getOneItem(passwordPrompt, true)
@@ -81,19 +99,7 @@ func GoToRepoRootDir() error {
 	}
 }
 
-func Authorize() (*cb.DevClient, error) {
-	/*
-		err := GoToRepoRootDirAndGetMeta()
-		if err == nil {
-			// Auth using the .cbmeta file
-			return &cb.DevClient{DevToken: DevToken}
-		}
-
-		if err.Error() != SpecialNoCBMetaError {
-			fmt.Printf("Error trying to setup authorization: %s\n", err.Error())
-			os.Exit(1)
-		}
-	*/
+func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 	if MetaInfo != nil {
 		DevToken = MetaInfo["token"].(string)
 		Email = MetaInfo["developerEmail"].(string)
@@ -103,7 +109,7 @@ func Authorize() (*cb.DevClient, error) {
 		return &cb.DevClient{DevToken: DevToken, Email: Email}, nil
 	}
 	// No cb meta file -- get url, syskey, email passwd
-	fillInTheBlanks()
+	fillInTheBlanks(defaults)
 	fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
 	cli := cb.NewDevClient(Email, Password)
 	if err := cli.Authenticate(); err != nil {

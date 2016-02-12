@@ -400,11 +400,12 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
 	svcCode := service["code"].(string)
+	svcDeps := service["dependencies"].(string)
 	svcParams := []string{}
 	for _, params := range service["params"].([]interface{}) {
 		svcParams = append(svcParams, params.(string))
 	}
-	if err := client.UpdateService(systemKey, svcName, svcCode, svcParams); err != nil {
+	if err := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); err != nil {
 		fmt.Printf("Could not find service %s\n", svcName)
 		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
 		reader := bufio.NewReader(os.Stdin)

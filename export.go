@@ -355,7 +355,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	client, err := Authorize()
+	client, err := Authorize(nil)
 	if err != nil {
 		return err
 	}

@@ -13,11 +13,12 @@ func init() {
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myInitCommand := &SubCommand{
-		name:         "export",
-		usage:        "Ain't no thing",
-		needsAuth:    false,
-		mustBeInRepo: false,
-		run:          doInit,
+		name:            "init",
+		usage:           "Ain't no thing",
+		needsAuth:       true,
+		mustBeInRepo:    false,
+		mustNotBeInRepo: true,
+		run:             doInit,
 		//  TODO -- add help, usage, etc.
 	}
 	myInitCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
@@ -31,16 +32,6 @@ func doInit(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		fmt.Printf("init command takes no arguments; only options: '%+v'\n", args)
 		os.Exit(1)
-	}
-	if inARepo := MetaInfo != nil; inARepo {
-		if err := os.Chdir(".."); err != nil {
-			return fmt.Errorf("Could not move up to parent directory: %s", err.Error())
-		}
-	}
-	MetaInfo = nil
-	client, err := Authorize()
-	if err != nil {
-		return err
 	}
 	return reallyInit(client, SystemKey)
 }

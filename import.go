@@ -263,7 +263,7 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	svMetaInfo := MetaInfo
 	MetaInfo = nil
 	SystemKey = "DummyTemporaryPlaceholder"
-	cli, err := Authorize()
+	cli, err := Authorize(nil)
 	if err != nil {
 		return nil, err
 	}

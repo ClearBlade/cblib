@@ -8,12 +8,13 @@ import (
 )
 
 type SubCommand struct {
-	name         string
-	usage        string
-	needsAuth    bool
-	mustBeInRepo bool
-	flags        flag.FlagSet
-	run          func(cmd *SubCommand, client *cb.DevClient, args ...string) error
+	name            string
+	usage           string
+	needsAuth       bool
+	mustBeInRepo    bool
+	mustNotBeInRepo bool
+	flags           flag.FlagSet
+	run             func(cmd *SubCommand, client *cb.DevClient, args ...string) error
 }
 
 var (
@@ -37,9 +38,11 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 		if err.Error() != SpecialNoCBMetaError {
 			return err
 		}
+	} else if c.mustNotBeInRepo {
+		return fmt.Errorf("You cannot run the '%s' command in an existing ClearBlade repository", c.name)
 	}
 	if c.needsAuth {
-		client, err = Authorize()
+		client, err = Authorize(nil)
 		if err != nil {
 			return err
 		}
