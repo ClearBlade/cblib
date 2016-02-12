@@ -53,6 +53,7 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	}
 	for _, role := range roles {
 		name := role["Name"].(string)
+		fmt.Printf(" %s", name)
 		if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
 			if err := createRole(sysKey, role, client); err != nil {
 				return err
@@ -73,11 +74,12 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 	//  Create user columns first -- if any
 	sysKey := systemInfo["systemKey"].(string)
 	sysSec := systemInfo["systemSecret"].(string)
+	userCols := []interface{}{}
+	userPerms := map[string]interface{}{}
 	userSchema, err := getUserSchema()
-	userCols := userSchema["columns"].([]interface{})
-	userPerms := userSchema["permissions"].(map[string]interface{})
-	if err != nil {
-		return err
+	if err == nil {
+		userCols = userSchema["columns"].([]interface{})
+		userPerms = userSchema["permissions"].(map[string]interface{})
 	}
 	for _, columnIF := range userCols {
 		column := columnIF.(map[string]interface{})
@@ -110,6 +112,7 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 
 	// Now, create users -- register, update roles, and update user-def colunms
 	for _, user := range users {
+		fmt.Printf(" %s", user["email"].(string))
 		userId, err := createUser(sysKey, sysSec, user, client)
 		if err != nil {
 			return err
@@ -170,6 +173,7 @@ func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for _, trigger := range triggers {
+		fmt.Printf(" %s", trigger["name"].(string))
 		if err := createTrigger(sysKey, trigger, client); err != nil {
 			return err
 		}
@@ -184,6 +188,7 @@ func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error
 		return err
 	}
 	for _, timer := range timers {
+		fmt.Printf(" %s", timer["name"].(string))
 		if err := createTimer(sysKey, timer, client); err != nil {
 			return err
 		}
@@ -198,6 +203,7 @@ func createServices(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for _, service := range services {
+		fmt.Printf(" %s", service["name"].(string))
 		if err := createService(sysKey, service, client); err != nil {
 			return err
 		}
@@ -212,6 +218,7 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 		return err
 	}
 	for _, library := range libraries {
+		fmt.Printf(" %s", library["name"].(string))
 		if err := createLibrary(sysKey, library, client); err != nil {
 			return err
 		}
@@ -226,6 +233,7 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 		return err
 	}
 	for _, collection := range collections {
+		fmt.Printf(" %s", collection["name"].(string))
 		if err := createCollection(sysKey, collection, client); err != nil {
 			return err
 		}
@@ -295,31 +303,31 @@ func importIt(cli *cb.DevClient) error {
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
 	}
-	fmt.Printf("Done.\nImporting roles...")
+	fmt.Printf(" Done.\nImporting roles...")
 	if err := createRoles(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create roles: %s", err.Error())
 	}
-	fmt.Printf("Done.\nImporting users...")
+	fmt.Printf(" Done.\nImporting users...")
 	if err := createUsers(systemInfo, users, cli); err != nil {
 		return fmt.Errorf("Could not create users: %s", err.Error())
 	}
-	fmt.Printf("Done.\nImporting collections...")
+	fmt.Printf(" Done.\nImporting collections...")
 	if err := createCollections(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create collections: %s", err.Error())
 	}
-	fmt.Printf("Done.\nImporting code services...")
+	fmt.Printf(" Done.\nImporting code services...")
 	if err := createServices(systemInfo, cli); err != nil {
 		return err
 	}
-	fmt.Printf("Done.\nImporting code libraries...")
+	fmt.Printf(" Done.\nImporting code libraries...")
 	if err := createLibraries(systemInfo, cli); err != nil {
 		return err
 	}
-	fmt.Printf("Done.\nImporting triggers...")
+	fmt.Printf(" Done.\nImporting triggers...")
 	if err := createTriggers(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create triggers: %s", err.Error())
 	}
-	fmt.Printf("Done.\nImporting timers...")
+	fmt.Printf(" Done.\nImporting timers...")
 	if err := createTimers(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create timers: %s", err.Error())
 	}

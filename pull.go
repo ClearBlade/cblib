@@ -52,6 +52,14 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 		fmt.Printf("\n")
 	}
+	if AllLibraries {
+		didSomething = true
+		fmt.Printf("Pulling all libraries:")
+		if _, err := pullLibraries(systemInfo, cli); err != nil {
+			return err
+		}
+		fmt.Printf("\n")
+	}
 
 	if ServiceName != "" {
 		didSomething = true
