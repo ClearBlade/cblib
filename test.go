@@ -1,9 +1,9 @@
 package cblib
 
 import (
-	"clearblade/cbjson"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cbjson"
 )
 
 func init() {
