@@ -2,11 +2,10 @@ package cblib
 
 import (
 	"bufio"
-	//"code.google.com/p/gopass"
 	"flag"
 	"fmt"
-	"github.com/bgentry/speakeasy"
 	cb "github.com/clearblade/Go-SDK"
+	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"strings"
 )
@@ -26,16 +25,18 @@ func init() {
 }
 
 func getOneItem(prompt string, isASecret bool) string {
+	reader := bufio.NewReader(os.Stdin)
 	if isASecret {
-		//thing, err := gopass.GetPass(prompt)
-		thing, err := speakeasy.Ask(prompt)
+		fmt.Printf("Developer password: ")
+		pw, err := terminal.ReadPassword(0)
+		fmt.Printf("\n")
 		if err != nil {
 			fmt.Printf("Error getting password: %s\n", err.Error())
 			os.Exit(1)
 		}
+		thing := string(pw)
 		return strings.TrimSpace(thing)
 	}
-	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s: ", prompt)
 	thing, err := reader.ReadString('\n')
 	if err != nil {
