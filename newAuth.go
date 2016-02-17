@@ -2,9 +2,10 @@ package cblib
 
 import (
 	"bufio"
-	"code.google.com/p/gopass"
+	//"code.google.com/p/gopass"
 	"flag"
 	"fmt"
+	"github.com/bgentry/speakeasy"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
 	"strings"
@@ -26,7 +27,8 @@ func init() {
 
 func getOneItem(prompt string, isASecret bool) string {
 	if isASecret {
-		thing, err := gopass.GetPass(prompt)
+		//thing, err := gopass.GetPass(prompt)
+		thing, err := speakeasy.Ask(prompt)
 		if err != nil {
 			fmt.Printf("Error getting password: %s\n", err.Error())
 			os.Exit(1)
