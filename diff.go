@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -94,11 +95,11 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkDiffArgsAndFlags(args); err != nil {
 		return err
 	}
-	setRootDir(".")
 	systemInfo, err := getSysMeta()
 	if err != nil {
 		return err
 	}
+	setRootDir(".")
 	if UserSchema {
 		if err := diffUserSchema(systemInfo, client); err != nil {
 			return err
@@ -236,7 +237,12 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	if err = ioutil.WriteFile(remoteFile, []byte(rCode), 0666); err != nil {
 		return err
 	}
-	diffCmd := exec.Command("/usr/bin/diff", localFile, remoteFile)
+	diffPath := "/usr/bin/diff"
+	if runtime.GOOS == "windows" {
+		diffPath = "/bin/diff"
+	}
+
+	diffCmd := exec.Command(diffPath, localFile, remoteFile)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	diffCmd.Stdout = &stdout
