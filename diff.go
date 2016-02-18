@@ -237,12 +237,13 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	if err = ioutil.WriteFile(remoteFile, []byte(rCode), 0666); err != nil {
 		return err
 	}
-	diffPath := "/usr/bin/diff"
-	if runtime.GOOS == "windows" {
-		diffPath = "FC"
-	}
 
-	diffCmd := exec.Command(diffPath, localFile, remoteFile)
+	var diffCmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		diffCmd = exec.Command(fmt.Sprintf("FC %s %s", localFile, remoteFile))
+	} else {
+		diffCmd = exec.Command("/usr/bin/diff", localFile, remoteFile)
+	}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	diffCmd.Stdout = &stdout
