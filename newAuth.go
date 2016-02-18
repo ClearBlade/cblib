@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/bgentry/speakeasy"
 	cb "github.com/clearblade/Go-SDK"
-	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"strings"
 )
@@ -27,8 +27,7 @@ func init() {
 func getOneItem(prompt string, isASecret bool) string {
 	reader := bufio.NewReader(os.Stdin)
 	if isASecret {
-		fmt.Printf("Developer password: ")
-		pw, err := terminal.ReadPassword(0)
+		pw, err := speakeasy.Ask("Developer password: ")
 		fmt.Printf("\n")
 		if err != nil {
 			fmt.Printf("Error getting password: %s\n", err.Error())
