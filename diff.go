@@ -239,7 +239,7 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	}
 	diffPath := "/usr/bin/diff"
 	if runtime.GOOS == "windows" {
-		diffPath = "/bin/diff"
+		diffPath = "FC"
 	}
 
 	diffCmd := exec.Command(diffPath, localFile, remoteFile)
