@@ -88,7 +88,7 @@ func GoToRepoRootDir() error {
 		if dirErr != nil {
 			return dirErr
 		}
-		if dirname == "/" || dirname == "\\" {
+		if dirname == "/" || strings.HasSuffix(dirname, ":\\") {
 			os.Chdir(whereIReallyAm) //  go back in case this err is ignored
 			return fmt.Errorf(SpecialNoCBMetaError)
 		}
