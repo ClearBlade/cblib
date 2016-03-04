@@ -97,5 +97,22 @@ func doCallService(systemKey string, client *cb.DevClient) (map[string]interface
 }
 
 func doPublishMessage(systemKey string, client *cb.DevClient) error {
-	return fmt.Errorf("test command: publishing a message not yet implemented")
+	if Topic == "" {
+		return fmt.Errorf("topic argument missing")
+	}
+	if Payload == "" {
+		return fmt.Errorf("payload argument missing")
+	}
+	if err := client.InitializeMQTT("", systemKey, 60); err != nil {
+		return err
+	}
+	if err := client.ConnectMQTT(nil, nil); err != nil {
+		return err
+	}
+
+	if err := client.Publish(Topic, []byte(Payload), 2); err != nil {
+		return err
+	}
+	fmt.Printf("Successfully sent message '%s' on topic '%s'\n", Payload, Topic)
+	return nil
 }

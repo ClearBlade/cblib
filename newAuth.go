@@ -66,7 +66,7 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 	}
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultUrl), false), defaultUrl)
-		cb.CB_ADDR = URL
+		setupAddrs(URL)
 	}
 	if SystemKey == "" {
 		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
@@ -106,13 +106,15 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 		DevToken = MetaInfo["token"].(string)
 		Email = MetaInfo["developerEmail"].(string)
 		URL = MetaInfo["platformURL"].(string)
-		cb.CB_ADDR = URL
+		setupAddrs(URL)
 		fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
-		return &cb.DevClient{DevToken: DevToken, Email: Email}, nil
+		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
+		return cb.NewDevClientWithToken(DevToken, Email), nil
 	}
 	// No cb meta file -- get url, syskey, email passwd
 	fillInTheBlanks(defaults)
 	fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
+	fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
 	cli := cb.NewDevClient(Email, Password)
 	if err := cli.Authenticate(); err != nil {
 		return nil, err
