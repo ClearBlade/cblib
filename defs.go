@@ -31,6 +31,7 @@ var (
 	CollectionName             string
 	CollectionId               string
 	User                       string
+	UserId                     string
 	RoleName                   string
 	TriggerName                string
 	TimerName                  string
