@@ -385,7 +385,8 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 }
 
 func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
-	svcName := service["name"].(string)
+	// svcName := service["name"].(string)
+	svcName := ServiceName
 	svcCode := service["code"].(string)
 	svcDeps := service["dependencies"].(string)
 	svcParams := []string{}
@@ -414,7 +415,8 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 }
 
 func createService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
-	svcName := service["name"].(string)
+	// svcName := service["name"].(string)
+	svcName := ServiceName
 	svcParams := mkSvcParams(service["params"].([]interface{}))
 	svcDeps := service["dependencies"].(string)
 	svcCode := service["code"].(string)
@@ -447,7 +449,8 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 }
 
 func updateLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
-	libName := library["name"].(string)
+	// libName := library["name"].(string)
+	libName := LibraryName
 	delete(library, "name")
 	delete(library, "version")
 	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
@@ -473,7 +476,8 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 }
 
 func createLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
-	libName := library["name"].(string)
+	// libName := library["name"].(string)
+	libName := LibraryName
 	delete(library, "name")
 	delete(library, "version")
 	if _, err := client.CreateLibrary(systemKey, libName, library); err != nil {
