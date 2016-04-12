@@ -15,10 +15,8 @@ func init() {
 	}
 	createCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to create")
 	createCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to create")
-	createCommand.flags.StringVar(&CollectionName, "collection", "", "Unique id of collection to create")
-	// createCommand.flags.StringVar(&CollectionId, "collectionId", "", "Unique id of collection to create")
-	createCommand.flags.StringVar(&User, "user", "", "Unique id of user to create")
-	// createCommand.flags.StringVar(&UserId, "userId", "", "Unique id of user to create")
+	createCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to create")
+	createCommand.flags.StringVar(&User, "user", "", "Name of user to create")
 	createCommand.flags.StringVar(&RoleName, "role", "", "Name of role to create")
 	createCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to create")
 	createCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to create")
@@ -61,6 +59,13 @@ func doCreate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if CollectionName != "" {
 		didSomething = true
 		if err := createOneCollection(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if CollectionId != "" {
+		didSomething = true
+		if err := createOneCollectionById(systemInfo, cli); err != nil {
 			return err
 		}
 	}
