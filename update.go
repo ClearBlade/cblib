@@ -16,9 +16,9 @@ func init() {
 	updateCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to update")
 	updateCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to update")
 	updateCommand.flags.StringVar(&CollectionName, "collection", "", "Unique id of collection to update")
-	// updateCommand.flags.StringVar(&CollectionId, "collectionId", "", "Unique id of collection to update")
+	updateCommand.flags.StringVar(&CollectionId, "collectionID", "", "Unique id of collection to update")
 	updateCommand.flags.StringVar(&User, "user", "", "Unique id of user to update")
-	// updateCommand.flags.StringVar(&UserId, "userId", "", "Unique id of user to update")
+	updateCommand.flags.StringVar(&UserId, "userID", "", "Unique id of user to update")
 	updateCommand.flags.StringVar(&RoleName, "role", "", "Name of role to update")
 	updateCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to update")
 	updateCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to update")
@@ -65,9 +65,23 @@ func doUpdate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if CollectionId != "" {
+		didSomething = true
+		if err := pushOneCollectionById(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
 	if User != "" {
 		didSomething = true
 		if err := pushOneUser(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if UserId != "" {
+		didSomething = true
+		if err := pushOneUserById(systemInfo, cli); err != nil {
 			return err
 		}
 	}

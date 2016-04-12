@@ -63,13 +63,6 @@ func doCreate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if CollectionId != "" {
-		didSomething = true
-		if err := createOneCollectionById(systemInfo, cli); err != nil {
-			return err
-		}
-	}
-
 	if User != "" {
 		didSomething = true
 		if err := createOneUser(systemInfo, cli); err != nil {

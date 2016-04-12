@@ -61,6 +61,24 @@ func pushOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
 	return updateCollection(systemInfo.Key, collection, cli)
 }
 
+func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing collection with collectionID %s\n", CollectionId)
+	collections, err := getCollections()
+	if err != nil {
+		return err
+	}
+	for _, collection := range collections {
+		id, ok := collection["collectionID"].(string)
+		if !ok {
+			continue
+		}
+		if id == CollectionId {
+			return updateCollection(systemInfo.Key, collection, cli)
+		}
+	}
+	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
+}
+
 func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing user %s\n", User)
 	user, err := getUser(User)
@@ -68,6 +86,24 @@ func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
 		return err
 	}
 	return updateUser(systemInfo.Key, user, cli)
+}
+
+func pushOneUserById(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing user with user_id %s\n", UserId)
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		id, ok := user["user_id"].(string)
+		if !ok {
+			continue
+		}
+		if id == UserId {
+			return updateUser(systemInfo.Key, user, cli)
+		}
+	}
+	return fmt.Errorf("User with user_id %+s not found.", UserId)
 }
 
 func pushOneRole(systemInfo *System_meta, cli *cb.DevClient) error {
