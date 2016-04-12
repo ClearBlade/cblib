@@ -31,7 +31,7 @@ func checkDeleteArgsAndFlags(args []string) error {
 }
 
 func doDelete(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-	if err := checkPushArgsAndFlags(args); err != nil {
+	if err := checkDeleteArgsAndFlags(args); err != nil {
 		return err
 	}
 	systemInfo, err := getSysMeta()
@@ -158,7 +158,6 @@ func deleteCollection(systemKey string, colId string, client *cb.DevClient) erro
 }
 
 func deleteUser(systemKey string, userId string, client *cb.DevClient) error {
-	fmt.Printf("deleteUser %#v\n", userId)
 	err := client.DeleteUser(systemKey, userId)
 	if err != nil {
 		return fmt.Errorf("Unable to delete user with Id %s : %s", userId, err)
