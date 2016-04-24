@@ -45,16 +45,92 @@ func checkPushArgsAndFlags(args []string) error {
 
 func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing service %+s\n", ServiceName)
-	services, err := getServices()
+	service, err := getService(ServiceName)
 	if err != nil {
 		return err
 	}
-	for _, service := range services {
-		if service["name"] == ServiceName {
-			return updateService(systemInfo.Key, service, cli)
+	return updateService(systemInfo.Key, service, cli)
+}
+
+func pushOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing collection %s\n", CollectionName)
+	collection, err := getCollection(CollectionName)
+	if err != nil {
+		return err
+	}
+	return updateCollection(systemInfo.Key, collection, cli)
+}
+
+func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing collection with collectionID %s\n", CollectionId)
+	collections, err := getCollections()
+	if err != nil {
+		return err
+	}
+	for _, collection := range collections {
+		id, ok := collection["collectionID"].(string)
+		if !ok {
+			continue
+		}
+		if id == CollectionId {
+			return updateCollection(systemInfo.Key, collection, cli)
 		}
 	}
-	return fmt.Errorf("Service '%s' not found\n", ServiceName)
+	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
+}
+
+func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing user %s\n", User)
+	user, err := getUser(User)
+	if err != nil {
+		return err
+	}
+	return updateUser(systemInfo.Key, user, cli)
+}
+
+func pushOneUserById(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing user with user_id %s\n", UserId)
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		id, ok := user["user_id"].(string)
+		if !ok {
+			continue
+		}
+		if id == UserId {
+			return updateUser(systemInfo.Key, user, cli)
+		}
+	}
+	return fmt.Errorf("User with user_id %+s not found.", UserId)
+}
+
+func pushOneRole(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing role %s\n", RoleName)
+	role, err := getRole(RoleName)
+	if err != nil {
+		return err
+	}
+	return updateRole(systemInfo.Key, role, cli)
+}
+
+func pushOneTrigger(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing trigger %+s\n", TriggerName)
+	trigger, err := getTrigger(TriggerName)
+	if err != nil {
+		return err
+	}
+	return updateTrigger(systemInfo.Key, trigger, cli)
+}
+
+func pushOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing timer %+s\n", TimerName)
+	timer, err := getTimer(TimerName)
+	if err != nil {
+		return err
+	}
+	return updateTimer(systemInfo.Key, timer, cli)
 }
 
 func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
@@ -73,16 +149,11 @@ func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
 
 func pushOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing library %+s\n", LibraryName)
-	libraries, err := getLibraries()
+	library, err := getLibrary(LibraryName)
 	if err != nil {
 		return err
 	}
-	for _, library := range libraries {
-		if library["name"] == LibraryName {
-			return updateLibrary(systemInfo.Key, library, cli)
-		}
-	}
-	return fmt.Errorf("Library '%s' not found\n", LibraryName)
+	return updateLibrary(systemInfo.Key, library, cli)
 }
 
 func pushAllLibraries(systemInfo *System_meta, cli *cb.DevClient) error {
@@ -141,131 +212,39 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		fmt.Printf("Pushing collection %+s\n", CollectionName)
-		if collections, err := getCollections(); err != nil {
+		if err := pushOneCollection(systemInfo, cli); err != nil {
 			return err
-		} else {
-			var (
-				ok   = false
-				coll map[string]interface{}
-			)
-			for _, c := range collections {
-				if c["name"] == CollectionName {
-					ok = true
-					coll = c
-				}
-			}
-			if !ok {
-				return fmt.Errorf("Collection %+s not found\n", CollectionName)
-			}
-			if err := updateCollection(systemInfo.Key, coll, cli); err != nil {
-				return err
-			}
 		}
 	}
 
-	/***** XXXSWM -- need to fix this
 	if User != "" {
-		fmt.Printf("Pushing user %+s\n", User)
-		sysSecret := systemInfo.Secret
-		if users, err := getUsers(); err != nil {
+		didSomething = true
+		if err := pushOneUser(systemInfo, cli); err != nil {
 			return err
-		} else {
-			ok := false
-			for _, user := range users {
-				userMap := user.(map[string]interface{})
-				if userMap["email"] == User {
-					ok = true
-					for _, userCol := range p.SysInfo["users"].([]interface{}) {
-						column := userCol.(map[string]interface{})
-						columnName := column["ColumnName"].(string)
-						columnType := column["ColumnType"].(string)
-						if err := cli.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
-							return fmt.Errorf("Could not create user column %s: %s", columnName, err.Error())
-						}
-					}
-					userId := userMap["user_id"].(string)
-					if roles, err := cli.GetUserRoles(systemInfo.Key, userId); err != nil {
-						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
-					} else {
-						userMap["roles"] = roles
-					}
-					if _, err := createUser(systemInfo.Key, sysSecret, userMap, cli); err != nil {
-						return fmt.Errorf("Could not create user %s: %s", User, err.Error())
-					}
-				}
-			}
-			if !ok {
-				return fmt.Errorf("User %+s not found\n", User)
-			}
 		}
 	}
-	************************/
 
 	if RoleName != "" {
 		didSomething = true
-		ok := false
-		roles, err := getRoles()
-		if err != nil {
-			return fmt.Errorf("Could not get local roles: %s", err.Error())
-		}
-		for _, role := range roles {
-			//role := roleIF.(map[string]interface{})
-			if role["Name"] == RoleName {
-				ok = true
-				fmt.Printf("Pushing role %s\n", RoleName)
-				if err := updateRole(systemInfo.Key, role, cli); err != nil {
-					return err
-				}
-			}
-		}
-		if !ok {
-			return fmt.Errorf("Role %s not found\n", RoleName)
+		if err := pushOneRole(systemInfo, cli); err != nil {
+			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		fmt.Printf("Pushing trigger %+s\n", TriggerName)
-		triggers, err := getTriggers()
-		if err != nil {
-			return fmt.Errorf("Could not get local triggers: %s", err.Error())
-		}
-		ok := false
-		for _, trigger := range triggers {
-			//trigger := triggIF.(map[string]interface{})
-			if trigger["name"] == TriggerName {
-				ok = true
-				if err := updateTrigger(systemInfo.Key, trigger, cli); err != nil {
-					return err
-				}
-			}
-		}
-		if !ok {
-			return fmt.Errorf("Trigger %+s not found\n", TriggerName)
+		if err := pushOneTrigger(systemInfo, cli); err != nil {
+			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		fmt.Printf("Pushing timer %+s\n", TimerName)
-		timers, err := getTimers()
-		if err != nil {
-			return fmt.Errorf("Could not get local timers: %s", err.Error())
-		}
-		ok := false
-		for _, timer := range timers {
-			if timer["name"] == TimerName {
-				ok = true
-				if err := updateTimer(systemInfo.Key, timer, cli); err != nil {
-					return err
-				}
-			}
-		}
-		if !ok {
-			return fmt.Errorf("Timer %+s not found\n", TimerName)
+		if err := pushOneTimer(systemInfo, cli); err != nil {
+			return err
 		}
 	}
+
 	if !didSomething {
 		fmt.Printf("Nothing to push -- you must specify something to push (ie, -service=<svc_name>)\n")
 	}
@@ -278,6 +257,14 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 		return err
 	}
 	return nil
+}
+
+func updateUser(systemKey string, user map[string]interface{}, client *cb.DevClient) error {
+	if id, ok := user["Id"].(string); !ok {
+		return fmt.Errorf("Missing user id %+v", user)
+	} else {
+		return client.UpdateUser(systemKey, id, user)
+	}
 }
 
 func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) (string, error) {
@@ -399,6 +386,9 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 
 func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
+	if ServiceName != "" {
+		svcName = ServiceName
+	}
 	svcCode := service["code"].(string)
 	svcDeps := service["dependencies"].(string)
 	svcParams := []string{}
@@ -428,6 +418,9 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 
 func createService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
+	if ServiceName != "" {
+		svcName = ServiceName
+	}
 	svcParams := mkSvcParams(service["params"].([]interface{}))
 	svcDeps := service["dependencies"].(string)
 	svcCode := service["code"].(string)
@@ -461,6 +454,9 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 
 func updateLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
 	libName := library["name"].(string)
+	if LibraryName != "" {
+		libName = LibraryName
+	}
 	delete(library, "name")
 	delete(library, "version")
 	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
@@ -487,6 +483,9 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 
 func createLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
 	libName := library["name"].(string)
+	if LibraryName != "" {
+		libName = LibraryName
+	}
 	delete(library, "name")
 	delete(library, "version")
 	if _, err := client.CreateLibrary(systemKey, libName, library); err != nil {

@@ -281,11 +281,15 @@ func getRolesForThing(name, key string) map[string]interface{} {
 	rval := map[string]interface{}{}
 	for _, roleInfo := range rolesInfo {
 		roleName := roleInfo["Name"].(string)
-		roleSvcs := roleInfo["Permissions"].(map[string]interface{})[key].([]interface{}) // Mouthful
-		for _, roleEntIF := range roleSvcs {
-			roleEnt := roleEntIF.(map[string]interface{})
-			if roleEnt["Name"].(string) == name {
-				rval[roleName] = roleEnt["Level"]
+		perms := roleInfo["Permissions"].(map[string]interface{})
+		svcPerms := perms[key]
+
+		if roleSvcs, ok := svcPerms.([]interface{}); ok {
+			for _, roleEntIF := range roleSvcs {
+				roleEnt := roleEntIF.(map[string]interface{})
+				if roleEnt["Name"].(string) == name {
+					rval[roleName] = roleEnt["Level"]
+				}
 			}
 		}
 	}

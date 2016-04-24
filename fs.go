@@ -325,23 +325,23 @@ func getUserSchema() (map[string]interface{}, error) {
 }
 
 func getRole(name string) (map[string]interface{}, error) {
-	return getObject(rolesDir, name)
+	return getObject(rolesDir, name+".json")
 }
 
 func getUser(email string) (map[string]interface{}, error) {
-	return getObject(usersDir, email)
+	return getObject(usersDir, email+".json")
 }
 
 func getTrigger(name string) (map[string]interface{}, error) {
-	return getObject(triggersDir, name)
+	return getObject(triggersDir, name+".json")
 }
 
 func getTimer(name string) (map[string]interface{}, error) {
-	return getObject(timersDir, name)
+	return getObject(timersDir, name+".json")
 }
 
 func getCollection(name string) (map[string]interface{}, error) {
-	return getObject(dataDir, name)
+	return getObject(dataDir, name+".json")
 }
 
 func getService(name string) (map[string]interface{}, error) {
