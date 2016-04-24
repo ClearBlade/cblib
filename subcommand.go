@@ -22,7 +22,6 @@ var (
 )
 
 func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
-	fmt.Printf("ARGS: %+v\n", args)
 	var client *cb.DevClient
 	var err error
 	c.flags.Usage = func() {

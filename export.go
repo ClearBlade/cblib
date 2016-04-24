@@ -112,7 +112,18 @@ func getRolesForCollection(collection map[string]interface{}) error {
 	perms := map[string]interface{}{}
 	for _, role := range rolesInfo {
 		roleName := role["Name"].(string)
-		colPerms := role["Permissions"].(map[string]interface{})["Collections"].([]interface{})
+
+		if _, ok := role["Permissions"].(map[string]interface{}); !ok {
+			continue
+		}
+		rolePerms := role["Permissions"].(map[string]interface{})
+
+		if _, ok := rolePerms["Collections"].([]interface{}); !ok {
+			continue
+		}
+		colPerms := rolePerms["Collections"].([]interface{})
+
+		//colPerms := role["Permissions"].(map[string]interface{})["Collections"].([]interface{})
 		for _, colPermIF := range colPerms {
 			colPerm := colPermIF.(map[string]interface{})
 			if colPerm["Name"].(string) == colName {
