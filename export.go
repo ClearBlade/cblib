@@ -142,10 +142,6 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
-		for _, oneItemIF := range curData {
-			oneItem := oneItemIF.(map[string]interface{})
-			delete(oneItem, "item_id")
-		}
 		allData = append(allData, curData...)
 	}
 	return allData, nil

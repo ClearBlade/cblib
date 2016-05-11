@@ -500,7 +500,7 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	items := collection["items"].([]interface{})
 	for _, row := range items {
 		query := cb.NewQuery()
-		// query.EqualTo(field, value)
+		query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
 		if err = client.UpdateData(collection_id, query, row.(map[string]interface{})); err != nil {
 			break
 		}
@@ -508,6 +508,7 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	if err != nil {
 		collName := collection["name"].(string)
 		fmt.Printf("Error updating collection %s.\n", collName)
+		fmt.Println(err.Error())
 		collName = collName + "2"
 		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
 		reader := bufio.NewReader(os.Stdin)
