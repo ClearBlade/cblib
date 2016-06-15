@@ -490,7 +490,6 @@ func setupFromRepo() {
 		curDir, _ := os.Getwd()
 		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
 	}
-	fmt.Printf("SYSMETA: %+v\n", sysMeta)
 	Email = MetaInfo["developerEmail"].(string)
 	URL = MetaInfo["platformURL"].(string)
 	DevToken = MetaInfo["token"].(string)

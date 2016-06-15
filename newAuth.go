@@ -101,6 +101,13 @@ func GoToRepoRootDir() error {
 	}
 }
 
+func makeClientFromMetaInfo() *cb.DevClient {
+	devToken := MetaInfo["token"].(string)
+	email := MetaInfo["developerEmail"].(string)
+	setupAddrs(MetaInfo["platformURL"].(string))
+	return cb.NewDevClientWithToken(devToken, email)
+}
+
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 	if MetaInfo != nil {
 		DevToken = MetaInfo["token"].(string)
