@@ -526,38 +526,33 @@ func export(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["users"] = userSchema
 
+	fmt.Printf(" Done.\nExporting Edges...")
 	edges, err := pullEdges(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["edges"] = edges
 
-	fmt.Println("heres the edges")
-	fmt.Printf("%+v\n", edges)
-
+	fmt.Printf(" Done.\nExporting Devices...")
 	devices, err := pullDevices(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["devices"] = devices
 
-	fmt.Println("heres the devices")
-	fmt.Printf("%+v\n", devices)
-
+	fmt.Printf(" Done.\nExporting Dashboards...")
 	dashboards, err := pullDashboards(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["dashboards"] = dashboards
 
+	fmt.Printf(" Done.\nExporting Plugins...")
 	plugins, err := pullPlugins(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["plugins"] = plugins
-
-	fmt.Println("heres the dashboards")
-	fmt.Printf("%+v\n", dashboards)
 
 	fmt.Printf(" Done.\n")
 
