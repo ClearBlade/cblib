@@ -381,6 +381,15 @@ func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
+func pullEdgeSyncInfo(sysMeta *System_meta, cli *cb.DevClient) (map[string]interface{}, error) {
+	sysKey := sysMeta.Key
+	syncMap, err := cli.GetSyncResourcesForEdge(sysKey)
+	if err != nil {
+		return nil, err
+	}
+	return syncMap, nil
+}
+
 func pullDashboards(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allDashboards, err := cli.GetDashboards(sysKey)
@@ -473,12 +482,6 @@ func export(cli *cb.DevClient, sysKey string) error {
 	if err != nil {
 		return err
 	}
-	/*
-		if err := storeServices(dir, services, sysMeta); err != nil {
-			return err
-		}
-	*/
-	//systemDotJSON["services"] = cleanServices(services)
 	systemDotJSON["services"] = services
 
 	fmt.Printf(" Done.\nExporting Libraries...")
@@ -487,11 +490,6 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["libraries"] = libraries
-	/*
-		if err := storeLibraries(); err != nil {
-			return err
-		}
-	*/
 
 	fmt.Printf(" Done.\nExporting Triggers...")
 	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
@@ -539,6 +537,13 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["devices"] = devices
+
+	fmt.Printf(" Done.\nExporting Edge Sync Information...")
+	syncInfo, err := pullEdgeSyncInfo(sysMeta, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["edgeSync"] = syncInfo
 
 	fmt.Printf(" Done.\nExporting Dashboards...")
 	dashboards, err := pullDashboards(sysMeta, cli)

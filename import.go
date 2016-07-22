@@ -3,6 +3,7 @@ package cblib
 import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"strings"
 )
 
 var (
@@ -241,6 +242,46 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 	return nil
 }
 
+func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	edgeInfo, ok := systemInfo["edgeSync"].(map[string]interface{})
+	if !ok {
+		fmt.Printf("WARNING: Could not find any edge sync information\n")
+		return nil
+	}
+	for edgeName, edgeSyncInfoIF := range edgeInfo {
+		edgeSyncInfo, ok := edgeSyncInfoIF.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("Poorly formed edge sync info")
+		}
+		converted, err := convertSyncInfo(edgeSyncInfo)
+		if err != nil {
+			return err
+		}
+		_, err = client.SyncResourceToEdge(sysKey, edgeName, converted, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func convertSyncInfo(info map[string]interface{}) (map[string][]string, error) {
+	rval := map[string][]string{
+		"service": []string{},
+		"library": []string{},
+		"trigger": []string{},
+	}
+	for resourceKey, _ := range info {
+		stuff := strings.Split(resourceKey, "::")
+		if len(stuff) != 2 {
+			return nil, fmt.Errorf("Poorly formed edge sync info entry: '%s'", resourceKey)
+		}
+		rval[stuff[0]] = append(rval[stuff[0]], stuff[1])
+	}
+	return rval, nil
+}
+
 func enableLogs(service map[string]interface{}) bool {
 	logVal, ok := service["logging_enabled"]
 	if !ok {
@@ -330,6 +371,10 @@ func importIt(cli *cb.DevClient) error {
 	fmt.Printf(" Done.\nImporting timers...")
 	if err := createTimers(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create timers: %s", err.Error())
+	}
+	fmt.Printf(" Done.\nImporting edge sync information...")
+	if err := createEdgeSyncInfo(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create edge sync information: %s", err.Error())
 	}
 
 	fmt.Printf("Done\n")
