@@ -352,6 +352,22 @@ func getTimers() ([]map[string]interface{}, error) {
 	return getObjectList(timersDir, []string{})
 }
 
+func getEdges() ([]map[string]interface{}, error) {
+	return getObjectList(edgesDir, []string{})
+}
+
+func getDevices() ([]map[string]interface{}, error) {
+	return getObjectList(devicesDir, []string{})
+}
+
+func getDashboards() ([]map[string]interface{}, error) {
+	return getObjectList(dashboardsDir, []string{})
+}
+
+func getPlugins() ([]map[string]interface{}, error) {
+	return getObjectList(pluginsDir, []string{})
+}
+
 //  For most of these calls below (getUser, etc) the second arg
 //  is really the filename as obtained by ReadDir, not the actual object
 //  name -- it is <object name>.json

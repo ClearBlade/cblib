@@ -579,6 +579,38 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 	return nil
 }
 
+func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.DevClient) error {
+	_, err := client.CreateEdge(systemKey, name, edge)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
+	_, err := client.CreateDevice(systemKey, device["name"].(string), device)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
+	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) error {
+	_, err := client.CreatePlugin(systemKey, plug)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func updateRole(systemKey string, role map[string]interface{}, cli *cb.DevClient) error {
 	roleName := role["Name"].(string)
 	if err := cli.UpdateRole(systemKey, roleName, role); err != nil {
