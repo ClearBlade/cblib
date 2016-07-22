@@ -359,6 +359,9 @@ func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	list := make([]map[string]interface{}, len(allEdges))
 	for i := 0; i < len(allEdges); i++ {
 		currentEdge := allEdges[i].(map[string]interface{})
+		delete(currentEdge, "edge_key")
+		delete(currentEdge, "isConnected")
+		delete(currentEdge, "novi_system_key")
 		writeEdge(currentEdge["name"].(string), currentEdge)
 		list = append(list, currentEdge)
 	}
@@ -375,6 +378,12 @@ func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	list := make([]map[string]interface{}, len(allDevices))
 	for i := 0; i < len(allDevices); i++ {
 		currentDevice := allDevices[i].(map[string]interface{})
+		delete(currentDevice, "device_key")
+		delete(currentDevice, "system_key")
+		delete(currentDevice, "last_active_date")
+		delete(currentDevice, "__HostId__")
+		delete(currentDevice, "created_date")
+		delete(currentDevice, "last_active_date")
 		writeDevice(currentDevice["name"].(string), currentDevice)
 		list = append(list, currentDevice)
 	}

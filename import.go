@@ -241,6 +241,71 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 	return nil
 }
 
+func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	sysSecret := systemInfo["systemSecret"].(string)
+	edges, err := getEdges()
+	if err != nil {
+		return err
+	}
+	for _, edge := range edges {
+		fmt.Printf(" %s", edge["name"].(string))
+		edgeName := edge["name"].(string)
+		delete(edge, "name")
+		edge["system_key"] = sysKey
+		edge["system_secret"] = sysSecret
+		if err := createEdge(sysKey, edgeName, edge, client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	devices, err := getDevices()
+	if err != nil {
+		return err
+	}
+	for _, device := range devices {
+		fmt.Printf(" %s", device["name"].(string))
+		if err := createDevice(sysKey, device, client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createDashboards(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	dashboards, err := getDashboards()
+	if err != nil {
+		return err
+	}
+	for _, dash := range dashboards {
+		fmt.Printf(" %s", dash["name"].(string))
+		if err := createDashboard(sysKey, dash, client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	plugins, err := getPlugins()
+	if err != nil {
+		return err
+	}
+	for _, plug := range plugins {
+		fmt.Printf(" %s", plug["name"].(string))
+		if err := createPlugin(sysKey, plug, client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func enableLogs(service map[string]interface{}) bool {
 	logVal, ok := service["logging_enabled"]
 	if !ok {
@@ -330,6 +395,22 @@ func importIt(cli *cb.DevClient) error {
 	fmt.Printf(" Done.\nImporting timers...")
 	if err := createTimers(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create timers: %s", err.Error())
+	}
+	fmt.Printf(" Done.\nImporting edges...")
+	if err := createEdges(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create edges: %s", err.Error())
+	}
+	fmt.Printf(" Done.\nImporting devices...")
+	if err := createDevices(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create devices: %s", err.Error())
+	}
+	fmt.Printf(" Done.\nImporting dashboards...")
+	if err := createDashboards(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create dashboards: %s", err.Error())
+	}
+	fmt.Printf(" Done.\nImporting plugins...")
+	if err := createPlugins(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create plugins: %s", err.Error())
 	}
 
 	fmt.Printf("Done\n")
