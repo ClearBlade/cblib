@@ -18,6 +18,10 @@ var (
 	timersDir   string
 	triggersDir string
 	rolesDir    string
+	edgesDir string
+	devicesDir string
+	dashboardsDir string
+	pluginsDir string
 )
 
 func setRootDir(theRootDir string) {
@@ -29,6 +33,10 @@ func setRootDir(theRootDir string) {
 	timersDir = rootDir + "/timers"
 	triggersDir = rootDir + "/triggers"
 	rolesDir = rootDir + "/roles"
+	edgesDir = rootDir + "/edges"
+	devicesDir = rootDir + "/devices"
+	dashboardsDir = rootDir + "/dashboards"
+	pluginsDir = rootDir + "/plugins"
 }
 func setupDirectoryStructure(sys *System_meta) error {
 	if err := os.MkdirAll(rootDir, 0777); err != nil {
@@ -55,6 +63,18 @@ func setupDirectoryStructure(sys *System_meta) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", rolesDir, err.Error())
 	}
+	if err := os.MkdirAll(edgesDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", edgesDir, err.Error())
+	}
+	if err := os.MkdirAll(devicesDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", devicesDir, err.Error())
+	}
+	if err := os.MkdirAll(dashboardsDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", dashboardsDir, err.Error())
+	}
+	if err := os.MkdirAll(pluginsDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", pluginsDir, err.Error())
+	}
 	return nil
 }
 
@@ -78,6 +98,10 @@ func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "users")
 	delete(systemDotJSON, "data")
 	delete(systemDotJSON, "roles")
+	delete(systemDotJSON, "edges")
+	delete(systemDotJSON, "devices")
+	delete(systemDotJSON, "dashboards")
+	delete(systemDotJSON, "plugins")
 	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall system.json: %s", err.Error())
@@ -213,6 +237,22 @@ func writeLibrary(name string, data map[string]interface{}) error {
 	delete(data, "library_key")
 	delete(data, "system_key")
 	return writeEntity(myLibDir, name, data)
+}
+
+func writeEdge(name string, data map[string]interface{}) error {
+	return writeEntity(edgesDir, name, data)
+}
+
+func writeDevice(name string, data map[string]interface{}) error {
+	return writeEntity(devicesDir, name, data)
+}
+
+func writeDashboard(name string, data map[string]interface{}) error {
+	return writeEntity(dashboardsDir, name, data)
+}
+
+func writePlugin(name string, data map[string]interface{}) error {
+	return writeEntity(pluginsDir, name, data)
 }
 
 func isException(name string, exceptions []string) bool {
