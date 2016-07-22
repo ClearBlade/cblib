@@ -350,6 +350,68 @@ func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[st
 	return allUsers, nil
 }
 
+func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := sysMeta.Key
+	allEdges, err := cli.GetEdges(sysKey)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]map[string]interface{}, len(allEdges))
+	for i := 0; i < len(allEdges); i++ {
+		currentEdge := allEdges[i].(map[string]interface{})
+		writeEdge(currentEdge["name"].(string), currentEdge)
+		list = append(list, currentEdge)
+	}
+
+	return list, nil
+}
+
+func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := sysMeta.Key
+	allDevices, err := cli.GetDevices(sysKey)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]map[string]interface{}, len(allDevices))
+	for i := 0; i < len(allDevices); i++ {
+		currentDevice := allDevices[i].(map[string]interface{})
+		writeDevice(currentDevice["name"].(string), currentDevice)
+		list = append(list, currentDevice)
+	}
+	return list, nil
+}
+
+func pullDashboards(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := sysMeta.Key
+	allDashboards, err := cli.GetDashboards(sysKey)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]map[string]interface{}, len(allDashboards))
+	for i := 0; i < len(allDashboards); i++ {
+		currentDashboard := allDashboards[i].(map[string]interface{})
+		writeDashboard(currentDashboard["name"].(string), currentDashboard)
+		list = append(list, currentDashboard)
+	}
+	return list, nil
+}
+
+func pullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := sysMeta.Key
+	allPlugins, err := cli.GetPlugins(sysKey)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]map[string]interface{}, len(allPlugins))
+	for i := 0; i < len(allPlugins); i++ {
+		currentPlugin := allPlugins[i].(map[string]interface{})
+		writePlugin(currentPlugin["name"].(string), currentPlugin)
+		list = append(list, currentPlugin)
+	}
+
+	return list, nil
+}
+
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("export command takes no arguments; only options\n")
@@ -463,6 +525,35 @@ func export(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["users"] = userSchema
+
+	fmt.Printf(" Done.\nExporting Edges...")
+	edges, err := pullEdges(sysMeta, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["edges"] = edges
+
+	fmt.Printf(" Done.\nExporting Devices...")
+	devices, err := pullDevices(sysMeta, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["devices"] = devices
+
+	fmt.Printf(" Done.\nExporting Dashboards...")
+	dashboards, err := pullDashboards(sysMeta, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["dashboards"] = dashboards
+
+	fmt.Printf(" Done.\nExporting Plugins...")
+	plugins, err := pullPlugins(sysMeta, cli)
+	if err != nil {
+		return err
+	}
+	systemDotJSON["plugins"] = plugins
+
 	fmt.Printf(" Done.\n")
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
