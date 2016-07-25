@@ -463,14 +463,14 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return err
 	}
-	return export(client, SystemKey)
+	return ExportSystem(client, SystemKey)
 }
 
 func exportOptionsExist() bool {
 	return URL != "" || SystemKey != "" || Email != "" || Password != ""
 }
 
-func export(cli *cb.DevClient, sysKey string) error {
+func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	fmt.Printf("Exporting System Info...")
 	var sysMeta *System_meta
 	var err error
