@@ -359,6 +359,7 @@ func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	list := make([]map[string]interface{}, len(allEdges))
 	for i := 0; i < len(allEdges); i++ {
 		currentEdge := allEdges[i].(map[string]interface{})
+		fmt.Printf(" %s", currentEdge["name"].(string))
 		delete(currentEdge, "edge_key")
 		delete(currentEdge, "isConnected")
 		delete(currentEdge, "novi_system_key")
@@ -391,6 +392,7 @@ func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	list := make([]map[string]interface{}, len(allDevices))
 	for i := 0; i < len(allDevices); i++ {
 		currentDevice := allDevices[i].(map[string]interface{})
+		fmt.Printf(" %s", currentDevice["name"].(string))
 		delete(currentDevice, "device_key")
 		delete(currentDevice, "system_key")
 		delete(currentDevice, "last_active_date")
@@ -421,6 +423,7 @@ func pullDashboards(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inter
 	list := make([]map[string]interface{}, len(allDashboards))
 	for i := 0; i < len(allDashboards); i++ {
 		currentDashboard := allDashboards[i].(map[string]interface{})
+		fmt.Printf(" %s", currentDashboard["name"].(string))
 		writeDashboard(currentDashboard["name"].(string), currentDashboard)
 		list = append(list, currentDashboard)
 	}
@@ -436,6 +439,7 @@ func pullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	list := make([]map[string]interface{}, len(allPlugins))
 	for i := 0; i < len(allPlugins); i++ {
 		currentPlugin := allPlugins[i].(map[string]interface{})
+		fmt.Printf(" %s", currentPlugin["name"].(string))
 		writePlugin(currentPlugin["name"].(string), currentPlugin)
 		list = append(list, currentPlugin)
 	}

@@ -35,6 +35,10 @@ var (
 	RoleName                   string
 	TriggerName                string
 	TimerName                  string
+	DeviceName                 string
+	EdgeName                   string
+	DashboardName              string
+	PluginName                 string
 	Message                    bool
 	Topic                      string
 	Payload                    string
@@ -43,6 +47,10 @@ var (
 	Push                       bool
 	AllServices                bool
 	AllLibraries               bool
+	AllDevices                 bool
+	AllEdges                   bool
+	AllDashboards              bool
+	AllPlugins                 bool
 )
 
 var (

@@ -17,9 +17,15 @@ func init() {
 		mustBeInRepo: true,
 		run:          doPush,
 	}
+	
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
 	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
+	pushCommand.flags.BoolVar(&AllDevices, "all-devices", false, "push all of the local devices")
+	pushCommand.flags.BoolVar(&AllEdges, "all-edges", false, "push all of the local edges")
+	pushCommand.flags.BoolVar(&AllDashboards, "all-dashboards", false, "push all of the local dashboards")
+	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
+	
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
 	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to push")
@@ -27,6 +33,11 @@ func init() {
 	pushCommand.flags.StringVar(&RoleName, "role", "", "Name of role to push")
 	pushCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to push")
 	pushCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to push")
+	pushCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to push")
+	pushCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to push")
+	pushCommand.flags.StringVar(&DashboardName, "dashboard", "", "Name of dashboard to push")
+	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
+
 	AddCommand("push", pushCommand)
 }
 
@@ -131,6 +142,98 @@ func pushOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
 		return err
 	}
 	return updateTimer(systemInfo.Key, timer, cli)
+}
+
+func pushOneDevice(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing device %+s\n", DeviceName)
+	device, err := getDevice(DeviceName)
+	if err != nil {
+		return err
+	}
+	return updateDevice(systemInfo.Key, device, cli)
+}
+
+func pushAllDevices(systemInfo *System_meta, cli *cb.DevClient) error {
+	devices, err := getDevices()
+	if err != nil {
+		return err
+	}
+	for _, device := range devices {
+		fmt.Printf("Pushing device %+s\n", device["name"].(string))
+		if err := updateDevice(systemInfo.Key, device, cli); err != nil {
+			return fmt.Errorf("Error updating device '%s': %s\n", device["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOneEdge(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing edge %+s\n", EdgeName)
+	edge, err := getEdge(EdgeName)
+	if err != nil {
+		return err
+	}
+	return updateEdge(systemInfo.Key, edge, cli)
+}
+
+func pushAllEdges(systemInfo *System_meta, cli *cb.DevClient) error {
+	edges, err := getEdges()
+	if err != nil {
+		return err
+	}
+	for _, edge := range edges {
+		fmt.Printf("Pushing edge %+s\n", edge["name"].(string))
+		if err := updateEdge(systemInfo.Key, edge, cli); err != nil {
+			return fmt.Errorf("Error updating edge '%s': %s\n", edge["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOneDashboard(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing dashboard %+s\n", DashboardName)
+	dashboard, err := getDashboard(DashboardName)
+	if err != nil {
+		return err
+	}
+	return updateDashboard(systemInfo.Key, dashboard, cli)
+}
+
+func pushAllDashboards(systemInfo *System_meta, cli *cb.DevClient) error {
+	dashboards, err := getDashboards()
+	if err != nil {
+		return err
+	}
+	for _, dashboard := range dashboards {
+		fmt.Printf("Pushing dashboard %+s\n", dashboard["name"].(string))
+		if err := updateDashboard(systemInfo.Key, dashboard, cli); err != nil {
+			return fmt.Errorf("Error updating dashboard '%s': %s\n", dashboard["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOnePlugin(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing dashboard %+s\n", PluginName)
+	plugin, err := getPlugin(PluginName)
+	if err != nil {
+		return err
+	}
+	return updatePlugin(systemInfo.Key, plugin, cli)
+}
+
+func pushAllPlugins(systemInfo *System_meta, cli *cb.DevClient) error {
+	plugins, err := getPlugins()
+	if err != nil {
+		return err
+	}
+	for _, plugin := range plugins {
+		fmt.Printf("Pushing plugin %+s\n", plugin["name"].(string))
+		if err := updatePlugin(systemInfo.Key, plugin, cli); err != nil {
+			return fmt.Errorf("Error updating plugin '%s': %s\n", plugin["name"].(string), err.Error())
+		}
+	}
+	return nil
 }
 
 func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
@@ -241,6 +344,62 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if TimerName != "" {
 		didSomething = true
 		if err := pushOneTimer(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if AllDevices {
+		didSomething = true
+		if err := pushAllDevices(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if DeviceName != "" {
+		didSomething = true
+		if err := pushOneDevice(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if AllEdges {
+		didSomething = true
+		if err := pushAllEdges(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if EdgeName != "" {
+		didSomething = true
+		if err := pushOneEdge(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if AllDashboards {
+		didSomething = true
+		if err := pushAllDashboards(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if DashboardName != "" {
+		didSomething = true
+		if err := pushOneDashboard(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if AllPlugins {
+		didSomething = true
+		if err := pushAllPlugins(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if PluginName != "" {
+		didSomething = true
+		if err := pushOnePlugin(systemInfo, cli); err != nil {
 			return err
 		}
 	}
@@ -368,6 +527,145 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 			}
 		}
 	}
+	return nil
+}
+
+func updateDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
+	deviceName := device["name"].(string)
+	delete(device, "name")
+	delete(device, "last_active_date")
+	delete(device, "created_date")
+	delete(device, "device_key")
+	delete(device, "system_key")
+
+	if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
+		fmt.Printf("Could not find device %s\n", deviceName)
+		fmt.Printf("Would you like to create a new device named %s? (Y/n)", deviceName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				device["name"] = deviceName
+				if _, err := client.CreateDevice(systemKey, deviceName, device); err != nil {
+					return fmt.Errorf("Could not create device %s: %s", deviceName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new device %s\n", deviceName)
+				}
+			} else {
+				fmt.Printf("Device will not be created.\n")
+			}
+		}
+	}
+	return nil
+}
+
+func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevClient) error {
+	edgeName := edge["name"].(string)
+	delete(edge, "name")
+	delete(edge, "edge_key")
+	delete(edge, "isConnected")
+	delete(edge, "novi_system_key")
+	delete(edge, "broker_auth_port")
+	delete(edge, "broker_port")
+	delete(edge, "broker_tls_port")
+	delete(edge, "broker_ws_auth_port")
+	delete(edge, "broker_ws_port")
+	delete(edge, "broker_wss_port")
+	delete(edge, "communication_style")
+	delete(edge, "first_talked")
+	delete(edge, "last_talked")
+	delete(edge, "local_addr")
+	delete(edge, "local_port")
+	delete(edge, "public_addr")
+	delete(edge, "public_port")
+	delete(edge, "location")
+	delete(edge, "mac_address")
+	if(edge["description"] == nil){ edge["description"] = "" }
+
+	_, err := client.GetEdge(systemKey, edgeName)
+	if err != nil {
+		// Edge does not exist
+		fmt.Printf("Could not find edge %s\n", edgeName)
+		fmt.Printf("Would you like to create a new edge named %s? (Y/n)", edgeName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				if _, err := client.CreateEdge(systemKey, edgeName, edge); err != nil {
+					return fmt.Errorf("Could not create edge %s: %s", edgeName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new edge %s\n", edgeName)
+				}
+			} else {
+				fmt.Printf("Edge will not be created.\n")
+			}
+		}
+	} else {
+		client.UpdateEdge(systemKey, edgeName, edge)
+	}
+	return nil
+}
+
+func updateDashboard(systemKey string, dashboard map[string]interface{}, client *cb.DevClient) error {
+	dashboardName := dashboard["name"].(string)
+	delete (dashboard, "system_key")
+	if(dashboard["description"] == nil){ dashboard["description"] = "" }
+	if(dashboard["config"] == nil){ dashboard["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}" }
+
+	_, err := client.GetDashboard(systemKey, dashboardName)
+	if err != nil {
+		// Dashboard DNE
+		fmt.Printf("Could not find dashboard %s\n", dashboardName)
+		fmt.Printf("Would you like to create a new dashboard named %s? (Y/n)", dashboardName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				if _, err := client.CreateDashboard(systemKey, dashboardName, dashboard); err != nil {
+					return fmt.Errorf("Could not create dashboard %s: %s", dashboardName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new dashboard %s\n", dashboardName)
+				}
+			} else {
+				fmt.Printf("Dashboard will not be created.\n")
+			}
+		}
+	} else {
+		client.UpdateDashboard(systemKey, dashboardName, dashboard);
+	}
+	
+	return nil
+}
+
+func updatePlugin(systemKey string, plugin map[string]interface{}, client *cb.DevClient) error {
+	pluginName := plugin["name"].(string)
+
+	_, err := client.GetPlugin(systemKey, pluginName)
+	if err != nil {
+		// plugin DNE
+		fmt.Printf("Could not find plugin %s\n", pluginName)
+		fmt.Printf("Would you like to create a new plugin named %s? (Y/n)", pluginName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				if _, err := client.CreatePlugin(systemKey, plugin); err != nil {
+					return fmt.Errorf("Could not create plugin %s: %s", pluginName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new plugin %s\n", pluginName)
+				}
+			} else {
+				fmt.Printf("Plugin will not be created.\n")
+			}
+		}
+	} else {
+		client.UpdatePlugin(systemKey, pluginName, plugin);
+	}
+	
 	return nil
 }
 
