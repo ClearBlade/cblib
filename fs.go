@@ -18,8 +18,8 @@ var (
 	timersDir   string
 	triggersDir string
 	rolesDir    string
-	edgesDir string
-	devicesDir string
+	edgesDir    string
+	devicesDir  string
 	dashboardsDir string
 	pluginsDir string
 )
@@ -394,6 +394,22 @@ func getTrigger(name string) (map[string]interface{}, error) {
 
 func getTimer(name string) (map[string]interface{}, error) {
 	return getObject(timersDir, name+".json")
+}
+
+func getDevice(name string) (map[string]interface{}, error) {
+	return getObject(devicesDir, name+".json")
+}
+
+func getEdge(name string) (map[string]interface{}, error) {
+	return getObject(edgesDir, name+".json")
+}
+
+func getDashboard(name string) (map[string]interface{}, error) {
+	return getObject(dashboardsDir, name+".json")
+}
+
+func getPlugin(name string) (map[string]interface{}, error) {
+	return getObject(pluginsDir, name+".json")
 }
 
 func getCollection(name string) (map[string]interface{}, error) {
