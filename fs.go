@@ -10,18 +10,18 @@ import (
 )
 
 var (
-	rootDir     string
-	dataDir     string
-	svcDir      string
-	libDir      string
-	usersDir    string
-	timersDir   string
-	triggersDir string
-	rolesDir    string
-	edgesDir    string
-	devicesDir  string
+	rootDir       string
+	dataDir       string
+	svcDir        string
+	libDir        string
+	usersDir      string
+	timersDir     string
+	triggersDir   string
+	rolesDir      string
+	edgesDir      string
+	devicesDir    string
 	dashboardsDir string
-	pluginsDir string
+	pluginsDir    string
 )
 
 func setRootDir(theRootDir string) {
@@ -35,7 +35,7 @@ func setRootDir(theRootDir string) {
 	rolesDir = rootDir + "/roles"
 	edgesDir = rootDir + "/edges"
 	devicesDir = rootDir + "/devices"
-	dashboardsDir = rootDir + "/dashboards"
+	dashboardsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
 }
 func setupDirectoryStructure(sys *System_meta) error {
