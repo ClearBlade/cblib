@@ -149,6 +149,7 @@ func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
 
 func pushOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing library %+s\n", LibraryName)
+
 	library, err := getLibrary(LibraryName)
 	if err != nil {
 		return err
@@ -465,7 +466,7 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	}
 	delete(library, "name")
 	delete(library, "version")
-	err, _ := client.UpdateLibrary(systemKey, libName, library); 
+	data, err := client.UpdateLibrary(systemKey, libName, library); 
 	if err != nil {
 		fmt.Printf("Could not find library %s\n", libName)
 		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
@@ -485,6 +486,10 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 			}
 		}
 	}
+	delete(library, "code")
+	library["version"] = data["version"]
+	library["name"] = libName
+	writeLibraryVersion(libName, library)
 	return nil
 }
 
