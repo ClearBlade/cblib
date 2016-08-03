@@ -415,8 +415,10 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 			}
 		}
 	}
-	service["current_version"] = ver
-	writeServiceVersion(svcName, service)
+	if (ver != -1) {
+		service["current_version"] = ver
+		writeServiceVersion(svcName, service)
+	}
 	return nil
 }
 
