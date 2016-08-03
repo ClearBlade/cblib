@@ -395,7 +395,9 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 	for _, params := range service["params"].([]interface{}) {
 		svcParams = append(svcParams, params.(string))
 	}
-	if err := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); err != nil {
+
+	err, ver := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); 
+	if err != nil {
 		fmt.Printf("Could not find service %s\n", svcName)
 		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
 		reader := bufio.NewReader(os.Stdin)
@@ -413,6 +415,8 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 			}
 		}
 	}
+	service["current_version"] = ver
+	writeServiceVersion(svcName, service)
 	return nil
 }
 
@@ -459,7 +463,8 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	}
 	delete(library, "name")
 	delete(library, "version")
-	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
+	err, _ := client.UpdateLibrary(systemKey, libName, library); 
+	if err != nil {
 		fmt.Printf("Could not find library %s\n", libName)
 		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
 		reader := bufio.NewReader(os.Stdin)
