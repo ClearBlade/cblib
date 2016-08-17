@@ -176,6 +176,23 @@ func getCollectionItems(collectionName string) ([]interface{}, error) {
 	return getArray(fileName)
 }
 
+func writeServiceVersion(name string, data map[string]interface{}) error {
+	mySvcDir := svcDir + "/" + name
+	if err := os.MkdirAll(mySvcDir, 0777); err != nil {
+		return err
+	}
+	cleanService(data)
+	return writeEntity(mySvcDir, name, data)
+}
+
+func writeLibraryVersion(name string, data map[string]interface{}) error {
+	myLibDir := libDir + "/" + name
+	if err := os.MkdirAll(myLibDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(myLibDir, name, data)
+}
+
 func writeEntity(dirName, fileName string, stuff interface{}) error {
 	marshalled, err := json.MarshalIndent(stuff, "", "    ")
 	if err != nil {

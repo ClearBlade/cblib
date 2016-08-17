@@ -252,6 +252,7 @@ func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
 
 func pushOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing library %+s\n", LibraryName)
+
 	library, err := getLibrary(LibraryName)
 	if err != nil {
 		return err
@@ -693,7 +694,9 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 	for _, params := range service["params"].([]interface{}) {
 		svcParams = append(svcParams, params.(string))
 	}
-	if err := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); err != nil {
+
+	err, body := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); 
+	if err != nil {
 		fmt.Printf("Could not find service %s\n", svcName)
 		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
 		reader := bufio.NewReader(os.Stdin)
@@ -710,6 +713,10 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 				fmt.Printf("Service will not be created.\n")
 			}
 		}
+	}
+	if (body != nil) {
+		service["current_version"] = body["version_number"]
+		writeServiceVersion(svcName, service)
 	}
 	return nil
 }
@@ -757,7 +764,8 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	}
 	delete(library, "name")
 	delete(library, "version")
-	if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
+	data, err := client.UpdateLibrary(systemKey, libName, library); 
+	if err != nil {
 		fmt.Printf("Could not find library %s\n", libName)
 		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
 		reader := bufio.NewReader(os.Stdin)
@@ -776,6 +784,10 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 			}
 		}
 	}
+	delete(library, "code")
+	library["version"] = data["version"]
+	library["name"] = libName
+	writeLibraryVersion(libName, library)
 	return nil
 }
 
