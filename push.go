@@ -906,6 +906,11 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 }
 
 func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
+	//remove any trash that the API doesn't like
+	delete(dash, "system_key")
+	if dash["description"] == nil {
+		dash["description"] = ""
+	}
 	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
 	if err != nil {
 		return err
