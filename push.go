@@ -913,6 +913,9 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 }
 
 func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
+	/*
+	<<<<<<< HEAD
+	*/
 	// Export stores config as dict, but import wants it as a string
 	delete(dash, "system_key")
 	config, ok := dash["config"]
@@ -929,6 +932,14 @@ func createDashboard(systemKey string, dash map[string]interface{}, client *cb.D
 			configStr = string(configBytes)
 		}
 		dash["config"] = configStr
+		/*
+		=======
+			//remove any trash that the API doesn't like
+			delete(dash, "system_key")
+			if dash["description"] == nil {
+				dash["description"] = ""
+		>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
+		*/
 	}
 	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
 	if err != nil {
