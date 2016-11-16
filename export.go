@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
@@ -423,6 +424,10 @@ func pullDashboards(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inter
 	list := make([]map[string]interface{}, len(allDashboards))
 	for i := 0; i < len(allDashboards); i++ {
 		currentDashboard := allDashboards[i].(map[string]interface{})
+		var err error
+		if currentDashboard["config"], err = parseIfNeeded(currentDashboard["config"]); err != nil {
+			return nil, err
+		}
 		fmt.Printf(" %s", currentDashboard["name"].(string))
 		writeDashboard(currentDashboard["name"].(string), currentDashboard)
 		list = append(list, currentDashboard)
@@ -616,4 +621,19 @@ func setupFromRepo() {
 	URL = MetaInfo["platformURL"].(string)
 	DevToken = MetaInfo["token"].(string)
 	SystemKey = sysMeta.Key
+}
+
+func parseIfNeeded(stuff interface{}) (map[string]interface{}, error) {
+	switch stuff.(type) {
+	case map[string]interface{}:
+		return stuff.(map[string]interface{}), nil
+	case string:
+		parsed := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(stuff.(string)), &parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
+	default:
+		return nil, fmt.Errorf("Invalid type passed into parseIfNeeded. Must be string or map[string]interface{}")
+	}
 }

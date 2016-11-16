@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
@@ -17,7 +18,7 @@ func init() {
 		mustBeInRepo: true,
 		run:          doPush,
 	}
-	
+
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
 	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
@@ -25,7 +26,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllEdges, "all-edges", false, "push all of the local edges")
 	pushCommand.flags.BoolVar(&AllDashboards, "all-dashboards", false, "push all of the local dashboards")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
-	
+
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
 	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to push")
@@ -582,7 +583,9 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 	delete(edge, "public_port")
 	delete(edge, "location")
 	delete(edge, "mac_address")
-	if(edge["description"] == nil){ edge["description"] = "" }
+	if edge["description"] == nil {
+		edge["description"] = ""
+	}
 
 	_, err := client.GetEdge(systemKey, edgeName)
 	if err != nil {
@@ -611,9 +614,13 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 
 func updateDashboard(systemKey string, dashboard map[string]interface{}, client *cb.DevClient) error {
 	dashboardName := dashboard["name"].(string)
-	delete (dashboard, "system_key")
-	if(dashboard["description"] == nil){ dashboard["description"] = "" }
-	if(dashboard["config"] == nil){ dashboard["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}" }
+	delete(dashboard, "system_key")
+	if dashboard["description"] == nil {
+		dashboard["description"] = ""
+	}
+	if dashboard["config"] == nil {
+		dashboard["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}"
+	}
 
 	_, err := client.GetDashboard(systemKey, dashboardName)
 	if err != nil {
@@ -635,9 +642,9 @@ func updateDashboard(systemKey string, dashboard map[string]interface{}, client 
 			}
 		}
 	} else {
-		client.UpdateDashboard(systemKey, dashboardName, dashboard);
+		client.UpdateDashboard(systemKey, dashboardName, dashboard)
 	}
-	
+
 	return nil
 }
 
@@ -664,9 +671,9 @@ func updatePlugin(systemKey string, plugin map[string]interface{}, client *cb.De
 			}
 		}
 	} else {
-		client.UpdatePlugin(systemKey, pluginName, plugin);
+		client.UpdatePlugin(systemKey, pluginName, plugin)
 	}
-	
+
 	return nil
 }
 
@@ -695,7 +702,7 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 		svcParams = append(svcParams, params.(string))
 	}
 
-	err, body := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); 
+	err, body := client.UpdateServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams)
 	if err != nil {
 		fmt.Printf("Could not find service %s\n", svcName)
 		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
@@ -714,7 +721,7 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 			}
 		}
 	}
-	if (body != nil) {
+	if body != nil {
 		service["current_version"] = body["version_number"]
 		writeServiceVersion(svcName, service)
 	}
@@ -764,7 +771,7 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	}
 	delete(library, "name")
 	delete(library, "version")
-	data, err := client.UpdateLibrary(systemKey, libName, library); 
+	data, err := client.UpdateLibrary(systemKey, libName, library)
 	if err != nil {
 		fmt.Printf("Could not find library %s\n", libName)
 		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
@@ -906,6 +913,23 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 }
 
 func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
+	// Export stores config as dict, but import wants it as a string
+	delete(dash, "system_key")
+	config, ok := dash["config"]
+	if ok {
+		configStr := ""
+		switch config.(type) {
+		case string:
+			configStr = config.(string)
+		default:
+			configBytes, err := json.Marshal(config)
+			if err != nil {
+				return err
+			}
+			configStr = string(configBytes)
+		}
+		dash["config"] = configStr
+	}
 	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
 	if err != nil {
 		return err

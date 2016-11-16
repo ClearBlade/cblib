@@ -303,7 +303,10 @@ func getObjectList(dirName string, exceptions []string) ([]map[string]interface{
 	rval := []map[string]interface{}{}
 	fileList, err := ioutil.ReadDir(dirName)
 	if err != nil {
-		return nil, err
+		// If the error is that the directory doesn't exist, this isn't an error per se,
+		// so just return an empty list
+		fmt.Printf("Warning, could not read directory '%s' -- ignoring\n", dirName)
+		return []map[string]interface{}{}, nil
 	}
 	for _, oneFile := range fileList {
 		if isException(oneFile.Name(), exceptions) {
