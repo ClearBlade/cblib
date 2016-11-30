@@ -80,16 +80,23 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 
 func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
 	id := co["collectionID"].(string)
-	columnsResp, err := cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
-	if err != nil {
-		return nil, err
+	isConnect := isConnectCollection(co)
+	var columnsResp []interface{}
+	var err error
+	if isConnect {
+		columnsResp = []interface{}{}
+	} else {
+		columnsResp, err = cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
+		if err != nil {
+			return nil, err
+		}
 	}
 	co["schema"] = columnsResp
-	if err := getRolesForCollection(co); err != nil {
+	if err = getRolesForCollection(co); err != nil {
 		return nil, err
 	}
 	co["items"] = []interface{}{}
-	if exportRows {
+	if !isConnect && exportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
@@ -97,6 +104,20 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 		co["items"] = items
 	}
 	return co, nil
+}
+
+func isConnectCollection(co map[string]interface{}) bool {
+	if isConnect, ok := co["isConnect"]; ok {
+		switch isConnect.(type) {
+		case bool:
+			return isConnect.(bool)
+		case string:
+			return isConnect.(string) == "true"
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (map[string]interface{}, error) {

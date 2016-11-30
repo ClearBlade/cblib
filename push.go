@@ -849,9 +849,23 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 
 func createCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	collectionName := collection["name"].(string)
-	colId, err := client.NewCollection(systemKey, collectionName)
-	if err != nil {
-		return err
+	isConnect := isConnectCollection(collection)
+	var colId string
+	var err error
+	if isConnect {
+		col, err := cb.GenerateConnectCollection(collection)
+		if err != nil {
+			return err
+		}
+		colId, err = client.NewConnectCollection(systemKey, col)
+		if err != nil {
+			return err
+		}
+	} else {
+		colId, err = client.NewCollection(systemKey, collectionName)
+		if err != nil {
+			return err
+		}
 	}
 
 	permissions := collection["permissions"].(map[string]interface{})
@@ -869,6 +883,10 @@ func createCollection(systemKey string, collection map[string]interface{}, clien
 		if err := client.AddCollectionToRole(systemKey, colId, roleId, level); err != nil {
 			return err
 		}
+	}
+
+	if isConnect {
+		return nil
 	}
 
 	columns := collection["schema"].([]interface{})
@@ -914,7 +932,7 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 
 func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
 	/*
-	<<<<<<< HEAD
+		<<<<<<< HEAD
 	*/
 	// Export stores config as dict, but import wants it as a string
 	delete(dash, "system_key")
@@ -933,12 +951,12 @@ func createDashboard(systemKey string, dash map[string]interface{}, client *cb.D
 		}
 		dash["config"] = configStr
 		/*
-		=======
-			//remove any trash that the API doesn't like
-			delete(dash, "system_key")
-			if dash["description"] == nil {
-				dash["description"] = ""
-		>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
+			=======
+				//remove any trash that the API doesn't like
+				delete(dash, "system_key")
+				if dash["description"] == nil {
+					dash["description"] = ""
+			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
 		*/
 	}
 	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
