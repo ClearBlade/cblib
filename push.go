@@ -414,10 +414,142 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 }
 
 func createRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
-	if _, err := client.CreateRole(systemKey, role["Name"].(string)); err != nil {
+	createIF, err := client.CreateRole(systemKey, role["Name"].(string))
+	if err != nil {
+		return err
+	}
+	createDict, ok := createIF.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("return value from CreateRole is not a map. It is %T", createIF)
+	}
+	fmt.Printf("Create Role returned: %+v\n", createDict)
+	roleID, ok := createDict["role_id"].(string)
+	if !ok {
+		return fmt.Errorf("Did not get role_id key back from successful CreateRole call")
+	}
+	permissions, ok := role["Permissions"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("Permissions for role do not exist or is not a map")
+	}
+	convertedPermissions := convertPermissionsStructure(permissions)
+	convertedRole := map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}
+	if err = client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
 		return err
 	}
 	return nil
+}
+
+//
+//  The roles structure we get back when we retrieve roles is different from
+//  the format accepted for updating a role. Thus, we have this beauty of a
+//  conversion function. -swm
+//
+//  THis is a gigantic cluster. We need to fix and learn from this. -swm
+//
+func convertPermissionsStructure(in map[string]interface{}) map[string]interface{} {
+	fmt.Printf("convertPermissionStructure: %+v\n", in)
+	out := map[string]interface{}{}
+	for key, valIF := range in {
+		switch key {
+		case "CodeServices":
+			services, err := getASliceOfMaps(valIF)
+			if err != nil {
+				fmt.Printf("Bad format for services permissions, not a slice of maps: %T\n", valIF)
+				os.Exit(1)
+			}
+			svcs := make([]map[string]interface{}, len(services))
+			for idx, mapVal := range services {
+				svcs[idx] = map[string]interface{}{
+					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+					"permissions": mapVal["Level"],
+				}
+			}
+			out["services"] = svcs
+		case "Collections":
+			collections, err := getASliceOfMaps(valIF)
+			if err != nil {
+				fmt.Printf("Bad format for collections permissions, not a slice of maps: %T\n", valIF)
+				os.Exit(1)
+			}
+			cols := make([]map[string]interface{}, len(collections))
+			for idx, mapVal := range collections {
+				cols[idx] = map[string]interface{}{
+					"itemInfo":    map[string]interface{}{"id": mapVal["ID"]},
+					"permissions": mapVal["Level"],
+				}
+			}
+			out["collections"] = cols
+		case "DevicesList":
+			val := getMap(valIF)
+			out["devices"] = map[string]interface{}{"permissions": val["Level"]}
+		case "MsgHistory":
+			val := getMap(valIF)
+			out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
+		case "Portals":
+			portals, err := getASliceOfMaps(valIF)
+			if err != nil {
+				fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
+				os.Exit(1)
+			}
+			ptls := make([]map[string]interface{}, len(portals))
+			for idx, mapVal := range portals {
+				ptls[idx] = map[string]interface{}{
+					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+					"permissions": mapVal["Level"],
+				}
+			}
+			out["portals"] = ptls
+		case "Push":
+			val := getMap(valIF)
+			out["push"] = map[string]interface{}{"permissions": val["Level"]}
+		case "Topics":
+			val, err := getASliceOfMaps(valIF)
+			if err != nil {
+				fmt.Printf("Bad format for topic permissions, not a slice of maps: %T\n", valIF)
+				os.Exit(1)
+			}
+			out["topics"] = val
+		case "UsersList":
+			val := getMap(valIF)
+			out["users"] = map[string]interface{}{"permissions": val["Level"]}
+
+		default:
+		}
+	}
+	fmt.Printf("convert results: %+v\n", out)
+	return out
+}
+
+// The main thing I hate about go: type assertions
+func getASliceOfMaps(val interface{}) ([]map[string]interface{}, error) {
+	switch val.(type) {
+	case []map[string]interface{}:
+		return val.([]map[string]interface{}), nil
+	case []interface{}:
+		rval := make([]map[string]interface{}, len(val.([]interface{})))
+		for idx, mapVal := range val.([]interface{}) {
+			switch mapVal.(type) {
+			case map[string]interface{}:
+				rval[idx] = mapVal.(map[string]interface{})
+			default:
+				return nil, fmt.Errorf("slice values are not maps: %T\n", mapVal)
+			}
+		}
+		return rval, nil
+	default:
+		return nil, fmt.Errorf("Bad type %T: expecting a slice", val)
+	}
+}
+
+func getMap(val interface{}) map[string]interface{} {
+	switch val.(type) {
+	case map[string]interface{}:
+		return val.(map[string]interface{})
+	default:
+		fmt.Printf("permissions type must be a map, not %T\n", val)
+		os.Exit(1)
+	}
+	return map[string]interface{}{}
 }
 
 func updateUser(systemKey string, user map[string]interface{}, client *cb.DevClient) error {
