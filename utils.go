@@ -15,7 +15,7 @@ func setupAddrs(paddr string, maddr string) {
 		baseAddress = baseAddress[:postIdx]
 	}
 	// cb.CB_MSG_ADDR = baseAddress + ":1883"
-	cb.CB_MSG_ADDR = maddr
+	cb.CB_MSG_ADDR = maddr 
 }
 
 func convertPermissionsNames(perms map[string]interface{}) map[string]interface{} {

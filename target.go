@@ -111,6 +111,6 @@ func setupTargetDefaults() *DefaultInfo {
 		url:       MetaInfo["platformURL"].(string),
 		email:     MetaInfo["developerEmail"].(string),
 		systemKey: meta.Key,
-		msgUrl:	   MetaInfo["msgURL"].(string),
+		msgUrl:	   MetaInfo["messagingURL"].(string),
 	}
 }
