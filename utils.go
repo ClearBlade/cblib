@@ -8,14 +8,13 @@ import (
 
 func setupAddrs(paddr string, maddr string) {
 	cb.CB_ADDR = paddr
-	preIdx := strings.Index(paddr, "://")
-	baseAddress := paddr[preIdx+3:]
-	postIdx := strings.Index(baseAddress, ":")
+
+	postIdx := strings.Index(maddr, ":")
 	if postIdx != -1 {
-		baseAddress = baseAddress[:postIdx]
+		cb.CB_MSG_ADDR = maddr
+	} else {
+		cb.CB_MSG_ADDR = maddr + ":1883" 
 	}
-	// cb.CB_MSG_ADDR = baseAddress + ":1883"
-	cb.CB_MSG_ADDR = maddr 
 }
 
 func convertPermissionsNames(perms map[string]interface{}) map[string]interface{} {
