@@ -14,6 +14,7 @@ const (
 
 var (
 	URL                        string
+	MsgURL					   string	
 	SystemKey                  string
 	DevToken                   string
 	ShouldImportCollectionRows bool
@@ -96,4 +97,5 @@ type System_meta struct {
 	Description string
 	Services    map[string]Service_meta
 	PlatformUrl string
+	MessageUrl string
 }

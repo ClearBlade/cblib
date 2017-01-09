@@ -28,8 +28,8 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 		helpFunc(c, c.name)
 	}
 	c.flags.Parse(args)
-	if URL != "" {
-		setupAddrs(URL)
+	if URL != "" && MsgURL != "" {
+		setupAddrs(URL, MsgURL)
 	}
 	if err = GoToRepoRootDir(); err != nil {
 		if c.mustBeInRepo {

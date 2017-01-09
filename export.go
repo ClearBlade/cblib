@@ -27,6 +27,7 @@ func init() {
 		//  TODO -- add help, usage, etc.
 	}
 	myExportCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
+	myExportCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myExportCommand.flags.StringVar(&Password, "password", "", "Developer password")
@@ -342,6 +343,7 @@ func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 
 func storeMeta(meta *System_meta) {
 	systemDotJSON["platformURL"] = URL
+	systemDotJSON["messagingURL"] = MsgURL
 	systemDotJSON["systemKey"] = meta.Key
 	systemDotJSON["systemSecret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
@@ -619,6 +621,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       URL,
+		"messagingURL":		 MsgURL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,

@@ -21,6 +21,7 @@ func init() {
 		//  TODO -- add help, usage, etc.
 	}
 	myTargetCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
+	myTargetCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	myTargetCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myTargetCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myTargetCommand.flags.StringVar(&Password, "password", "", "Developer password")
@@ -76,6 +77,7 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       URL,
+		"messagingURL":		 MsgURL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,
@@ -97,6 +99,7 @@ type DefaultInfo struct {
 	url       string
 	email     string
 	systemKey string
+	msgUrl	  string
 }
 
 func setupTargetDefaults() *DefaultInfo {
@@ -108,5 +111,6 @@ func setupTargetDefaults() *DefaultInfo {
 		url:       MetaInfo["platformURL"].(string),
 		email:     MetaInfo["developerEmail"].(string),
 		systemKey: meta.Key,
+		msgUrl:	   MetaInfo["messagingURL"].(string),
 	}
 }
