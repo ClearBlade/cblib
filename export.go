@@ -30,7 +30,8 @@ func init() {
 	myExportCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
-	myExportCommand.flags.StringVar(&Password, "password", "", "Developer password")
+	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
+	// myExportCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
@@ -342,8 +343,8 @@ func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 }
 
 func storeMeta(meta *System_meta) {
-	systemDotJSON["platformURL"] = URL
-	systemDotJSON["messagingURL"] = MsgURL
+	systemDotJSON["platformURL"] = cb.CB_ADDR
+	systemDotJSON["messagingURL"] = cb.CB_MSG_ADDR
 	systemDotJSON["systemKey"] = meta.Key
 	systemDotJSON["systemSecret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
@@ -491,15 +492,17 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	client, err := Authorize(nil)
-	if err != nil {
-		return err
+
+	if exportOptionsExist() {
+		client = cb.NewDevClientWithToken(DevToken, Email)	
+	} else {
+		client, _ = Authorize(nil)
 	}
 	return ExportSystem(client, SystemKey)
 }
 
 func exportOptionsExist() bool {
-	return URL != "" || SystemKey != "" || Email != "" || Password != ""
+	return URL != "" || SystemKey != "" || Email != "" || DevToken != ""
 }
 
 func ExportSystem(cli *cb.DevClient, sysKey string) error {
