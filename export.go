@@ -436,22 +436,22 @@ func pullEdgeSyncInfo(sysMeta *System_meta, cli *cb.DevClient) (map[string]inter
 	return syncMap, nil
 }
 
-func pullDashboards(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	allDashboards, err := cli.GetDashboards(sysKey)
+	allPortals, err := cli.GetPortals(sysKey)
 	if err != nil {
 		return nil, err
 	}
-	list := make([]map[string]interface{}, len(allDashboards))
-	for i := 0; i < len(allDashboards); i++ {
-		currentDashboard := allDashboards[i].(map[string]interface{})
+	list := make([]map[string]interface{}, len(allPortals))
+	for i := 0; i < len(allPortals); i++ {
+		currentPortal := allPortals[i].(map[string]interface{})
 		var err error
-		if currentDashboard["config"], err = parseIfNeeded(currentDashboard["config"]); err != nil {
+		if currentPortal["config"], err = parseIfNeeded(currentPortal["config"]); err != nil {
 			return nil, err
 		}
-		fmt.Printf(" %s", currentDashboard["name"].(string))
-		writeDashboard(currentDashboard["name"].(string), currentDashboard)
-		list = append(list, currentDashboard)
+		fmt.Printf(" %s", currentPortal["name"].(string))
+		writePortal(currentPortal["name"].(string), currentPortal)
+		list = append(list, currentPortal)
 	}
 	return list, nil
 }
@@ -597,12 +597,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["edgeSync"] = syncInfo
 
-	fmt.Printf(" Done.\nExporting Dashboards...")
-	dashboards, err := pullDashboards(sysMeta, cli)
+	fmt.Printf(" Done.\nExporting Portals...")
+	portals, err := pullPortals(sysMeta, cli)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["dashboards"] = dashboards
+	systemDotJSON["portals"] = portals
 
 	fmt.Printf(" Done.\nExporting Plugins...")
 	plugins, err := pullPlugins(sysMeta, cli)

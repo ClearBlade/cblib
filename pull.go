@@ -19,10 +19,10 @@ func init() {
 	pullCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "pull all libraries from system")
 	pullCommand.flags.BoolVar(&AllEdges, "all-edges", false, "pull all edges from system")
 	pullCommand.flags.BoolVar(&AllDevices, "all-devices", false, "pull all devices from system")
-	pullCommand.flags.BoolVar(&AllDashboards, "all-dashboards", false, "pull all dashboards from system")
+	pullCommand.flags.BoolVar(&AllPortals, "all-portals", false, "pull all portals from system")
 	pullCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "pull all plugins from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
-	
+
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
 	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
 	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to pull")
@@ -32,7 +32,7 @@ func init() {
 	pullCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to pull")
 	pullCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to pull")
 	pullCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to pull")
-	pullCommand.flags.StringVar(&DashboardName, "dashboard", "", "Name of dashboard to pull")
+	pullCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to pull")
 	pullCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to pull")
 
 	AddCommand("pull", pullCommand)
@@ -198,7 +198,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		fmt.Printf("\n")
 	}
 
-	if DeviceName != ""{
+	if DeviceName != "" {
 		didSomething = true
 		fmt.Printf("Pulling device %+s\n", DeviceName)
 		if device, err := pullDevice(systemInfo.Key, DeviceName, cli); err != nil {
@@ -217,7 +217,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		fmt.Printf("\n")
 	}
 
-	if EdgeName != ""{
+	if EdgeName != "" {
 		didSomething = true
 		fmt.Printf("Pulling edge %+s\n", EdgeName)
 		if edge, err := pullEdge(systemInfo.Key, EdgeName, cli); err != nil {
@@ -227,22 +227,22 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllDashboards {
+	if AllPortals {
 		didSomething = true
-		fmt.Printf("Pulling all dashboards:")
-		if _, err := pullDashboards(systemInfo, cli); err != nil {
+		fmt.Printf("Pulling all portals:")
+		if _, err := pullPortals(systemInfo, cli); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
 	}
 
-	if DashboardName != ""{
+	if PortalName != "" {
 		didSomething = true
-		fmt.Printf("Pulling dashboard %+s\n", DashboardName)
-		if dashboard, err := pullDashboard(systemInfo.Key, DashboardName, cli); err != nil {
+		fmt.Printf("Pulling portal %+s\n", PortalName)
+		if portal, err := pullPortal(systemInfo.Key, PortalName, cli); err != nil {
 			return err
 		} else {
-			writeDashboard(DashboardName, dashboard)
+			writePortal(PortalName, portal)
 		}
 	}
 
@@ -255,7 +255,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		fmt.Printf("\n")
 	}
 
-	if PluginName != ""{
+	if PluginName != "" {
 		didSomething = true
 		fmt.Printf("Pulling plugin %+s\n", PluginName)
 		if plugin, err := pullPlugin(systemInfo.Key, PluginName, cli); err != nil {
@@ -320,12 +320,10 @@ func pullEdge(systemKey string, edgeName string, cli *cb.DevClient) (map[string]
 	return cli.GetEdge(systemKey, edgeName)
 }
 
-func pullDashboard(systemKey string, dashboardName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetDashboard(systemKey, dashboardName)
+func pullPortal(systemKey string, portalName string, cli *cb.DevClient) (map[string]interface{}, error) {
+	return cli.GetPortal(systemKey, portalName)
 }
 
 func pullPlugin(systemKey string, pluginName string, cli *cb.DevClient) (map[string]interface{}, error) {
 	return cli.GetPlugin(systemKey, pluginName)
 }
-
-

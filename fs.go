@@ -10,18 +10,18 @@ import (
 )
 
 var (
-	rootDir       string
-	dataDir       string
-	svcDir        string
-	libDir        string
-	usersDir      string
-	timersDir     string
-	triggersDir   string
-	rolesDir      string
-	edgesDir      string
-	devicesDir    string
-	dashboardsDir string
-	pluginsDir    string
+	rootDir     string
+	dataDir     string
+	svcDir      string
+	libDir      string
+	usersDir    string
+	timersDir   string
+	triggersDir string
+	rolesDir    string
+	edgesDir    string
+	devicesDir  string
+	portalsDir  string
+	pluginsDir  string
 )
 
 func setRootDir(theRootDir string) {
@@ -35,7 +35,7 @@ func setRootDir(theRootDir string) {
 	rolesDir = rootDir + "/roles"
 	edgesDir = rootDir + "/edges"
 	devicesDir = rootDir + "/devices"
-	dashboardsDir = rootDir + "/portals"
+	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
 }
 func setupDirectoryStructure(sys *System_meta) error {
@@ -69,8 +69,8 @@ func setupDirectoryStructure(sys *System_meta) error {
 	if err := os.MkdirAll(devicesDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", devicesDir, err.Error())
 	}
-	if err := os.MkdirAll(dashboardsDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", dashboardsDir, err.Error())
+	if err := os.MkdirAll(portalsDir, 0777); err != nil {
+		return fmt.Errorf("Could not make directory '%s': %s", portalsDir, err.Error())
 	}
 	if err := os.MkdirAll(pluginsDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", pluginsDir, err.Error())
@@ -100,7 +100,7 @@ func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "roles")
 	delete(systemDotJSON, "edges")
 	delete(systemDotJSON, "devices")
-	delete(systemDotJSON, "dashboards")
+	delete(systemDotJSON, "portals")
 	delete(systemDotJSON, "plugins")
 	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
 	if err != nil {
@@ -264,8 +264,8 @@ func writeDevice(name string, data map[string]interface{}) error {
 	return writeEntity(devicesDir, name, data)
 }
 
-func writeDashboard(name string, data map[string]interface{}) error {
-	return writeEntity(dashboardsDir, name, data)
+func writePortal(name string, data map[string]interface{}) error {
+	return writeEntity(portalsDir, name, data)
 }
 
 func writePlugin(name string, data map[string]interface{}) error {
@@ -380,8 +380,8 @@ func getDevices() ([]map[string]interface{}, error) {
 	return getObjectList(devicesDir, []string{})
 }
 
-func getDashboards() ([]map[string]interface{}, error) {
-	return getObjectList(dashboardsDir, []string{})
+func getPortals() ([]map[string]interface{}, error) {
+	return getObjectList(portalsDir, []string{})
 }
 
 func getPlugins() ([]map[string]interface{}, error) {
@@ -424,8 +424,8 @@ func getEdge(name string) (map[string]interface{}, error) {
 	return getObject(edgesDir, name+".json")
 }
 
-func getDashboard(name string) (map[string]interface{}, error) {
-	return getObject(dashboardsDir, name+".json")
+func getPortal(name string) (map[string]interface{}, error) {
+	return getObject(portalsDir, name+".json")
 }
 
 func getPlugin(name string) (map[string]interface{}, error) {

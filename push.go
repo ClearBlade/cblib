@@ -24,7 +24,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
 	pushCommand.flags.BoolVar(&AllDevices, "all-devices", false, "push all of the local devices")
 	pushCommand.flags.BoolVar(&AllEdges, "all-edges", false, "push all of the local edges")
-	pushCommand.flags.BoolVar(&AllDashboards, "all-dashboards", false, "push all of the local dashboards")
+	pushCommand.flags.BoolVar(&AllPortals, "all-portals", false, "push all of the local portals")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
 
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
@@ -36,7 +36,7 @@ func init() {
 	pushCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to push")
 	pushCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to push")
 	pushCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to push")
-	pushCommand.flags.StringVar(&DashboardName, "dashboard", "", "Name of dashboard to push")
+	pushCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to push")
 	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
 
 	AddCommand("push", pushCommand)
@@ -191,31 +191,31 @@ func pushAllEdges(systemInfo *System_meta, cli *cb.DevClient) error {
 	return nil
 }
 
-func pushOneDashboard(systemInfo *System_meta, cli *cb.DevClient) error {
-	fmt.Printf("Pushing dashboard %+s\n", DashboardName)
-	dashboard, err := getDashboard(DashboardName)
+func pushOnePortal(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing portal %+s\n", PortalName)
+	portal, err := getPortal(PortalName)
 	if err != nil {
 		return err
 	}
-	return updateDashboard(systemInfo.Key, dashboard, cli)
+	return updatePortal(systemInfo.Key, portal, cli)
 }
 
-func pushAllDashboards(systemInfo *System_meta, cli *cb.DevClient) error {
-	dashboards, err := getDashboards()
+func pushAllPortals(systemInfo *System_meta, cli *cb.DevClient) error {
+	portals, err := getPortals()
 	if err != nil {
 		return err
 	}
-	for _, dashboard := range dashboards {
-		fmt.Printf("Pushing dashboard %+s\n", dashboard["name"].(string))
-		if err := updateDashboard(systemInfo.Key, dashboard, cli); err != nil {
-			return fmt.Errorf("Error updating dashboard '%s': %s\n", dashboard["name"].(string), err.Error())
+	for _, portal := range portals {
+		fmt.Printf("Pushing portal %+s\n", portal["name"].(string))
+		if err := updatePortal(systemInfo.Key, portal, cli); err != nil {
+			return fmt.Errorf("Error updating portal '%s': %s\n", portal["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
 func pushOnePlugin(systemInfo *System_meta, cli *cb.DevClient) error {
-	fmt.Printf("Pushing dashboard %+s\n", PluginName)
+	fmt.Printf("Pushing portal %+s\n", PluginName)
 	plugin, err := getPlugin(PluginName)
 	if err != nil {
 		return err
@@ -378,16 +378,16 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllDashboards {
+	if AllPortals {
 		didSomething = true
-		if err := pushAllDashboards(systemInfo, cli); err != nil {
+		if err := pushAllPortals(systemInfo, cli); err != nil {
 			return err
 		}
 	}
 
-	if DashboardName != "" {
+	if PortalName != "" {
 		didSomething = true
-		if err := pushOneDashboard(systemInfo, cli); err != nil {
+		if err := pushOnePortal(systemInfo, cli); err != nil {
 			return err
 		}
 	}
@@ -744,37 +744,37 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 	return nil
 }
 
-func updateDashboard(systemKey string, dashboard map[string]interface{}, client *cb.DevClient) error {
-	dashboardName := dashboard["name"].(string)
-	delete(dashboard, "system_key")
-	if dashboard["description"] == nil {
-		dashboard["description"] = ""
+func updatePortal(systemKey string, portal map[string]interface{}, client *cb.DevClient) error {
+	portalName := portal["name"].(string)
+	delete(portal, "system_key")
+	if portal["description"] == nil {
+		portal["description"] = ""
 	}
-	if dashboard["config"] == nil {
-		dashboard["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}"
+	if portal["config"] == nil {
+		portal["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}"
 	}
 
-	_, err := client.GetDashboard(systemKey, dashboardName)
+	_, err := client.GetPortal(systemKey, portalName)
 	if err != nil {
-		// Dashboard DNE
-		fmt.Printf("Could not find dashboard %s\n", dashboardName)
-		fmt.Printf("Would you like to create a new dashboard named %s? (Y/n)", dashboardName)
+		// Portal DNE
+		fmt.Printf("Could not find portal %s\n", portalName)
+		fmt.Printf("Would you like to create a new portal named %s? (Y/n)", portalName)
 		reader := bufio.NewReader(os.Stdin)
 		if text, err := reader.ReadString('\n'); err != nil {
 			return err
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
-				if _, err := client.CreateDashboard(systemKey, dashboardName, dashboard); err != nil {
-					return fmt.Errorf("Could not create dashboard %s: %s", dashboardName, err.Error())
+				if _, err := client.CreatePortal(systemKey, portalName, portal); err != nil {
+					return fmt.Errorf("Could not create portal %s: %s", portalName, err.Error())
 				} else {
-					fmt.Printf("Successfully created new dashboard %s\n", dashboardName)
+					fmt.Printf("Successfully created new portal %s\n", portalName)
 				}
 			} else {
-				fmt.Printf("Dashboard will not be created.\n")
+				fmt.Printf("Portal will not be created.\n")
 			}
 		}
 	} else {
-		client.UpdateDashboard(systemKey, dashboardName, dashboard)
+		client.UpdatePortal(systemKey, portalName, portal)
 	}
 
 	return nil
@@ -1062,13 +1062,13 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 	return nil
 }
 
-func createDashboard(systemKey string, dash map[string]interface{}, client *cb.DevClient) error {
+func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) error {
 	/*
 		<<<<<<< HEAD
 	*/
 	// Export stores config as dict, but import wants it as a string
-	delete(dash, "system_key")
-	config, ok := dash["config"]
+	delete(port, "system_key")
+	config, ok := port["config"]
 	if ok {
 		configStr := ""
 		switch config.(type) {
@@ -1081,17 +1081,17 @@ func createDashboard(systemKey string, dash map[string]interface{}, client *cb.D
 			}
 			configStr = string(configBytes)
 		}
-		dash["config"] = configStr
+		port["config"] = configStr
 		/*
 			=======
 				//remove any trash that the API doesn't like
-				delete(dash, "system_key")
-				if dash["description"] == nil {
-					dash["description"] = ""
+				delete(port, "system_key")
+				if port["description"] == nil {
+					port["description"] = ""
 			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
 		*/
 	}
-	_, err := client.CreateDashboard(systemKey, dash["name"].(string), dash)
+	_, err := client.CreatePortal(systemKey, port["name"].(string), port)
 	if err != nil {
 		return err
 	}
