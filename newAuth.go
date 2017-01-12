@@ -12,6 +12,7 @@ import (
 
 const (
 	urlPrompt       = "Platform URL"
+	msgurlPrompt	= "Messaging URL"
 	systemKeyPrompt = "System Key"
 	emailPrompt     = "Developer Email"
 	passwordPrompt  = "Password: "
@@ -19,6 +20,7 @@ const (
 
 func init() {
 	flag.StringVar(&URL, "platform-url", "", "Clearblade platform url for target system")
+	flag.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	flag.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	flag.StringVar(&Email, "email", "", "Developer email for login")
 	flag.StringVar(&Password, "password", "", "Developer password")
@@ -60,14 +62,17 @@ func getAnswer(entered, defaultValue string) string {
 }
 
 func fillInTheBlanks(defaults *DefaultInfo) {
-	var defaultUrl, defaultEmail, defaultSys string
+	var defaultUrl, defaultMsgUrl, defaultEmail, defaultSys string
 	if defaults != nil {
-		defaultUrl, defaultEmail, defaultSys = defaults.url, defaults.email, defaults.systemKey
+		defaultUrl, defaultMsgUrl, defaultEmail, defaultSys = defaults.url, defaults.msgUrl, defaults.email, defaults.systemKey
 	}
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultUrl), false), defaultUrl)
-		setupAddrs(URL)
+		if MsgURL == "" {
+			MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgUrl), false), defaultMsgUrl)
+		}
 	}
+	setupAddrs(URL, MsgURL)
 	if SystemKey == "" {
 		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
 	}
@@ -104,7 +109,7 @@ func GoToRepoRootDir() error {
 func makeClientFromMetaInfo() *cb.DevClient {
 	devToken := MetaInfo["token"].(string)
 	email := MetaInfo["developerEmail"].(string)
-	setupAddrs(MetaInfo["platformURL"].(string))
+	setupAddrs(MetaInfo["platformURL"].(string), MetaInfo["messagingURL"].(string))
 	return cb.NewDevClientWithToken(devToken, email)
 }
 
@@ -113,7 +118,8 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 		DevToken = MetaInfo["token"].(string)
 		Email = MetaInfo["developerEmail"].(string)
 		URL = MetaInfo["platformURL"].(string)
-		setupAddrs(URL)
+		MsgURL = MetaInfo["messagingURL"].(string)
+		setupAddrs(URL, MsgURL)
 		fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
 		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
 		return cb.NewDevClientWithToken(DevToken, Email), nil

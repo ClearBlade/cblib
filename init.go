@@ -22,6 +22,7 @@ func init() {
 		//  TODO -- add help, usage, etc.
 	}
 	myInitCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
+	myInitCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	myInitCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myInitCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myInitCommand.flags.StringVar(&Password, "password", "", "Developer password")
@@ -51,9 +52,9 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
 	}
-
 	metaStuff := map[string]interface{}{
-		"platformURL":       URL,
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,
