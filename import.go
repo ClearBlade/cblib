@@ -277,15 +277,15 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 	return nil
 }
 
-func createDashboards(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
-	dashboards, err := getDashboards()
+	portals, err := getPortals()
 	if err != nil {
 		return err
 	}
-	for _, dash := range dashboards {
+	for _, dash := range portals {
 		fmt.Printf(" %s", dash["name"].(string))
-		if err := createDashboard(sysKey, dash, client); err != nil {
+		if err := createPortal(sysKey, dash, client); err != nil {
 			return err
 		}
 	}
@@ -316,20 +316,20 @@ func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient)
 	return nil
 }
 
-func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) error{
-			sysKey := systemInfo["systemKey"].(string)
-			plugins, err := getPlugins()
-			if err != nil {
+func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	plugins, err := getPlugins()
+	if err != nil {
+		return err
+	}
+	for _, plug := range plugins {
+		fmt.Printf(" %s", plug["name"].(string))
+		if err := createPlugin(sysKey, plug, client); err != nil {
 			return err
-			}
-			for _, plug := range plugins {
-			fmt.Printf(" %s", plug["name"].(string))
-			if err := createPlugin(sysKey, plug, client); err != nil {
-			return err
-			}
-			}
-			return nil
 		}
+	}
+	return nil
+}
 func convertSyncInfo(info map[string]interface{}) (map[string][]string, error) {
 	rval := map[string][]string{
 		"service": []string{},
@@ -445,9 +445,9 @@ func importIt(cli *cb.DevClient) error {
 	if err := createDevices(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create devices: %s", err.Error())
 	}
-	fmt.Printf(" Done.\nImporting dashboards...")
-	if err := createDashboards(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create dashboards: %s", err.Error())
+	fmt.Printf(" Done.\nImporting portals...")
+	if err := createPortals(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create portals: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting plugins...")
 	if err := createPlugins(systemInfo, cli); err != nil {

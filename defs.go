@@ -38,7 +38,7 @@ var (
 	TimerName                  string
 	DeviceName                 string
 	EdgeName                   string
-	DashboardName              string
+	PortalName                 string
 	PluginName                 string
 	Message                    bool
 	Topic                      string
@@ -50,7 +50,7 @@ var (
 	AllLibraries               bool
 	AllDevices                 bool
 	AllEdges                   bool
-	AllDashboards              bool
+	AllPortals                 bool
 	AllPlugins                 bool
 )
 
