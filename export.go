@@ -496,7 +496,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if exportOptionsExist() {
 		client = cb.NewDevClientWithToken(DevToken, Email)	
 	} else {
-		client, _ = Authorize(nil)
+		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
 	return ExportSystem(client, SystemKey)
 }

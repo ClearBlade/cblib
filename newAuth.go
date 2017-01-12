@@ -71,7 +71,6 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 		if MsgURL == "" {
 			MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgUrl), false), defaultMsgUrl)
 		}
-		fmt.Println("Blanks : " + URL + MsgURL)
 	}
 	setupAddrs(URL, MsgURL)
 	if SystemKey == "" {
@@ -115,7 +114,6 @@ func makeClientFromMetaInfo() *cb.DevClient {
 }
 
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
-	fmt.Println(MetaInfo)
 	if MetaInfo != nil {
 		DevToken = MetaInfo["token"].(string)
 		Email = MetaInfo["developerEmail"].(string)

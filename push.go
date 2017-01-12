@@ -140,7 +140,6 @@ func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
 }
 
 func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
-	fmt.Printf("Pushing user %s\n", User)
 	user, err := getUser(User)
 	fmt.Println(reflect.TypeOf(user))
 	if err != nil {
@@ -1170,12 +1169,3 @@ func updateRole(systemKey string, role map[string]interface{}, cli *cb.DevClient
 	}
 	return nil
 }
-
-// func updateUserSchema(systemKey string, userSchema map[string]interface{}, cli *cb.DevClient) error {
-// 	columnName := userSchema["ColumnName"].(string)
-// 	columnType := userSchema["ColumnType"].(string)
-// 	if err := cli.CreateUserColumn(systemKey, columnName, columnType); err != nil {
-// 		return fmt.Errorf("User schema could not be updated\n", err)
-// 	}
-// 	return nil
-// }

@@ -52,7 +52,6 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
 	}
-	fmt.Println("Here")
 	metaStuff := map[string]interface{}{
 		"platformURL":       cb.CB_ADDR,
 		"messagingURL":		 cb.CB_MSG_ADDR,
