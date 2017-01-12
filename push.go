@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"time"
-	"reflect"
 )
 
 func init() {
@@ -65,6 +64,24 @@ func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
 	return updateService(systemInfo.Key, service, cli)
 }
 
+
+/* Sample schema defintion - Keys not to be changed. Only the value
+   e.g dont change "columns" or "ColumnName" etc tag names
+{
+    "columns": [
+        {
+            "ColumnName": "name",
+            "ColumnType": "string",
+            "PK": false
+        },
+        {
+            "ColumnName": "city",
+            "ColumnType": "string",
+            "PK": false
+        }
+    ],
+    "permissions": {}
+} */
 func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing user schema\n")
 	exists := false
@@ -73,12 +90,22 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 		return err
 	}
 	userColumns, _ := cli.GetUserColumns(systemInfo.Key)
-	if len(userschema["columns"].([]interface{})) < len(userColumns)-2 {
+	typedSchema, ok := userschema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
+	}
+	// If user removes column from schema.json,
+	// we check it by comparing length of columns in 
+	// json file and no of columns on system.
+	// len(userColumns) - 2 is done because there exist 2 columns
+	// by default : Email & Date
+	// We only want to check for columns added from schema
+	if len(typedSchema) < len(userColumns)-2 {
 		for i := 2; i < len(userColumns); i++ {
 			exists = false
 			existingColumn := userColumns[i].(map[string]interface{})["ColumnName"].(string)
-			for j := 0; j < len(userschema["columns"].([]interface{})); j++ {
-				if userschema["columns"].([]interface{})[j].(map[string]interface{})["ColumnName"].(string) == existingColumn {
+			for j := 0; j < len(typedSchema); j++ {
+				if typedSchema[j].(map[string]interface{})["ColumnName"].(string) == existingColumn {
 					exists = true
 					break
 				}
@@ -90,9 +117,12 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 			}
 		}
 	} else {
-		for i := 0; i < len(userschema["columns"].([]interface{})); i++ {
+		// Loop to add columns to system
+		// Inner loop is used to check if column exists
+		// If column exists, insertion does not work
+		for i := 0; i < len(typedSchema); i++ {
 			exists = false
-			data := userschema["columns"].([]interface{})[i].(map[string]interface{})
+			data := typedSchema[i].(map[string]interface{})
 			columnName := data["ColumnName"].(string)
 			columnType := data["ColumnType"].(string)
 			for j:= 2; j < len(userColumns); j++ {
@@ -141,7 +171,6 @@ func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
 
 func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
 	user, err := getUser(User)
-	fmt.Println(reflect.TypeOf(user))
 	if err != nil {
 		return err
 	}
@@ -1013,7 +1042,6 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	if err != nil {
 		collName := collection["name"].(string)
 		fmt.Printf("Error updating collection %s.\n", collName)
-		fmt.Println(err.Error())
 		collName = collName + "2"
 		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
 		reader := bufio.NewReader(os.Stdin)
