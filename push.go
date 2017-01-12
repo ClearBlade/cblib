@@ -64,6 +64,84 @@ func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
 	return updateService(systemInfo.Key, service, cli)
 }
 
+
+/* Sample schema defintion - Keys not to be changed. Only the value
+   e.g dont change "columns" or "ColumnName" etc tag names
+{
+    "columns": [
+        {
+            "ColumnName": "name",
+            "ColumnType": "string",
+            "PK": false
+        },
+        {
+            "ColumnName": "city",
+            "ColumnType": "string",
+            "PK": false
+        }
+    ],
+    "permissions": {}
+} */
+func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Pushing user schema\n")
+	exists := false
+	userschema, err := getUserSchema()
+	if err != nil {
+		return err
+	}
+	userColumns, _ := cli.GetUserColumns(systemInfo.Key)
+	typedSchema, ok := userschema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
+	}
+	// If user removes column from schema.json,
+	// we check it by comparing length of columns in 
+	// json file and no of columns on system.
+	// len(userColumns) - 2 is done because there exist 2 columns
+	// by default : Email & Date
+	// We only want to check for columns added from schema
+	if len(typedSchema) < len(userColumns)-2 {
+		for i := 2; i < len(userColumns); i++ {
+			exists = false
+			existingColumn := userColumns[i].(map[string]interface{})["ColumnName"].(string)
+			for j := 0; j < len(typedSchema); j++ {
+				if typedSchema[j].(map[string]interface{})["ColumnName"].(string) == existingColumn {
+					exists = true
+					break
+				}
+			}
+			if exists == false {
+				if err := cli.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
+					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed\n", err)
+				}
+			}
+		}
+	} else {
+		// Loop to add columns to system
+		// Inner loop is used to check if column exists
+		// If column exists, insertion does not work
+		for i := 0; i < len(typedSchema); i++ {
+			exists = false
+			data := typedSchema[i].(map[string]interface{})
+			columnName := data["ColumnName"].(string)
+			columnType := data["ColumnType"].(string)
+			for j:= 2; j < len(userColumns); j++ {
+				existingColumn := userColumns[j].(map[string]interface{})["ColumnName"].(string)
+				if existingColumn == columnName {
+					exists = true
+					break
+				}
+			}
+			if exists == false {
+				if err := cli.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
+					return fmt.Errorf("User schema could not be updated\n", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func pushOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Pushing collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
@@ -92,7 +170,6 @@ func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
 }
 
 func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
-	fmt.Printf("Pushing user %s\n", User)
 	user, err := getUser(User)
 	if err != nil {
 		return err
@@ -293,6 +370,14 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 			return err
 		}
 	}
+
+	// Adding code to update user schema when pushed to system
+	if UserSchema {
+		didSomething = true
+		if err := pushUserSchema(systemInfo, cli); err != nil {
+			return err
+		}
+	}	
 
 	if ServiceName != "" {
 		didSomething = true
@@ -553,7 +638,7 @@ func getMap(val interface{}) map[string]interface{} {
 }
 
 func updateUser(systemKey string, user map[string]interface{}, client *cb.DevClient) error {
-	if id, ok := user["Id"].(string); !ok {
+	if id, ok := user["user_id"].(string); !ok {
 		return fmt.Errorf("Missing user id %+v", user)
 	} else {
 		return client.UpdateUser(systemKey, id, user)
@@ -957,7 +1042,6 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	if err != nil {
 		collName := collection["name"].(string)
 		fmt.Printf("Error updating collection %s.\n", collName)
-		fmt.Println(err.Error())
 		collName = collName + "2"
 		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
 		reader := bufio.NewReader(os.Stdin)
