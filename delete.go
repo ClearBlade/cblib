@@ -20,6 +20,9 @@ func init() {
 	deleteCommand.flags.StringVar(&RoleName, "role", "", "Name of role to delete")
 	deleteCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to delete")
 	deleteCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to delete")
+	deleteCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to delete")
+	deleteCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to delete")
+	deleteCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to delete")
 	AddCommand("delete", deleteCommand)
 }
 
@@ -91,6 +94,27 @@ func doDelete(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if EdgeName != "" {
+		didSomething = true
+		if err := deleteOneEdge(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if PortalName != "" {
+		didSomething = true
+		if err := deleteOnePortal(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
+	if DeviceName != "" {
+		didSomething = true
+		if err := deleteOneDevice(systemInfo, cli); err != nil {
+			return err
+		}
+	}
+
 	if !didSomething {
 		fmt.Printf("Nothing to delete -- you must specify something to delete (ie, -service=<svc_name>)\n")
 	}
@@ -131,6 +155,21 @@ func deleteOneTrigger(systemInfo *System_meta, cli *cb.DevClient) error {
 func deleteOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
 	fmt.Printf("Deleting timer %s\n", TimerName)
 	return deleteTimer(systemInfo.Key, TimerName, cli)
+}
+
+func deleteOneEdge(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Deleting edge %s\n", EdgeName)
+	return deleteEdge(systemInfo.Key, EdgeName, cli)
+}
+
+func deleteOnePortal(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Deleting portal %s\n", PortalName)
+	return deletePortal(systemInfo.Key, PortalName, cli)
+}
+
+func deleteOneDevice(systemInfo *System_meta, cli *cb.DevClient) error {
+	fmt.Printf("Deleting device %s\n", DeviceName)
+	return deleteDevice(systemInfo.Key, DeviceName, cli)
 }
 
 func deleteService(systemKey string, name string, client *cb.DevClient) error {
@@ -185,6 +224,30 @@ func deleteTimer(systemKey string, name string, client *cb.DevClient) error {
 	err := client.DeleteTimer(systemKey, name)
 	if err != nil {
 		return fmt.Errorf("Unable to delete timer %s : %s", name, err)
+	}
+	return nil
+}
+
+func deleteEdge(systemKey string, name string, client *cb.DevClient) error {
+	err := client.DeleteEdge(systemKey, name)
+	if err != nil {
+		return fmt.Errorf("Unable to delete edge %s : %s", name, err)
+	}
+	return nil
+}
+
+func deletePortal(systemKey string, name string, client *cb.DevClient) error {
+	err := client.DeletePortal(systemKey, name)
+	if err != nil {
+		return fmt.Errorf("Unable to delete portal %s : %s", name, err)
+	}
+	return nil
+}
+
+func deleteDevice(systemKey string, name string, client *cb.DevClient) error {
+	err := client.DeleteDevice(systemKey, name)
+	if err != nil {
+		return fmt.Errorf("Unable to delete device %s : %s", name, err)
 	}
 	return nil
 }
