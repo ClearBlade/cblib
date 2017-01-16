@@ -31,7 +31,6 @@ func init() {
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
-	// myExportCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
@@ -492,11 +491,20 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-
 	if exportOptionsExist() {
 		client = cb.NewDevClientWithToken(DevToken, Email)	
 	} else {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
+	}
+	
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err := client.GetAllRoles(SystemKey)
+	if err != nil{
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		return ExportSystem(client, SystemKey)
 	}
 	return ExportSystem(client, SystemKey)
 }
@@ -623,8 +631,8 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 
 	metaStuff := map[string]interface{}{
-		"platformURL":       URL,
-		"messagingURL":		 MsgURL,
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,
