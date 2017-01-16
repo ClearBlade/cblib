@@ -242,6 +242,36 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 	return nil
 }
 
+func ImportCollection(collectionName string, collection map[string]interface{}, sysMeta *System_meta, client *cb.DevClient) error {
+	columns := collection["schema"].([]interface{})
+	colId, err := client.NewCollection(sysMeta.Key, collectionName)
+	if err != nil {
+		return err
+	}
+	for _, columnIF := range columns {
+		column := columnIF.(map[string]interface{})
+		columnName := column["ColumnName"].(string)
+		columnType := column["ColumnType"].(string)
+		if columnName == "item_id" {
+			continue
+		}
+		if err := client.AddColumn(colId, columnName, columnType); err != nil {
+			return err
+		}
+	}
+	items := collection["items"].([]interface{})
+	if len(items) == 0 {
+		return nil
+	}
+	for idx, itemIF := range items {
+		items[idx] = itemIF.(map[string]interface{})
+	}
+	if _, err := client.CreateData(colId, items); err != nil {
+		return err
+	}
+	return nil
+}
+
 func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	sysSecret := systemInfo["systemSecret"].(string)

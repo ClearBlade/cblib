@@ -64,7 +64,6 @@ func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
 	return updateService(systemInfo.Key, service, cli)
 }
 
-
 /* Sample schema defintion - Keys not to be changed. Only the value
    e.g dont change "columns" or "ColumnName" etc tag names
 {
@@ -95,7 +94,7 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 	// If user removes column from schema.json,
-	// we check it by comparing length of columns in 
+	// we check it by comparing length of columns in
 	// json file and no of columns on system.
 	// len(userColumns) - 2 is done because there exist 2 columns
 	// by default : Email & Date
@@ -125,7 +124,7 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 			data := typedSchema[i].(map[string]interface{})
 			columnName := data["ColumnName"].(string)
 			columnType := data["ColumnType"].(string)
-			for j:= 2; j < len(userColumns); j++ {
+			for j := 2; j < len(userColumns); j++ {
 				existingColumn := userColumns[j].(map[string]interface{})["ColumnName"].(string)
 				if existingColumn == columnName {
 					exists = true
@@ -377,7 +376,7 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		if err := pushUserSchema(systemInfo, cli); err != nil {
 			return err
 		}
-	}	
+	}
 
 	if ServiceName != "" {
 		didSomething = true

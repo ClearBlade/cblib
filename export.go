@@ -108,6 +108,31 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 	return co, nil
 }
 
+func ExportCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
+	id := co["collectionID"].(string)
+	isConnect := isConnectCollection(co)
+	var columnsResp []interface{}
+	var err error
+	if isConnect {
+		columnsResp = []interface{}{}
+	} else {
+		columnsResp, err = cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
+		if err != nil {
+			return nil, err
+		}
+	}
+	co["schema"] = columnsResp
+	co["items"] = []interface{}{}
+	if !isConnect {
+		items, err := pullCollectionData(co, cli)
+		if err != nil {
+			return nil, err
+		}
+		co["items"] = items
+	}
+	return co, nil
+}
+
 func isConnectCollection(co map[string]interface{}) bool {
 	if isConnect, ok := co["isConnect"]; ok {
 		switch isConnect.(type) {
@@ -283,6 +308,7 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	sys, err := cli.GetSystem(systemKey)
 	if err != nil {
+		fmt.Println("Cannot get system")
 		return nil, err
 	}
 	serv_metas := make(map[string]Service_meta)
@@ -494,7 +520,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	}
 
 	if exportOptionsExist() {
-		client = cb.NewDevClientWithToken(DevToken, Email)	
+		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
@@ -624,7 +650,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       URL,
-		"messagingURL":		 MsgURL,
+		"messagingURL":      MsgURL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,

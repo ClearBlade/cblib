@@ -12,7 +12,7 @@ import (
 
 const (
 	urlPrompt       = "Platform URL"
-	msgurlPrompt	= "Messaging URL"
+	msgurlPrompt    = "Messaging URL"
 	systemKeyPrompt = "System Key"
 	emailPrompt     = "Developer Email"
 	passwordPrompt  = "Password: "
