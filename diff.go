@@ -100,6 +100,25 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 	setRootDir(".")
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err = client.GetAllRoles(systemInfo.Key)
+	if err != nil {
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+			"platformURL":       cb.CB_ADDR,
+			"messagingURL":      cb.CB_MSG_ADDR,
+			"developerEmail":    Email,
+			"assetRefreshDates": []interface{}{},
+			"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return err
+		}
+	}
+
 	if UserSchema {
 		if err := diffUserSchema(systemInfo, client); err != nil {
 			return err

@@ -30,7 +30,7 @@ func checkCreateArgsAndFlags(args []string) error {
 	return nil
 }
 
-func doCreate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doCreate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkCreateArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -40,53 +40,71 @@ func doCreate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 	setRootDir(".")
 
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err = client.GetAllRoles(systemInfo.Key)
+	if err != nil {
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+			"platformURL":       cb.CB_ADDR,
+			"messagingURL":      cb.CB_MSG_ADDR,
+			"developerEmail":    Email,
+			"assetRefreshDates": []interface{}{},
+			"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return err
+		}
+	}
 	didSomething := false
 
 	if ServiceName != "" {
 		didSomething = true
-		if err := createOneService(systemInfo, cli); err != nil {
+		if err := createOneService(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if LibraryName != "" {
 		didSomething = true
-		if err := createOneLibrary(systemInfo, cli); err != nil {
+		if err := createOneLibrary(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := createOneCollection(systemInfo, cli); err != nil {
+		if err := createOneCollection(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if User != "" {
 		didSomething = true
-		if err := createOneUser(systemInfo, cli); err != nil {
+		if err := createOneUser(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if RoleName != "" {
 		didSomething = true
-		if err := createOneRole(systemInfo, cli); err != nil {
+		if err := createOneRole(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := createOneTrigger(systemInfo, cli); err != nil {
+		if err := createOneTrigger(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		if err := createOneTimer(systemInfo, cli); err != nil {
+		if err := createOneTimer(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -98,66 +116,66 @@ func doCreate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func createOneService(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating service %s\n", ServiceName)
 	service, err := getService(ServiceName)
 	if err != nil {
 		return err
 	}
-	return createService(systemInfo.Key, service, cli)
+	return createService(systemInfo.Key, service, client)
 }
 
-func createOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
 	if err != nil {
 		return err
 	}
-	return createCollection(systemInfo.Key, collection, cli)
+	return createCollection(systemInfo.Key, collection, client)
 }
 
-func createOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating library %s\n", LibraryName)
 	library, err := getLibrary(LibraryName)
 	if err != nil {
 		return err
 	}
-	return createLibrary(systemInfo.Key, library, cli)
+	return createLibrary(systemInfo.Key, library, client)
 }
 
-func createOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneUser(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating user %s\n", User)
 	user, err := getUser(User)
 	if err != nil {
 		return err
 	}
-	_, err = createUser(systemInfo.Key, systemInfo.Secret, user, cli)
+	_, err = createUser(systemInfo.Key, systemInfo.Secret, user, client)
 	return err
 }
 
-func createOneRole(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating role %s\n", RoleName)
 	role, err := getRole(RoleName)
 	if err != nil {
 		return err
 	}
-	return createRole(systemInfo.Key, role, cli)
+	return createRole(systemInfo.Key, role, client)
 }
 
-func createOneTrigger(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating trigger %s\n", TriggerName)
 	trigger, err := getTrigger(TriggerName)
 	if err != nil {
 		return err
 	}
-	return createTrigger(systemInfo.Key, trigger, cli)
+	return createTrigger(systemInfo.Key, trigger, client)
 }
 
-func createOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
+func createOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating timer %s\n", TimerName)
 	timer, err := getTimer(TimerName)
 	if err != nil {
 		return err
 	}
-	return createTimer(systemInfo.Key, timer, cli)
+	return createTimer(systemInfo.Key, timer, client)
 }
