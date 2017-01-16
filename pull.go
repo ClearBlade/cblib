@@ -38,7 +38,7 @@ func init() {
 	AddCommand("pull", pullCommand)
 }
 
-func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	setRootDir(".")
 	systemInfo, err := getSysMeta()
 	setupDirectoryStructure(systemInfo)
@@ -46,8 +46,27 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		return err
 	}
 
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err = client.GetAllRoles(systemInfo.Key)
+	if err != nil{
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
+		"developerEmail":    Email,
+		"assetRefreshDates": []interface{}{},
+		"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return err
+		}
+	}
+
 	// ??? we already have them locally
-	if r, err := pullRoles(systemInfo.Key, cli, false); err != nil {
+	if r, err := pullRoles(systemInfo.Key, client, false); err != nil {
 		return err
 	} else {
 		rolesInfo = r
@@ -58,7 +77,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllServices {
 		didSomething = true
 		fmt.Printf("Pulling all services:")
-		if _, err := pullServices(systemInfo.Key, cli); err != nil {
+		if _, err := pullServices(systemInfo.Key, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -67,7 +86,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if ServiceName != "" {
 		didSomething = true
 		fmt.Printf("Pulling service %+s\n", ServiceName)
-		if svc, err := pullService(systemInfo.Key, ServiceName, cli); err != nil {
+		if svc, err := pullService(systemInfo.Key, ServiceName, client); err != nil {
 			return err
 		} else {
 			writeService(ServiceName, svc)
@@ -77,7 +96,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllLibraries {
 		didSomething = true
 		fmt.Printf("Pulling all libraries:")
-		if _, err := pullLibraries(systemInfo, cli); err != nil {
+		if _, err := pullLibraries(systemInfo, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -86,7 +105,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if LibraryName != "" {
 		didSomething = true
 		fmt.Printf("Pulling library %s\n", LibraryName)
-		if lib, err := pullLibrary(systemInfo.Key, LibraryName, cli); err != nil {
+		if lib, err := pullLibrary(systemInfo.Key, LibraryName, client); err != nil {
 			return err
 		} else {
 			writeLibrary(lib["name"].(string), lib)
@@ -97,7 +116,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		didSomething = true
 		exportRows = true
 		fmt.Printf("Pulling collection %+s\n", CollectionName)
-		if allColls, err := cli.GetAllCollections(systemInfo.Key); err != nil {
+		if allColls, err := client.GetAllCollections(systemInfo.Key); err != nil {
 			return err
 		} else {
 			var collID string
@@ -111,10 +130,10 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 			if len(collID) < 1 {
 				return fmt.Errorf("Collection %s not found.", CollectionName)
 			}
-			if coll, err := cli.GetCollectionInfo(collID); err != nil {
+			if coll, err := client.GetCollectionInfo(collID); err != nil {
 				return err
 			} else {
-				if data, err := pullCollection(systemInfo, coll, cli); err != nil {
+				if data, err := pullCollection(systemInfo, coll, client); err != nil {
 					return err
 				} else {
 					writeCollection(data["name"].(string), data)
@@ -126,7 +145,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if User != "" {
 		didSomething = true
 		fmt.Printf("Pulling user %+s\n", User)
-		if users, err := cli.GetAllUsers(systemInfo.Key); err != nil {
+		if users, err := client.GetAllUsers(systemInfo.Key); err != nil {
 			return err
 		} else {
 			ok := false
@@ -134,7 +153,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 				if user["email"] == User {
 					ok = true
 					userId := user["user_id"].(string)
-					if roles, err := cli.GetUserRoles(systemInfo.Key, userId); err != nil {
+					if roles, err := client.GetUserRoles(systemInfo.Key, userId); err != nil {
 						return fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
 					} else {
 						user["roles"] = roles
@@ -146,7 +165,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 				return fmt.Errorf("User %+s not found\n", User)
 			}
 		}
-		if col, err := pullUserSchemaInfo(systemInfo.Key, cli, true); err != nil {
+		if col, err := pullUserSchemaInfo(systemInfo.Key, client, true); err != nil {
 			return err
 		} else {
 			writeUserSchema(col)
@@ -159,7 +178,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		splitRoles := strings.Split(RoleName, ",")
 		for _, role := range splitRoles {
 			fmt.Printf("Pulling role %+s\n", role)
-			if r, err := pullRole(systemInfo.Key, role, cli); err != nil {
+			if r, err := pullRole(systemInfo.Key, role, client); err != nil {
 				return err
 			} else {
 				roles = append(roles, r)
@@ -172,7 +191,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if TriggerName != "" {
 		didSomething = true
 		fmt.Printf("Pulling trigger %+s\n", TriggerName)
-		if trigg, err := pullTrigger(systemInfo.Key, TriggerName, cli); err != nil {
+		if trigg, err := pullTrigger(systemInfo.Key, TriggerName, client); err != nil {
 			return err
 		} else {
 			writeTrigger(TriggerName, trigg)
@@ -182,7 +201,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if TimerName != "" {
 		didSomething = true
 		fmt.Printf("Pulling timer %+s\n", TimerName)
-		if timer, err := pullTimer(systemInfo.Key, TimerName, cli); err != nil {
+		if timer, err := pullTimer(systemInfo.Key, TimerName, client); err != nil {
 			return err
 		} else {
 			writeTimer(TimerName, timer)
@@ -192,7 +211,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllDevices {
 		didSomething = true
 		fmt.Printf("Pulling all devices:")
-		if _, err := pullDevices(systemInfo, cli); err != nil {
+		if _, err := pullDevices(systemInfo, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -201,7 +220,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if DeviceName != "" {
 		didSomething = true
 		fmt.Printf("Pulling device %+s\n", DeviceName)
-		if device, err := pullDevice(systemInfo.Key, DeviceName, cli); err != nil {
+		if device, err := pullDevice(systemInfo.Key, DeviceName, client); err != nil {
 			return err
 		} else {
 			writeDevice(DeviceName, device)
@@ -211,7 +230,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllEdges {
 		didSomething = true
 		fmt.Printf("Pulling all edges:")
-		if _, err := pullEdges(systemInfo, cli); err != nil {
+		if _, err := pullEdges(systemInfo, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -220,7 +239,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if EdgeName != "" {
 		didSomething = true
 		fmt.Printf("Pulling edge %+s\n", EdgeName)
-		if edge, err := pullEdge(systemInfo.Key, EdgeName, cli); err != nil {
+		if edge, err := pullEdge(systemInfo.Key, EdgeName, client); err != nil {
 			return err
 		} else {
 			writeEdge(EdgeName, edge)
@@ -230,7 +249,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllPortals {
 		didSomething = true
 		fmt.Printf("Pulling all portals:")
-		if _, err := pullPortals(systemInfo, cli); err != nil {
+		if _, err := pullPortals(systemInfo, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -239,7 +258,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if PortalName != "" {
 		didSomething = true
 		fmt.Printf("Pulling portal %+s\n", PortalName)
-		if portal, err := pullPortal(systemInfo.Key, PortalName, cli); err != nil {
+		if portal, err := pullPortal(systemInfo.Key, PortalName, client); err != nil {
 			return err
 		} else {
 			writePortal(PortalName, portal)
@@ -249,7 +268,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if AllPlugins {
 		didSomething = true
 		fmt.Printf("Pulling all plugins:")
-		if _, err := pullPlugins(systemInfo, cli); err != nil {
+		if _, err := pullPlugins(systemInfo, client); err != nil {
 			return err
 		}
 		fmt.Printf("\n")
@@ -258,7 +277,7 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	if PluginName != "" {
 		didSomething = true
 		fmt.Printf("Pulling plugin %+s\n", PluginName)
-		if plugin, err := pullPlugin(systemInfo.Key, PluginName, cli); err != nil {
+		if plugin, err := pullPlugin(systemInfo.Key, PluginName, client); err != nil {
 			return err
 		} else {
 			writePlugin(PluginName, plugin)
@@ -271,8 +290,8 @@ func doPull(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func pullRole(systemKey string, roleName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	r, err := cli.GetAllRoles(systemKey)
+func pullRole(systemKey string, roleName string, client *cb.DevClient) (map[string]interface{}, error) {
+	r, err := client.GetAllRoles(systemKey)
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +310,8 @@ func pullRole(systemKey string, roleName string, cli *cb.DevClient) (map[string]
 	return rval, nil
 }
 
-func pullService(systemKey string, serviceName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	if service, err := cli.GetServiceRaw(systemKey, serviceName); err != nil {
+func pullService(systemKey string, serviceName string, client *cb.DevClient) (map[string]interface{}, error) {
+	if service, err := client.GetServiceRaw(systemKey, serviceName); err != nil {
 		return nil, err
 	} else {
 		service["code"] = strings.Replace(service["code"].(string), "\\n", "\n", -1)
@@ -300,30 +319,30 @@ func pullService(systemKey string, serviceName string, cli *cb.DevClient) (map[s
 	}
 }
 
-func pullLibrary(systemKey string, libraryName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetLibrary(systemKey, libraryName)
+func pullLibrary(systemKey string, libraryName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetLibrary(systemKey, libraryName)
 }
 
-func pullTrigger(systemKey string, triggerName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetEventHandler(systemKey, triggerName)
+func pullTrigger(systemKey string, triggerName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetEventHandler(systemKey, triggerName)
 }
 
-func pullTimer(systemKey string, timerName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetTimer(systemKey, timerName)
+func pullTimer(systemKey string, timerName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetTimer(systemKey, timerName)
 }
 
-func pullDevice(systemKey string, deviceName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetDevice(systemKey, deviceName)
+func pullDevice(systemKey string, deviceName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetDevice(systemKey, deviceName)
 }
 
-func pullEdge(systemKey string, edgeName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetEdge(systemKey, edgeName)
+func pullEdge(systemKey string, edgeName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetEdge(systemKey, edgeName)
 }
 
-func pullPortal(systemKey string, portalName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetPortal(systemKey, portalName)
+func pullPortal(systemKey string, portalName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetPortal(systemKey, portalName)
 }
 
-func pullPlugin(systemKey string, pluginName string, cli *cb.DevClient) (map[string]interface{}, error) {
-	return cli.GetPlugin(systemKey, pluginName)
+func pullPlugin(systemKey string, pluginName string, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.GetPlugin(systemKey, pluginName)
 }

@@ -33,7 +33,7 @@ func checkDeleteArgsAndFlags(args []string) error {
 	return nil
 }
 
-func doDelete(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doDelete(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkDeleteArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -43,74 +43,93 @@ func doDelete(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 	setRootDir(".")
 
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err = client.GetAllRoles(systemInfo.Key)
+	if err != nil{
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
+		"developerEmail":    Email,
+		"assetRefreshDates": []interface{}{},
+		"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return err
+		}
+	}
+
 	didSomething := false
 
 	if ServiceName != "" {
 		didSomething = true
-		if err := deleteOneService(systemInfo, cli); err != nil {
+		if err := deleteOneService(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if LibraryName != "" {
 		didSomething = true
-		if err := deleteOneLibrary(systemInfo, cli); err != nil {
+		if err := deleteOneLibrary(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if CollectionId != "" {
 		didSomething = true
-		if err := deleteOneCollection(systemInfo, cli); err != nil {
+		if err := deleteOneCollection(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if UserId != "" {
 		didSomething = true
-		if err := deleteOneUser(systemInfo, cli); err != nil {
+		if err := deleteOneUser(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if RoleName != "" {
 		didSomething = true
-		if err := deleteOneRole(systemInfo, cli); err != nil {
+		if err := deleteOneRole(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := deleteOneTrigger(systemInfo, cli); err != nil {
+		if err := deleteOneTrigger(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		if err := deleteOneTimer(systemInfo, cli); err != nil {
+		if err := deleteOneTimer(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if EdgeName != "" {
 		didSomething = true
-		if err := deleteOneEdge(systemInfo, cli); err != nil {
+		if err := deleteOneEdge(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if PortalName != "" {
 		didSomething = true
-		if err := deleteOnePortal(systemInfo, cli); err != nil {
+		if err := deleteOnePortal(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if DeviceName != "" {
 		didSomething = true
-		if err := deleteOneDevice(systemInfo, cli); err != nil {
+		if err := deleteOneDevice(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -122,54 +141,54 @@ func doDelete(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func deleteOneService(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting service %s\n", ServiceName)
-	return deleteService(systemInfo.Key, ServiceName, cli)
+	return deleteService(systemInfo.Key, ServiceName, client)
 }
 
-func deleteOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting library %s\n", LibraryName)
-	return deleteLibrary(systemInfo.Key, LibraryName, cli)
+	return deleteLibrary(systemInfo.Key, LibraryName, client)
 }
 
-func deleteOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting collection %s\n", CollectionId)
-	return deleteCollection(systemInfo.Key, CollectionId, cli)
+	return deleteCollection(systemInfo.Key, CollectionId, client)
 }
 
-func deleteOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneUser(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting user %s\n", UserId)
-	return deleteUser(systemInfo.Key, UserId, cli)
+	return deleteUser(systemInfo.Key, UserId, client)
 }
 
-func deleteOneRole(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting user %s\n", RoleName)
-	return deleteRole(systemInfo.Key, RoleName, cli)
+	return deleteRole(systemInfo.Key, RoleName, client)
 }
 
-func deleteOneTrigger(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting trigger %s\n", TriggerName)
-	return deleteTrigger(systemInfo.Key, TriggerName, cli)
+	return deleteTrigger(systemInfo.Key, TriggerName, client)
 }
 
-func deleteOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting timer %s\n", TimerName)
-	return deleteTimer(systemInfo.Key, TimerName, cli)
+	return deleteTimer(systemInfo.Key, TimerName, client)
 }
 
-func deleteOneEdge(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneEdge(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting edge %s\n", EdgeName)
-	return deleteEdge(systemInfo.Key, EdgeName, cli)
+	return deleteEdge(systemInfo.Key, EdgeName, client)
 }
 
-func deleteOnePortal(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOnePortal(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting portal %s\n", PortalName)
-	return deletePortal(systemInfo.Key, PortalName, cli)
+	return deletePortal(systemInfo.Key, PortalName, client)
 }
 
-func deleteOneDevice(systemInfo *System_meta, cli *cb.DevClient) error {
+func deleteOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting device %s\n", DeviceName)
-	return deleteDevice(systemInfo.Key, DeviceName, cli)
+	return deleteDevice(systemInfo.Key, DeviceName, client)
 }
 
 func deleteService(systemKey string, name string, client *cb.DevClient) error {

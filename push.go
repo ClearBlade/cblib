@@ -55,13 +55,13 @@ func checkPushArgsAndFlags(args []string) error {
 	return nil
 }
 
-func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing service %+s\n", ServiceName)
 	service, err := getService(ServiceName)
 	if err != nil {
 		return err
 	}
-	return updateService(systemInfo.Key, service, cli)
+	return updateService(systemInfo.Key, service, client)
 }
 
 
@@ -82,14 +82,14 @@ func pushOneService(systemInfo *System_meta, cli *cb.DevClient) error {
     ],
     "permissions": {}
 } */
-func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing user schema\n")
 	exists := false
 	userschema, err := getUserSchema()
 	if err != nil {
 		return err
 	}
-	userColumns, _ := cli.GetUserColumns(systemInfo.Key)
+	userColumns, _ := client.GetUserColumns(systemInfo.Key)
 	typedSchema, ok := userschema["columns"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
@@ -111,7 +111,7 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 				}
 			}
 			if exists == false {
-				if err := cli.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
+				if err := client.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
 					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed\n", err)
 				}
 			}
@@ -133,7 +133,7 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 				}
 			}
 			if exists == false {
-				if err := cli.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
+				if err := client.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
 					return fmt.Errorf("User schema could not be updated\n", err)
 				}
 			}
@@ -142,16 +142,16 @@ func pushUserSchema(systemInfo *System_meta, cli *cb.DevClient) error {
 	return nil
 }
 
-func pushOneCollection(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
 	if err != nil {
 		return err
 	}
-	return updateCollection(systemInfo.Key, collection, cli)
+	return updateCollection(systemInfo.Key, collection, client)
 }
 
-func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing collection with collectionID %s\n", CollectionId)
 	collections, err := getCollections()
 	if err != nil {
@@ -163,21 +163,21 @@ func pushOneCollectionById(systemInfo *System_meta, cli *cb.DevClient) error {
 			continue
 		}
 		if id == CollectionId {
-			return updateCollection(systemInfo.Key, collection, cli)
+			return updateCollection(systemInfo.Key, collection, client)
 		}
 	}
 	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
 }
 
-func pushOneUser(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneUser(systemInfo *System_meta, client *cb.DevClient) error {
 	user, err := getUser(User)
 	if err != nil {
 		return err
 	}
-	return updateUser(systemInfo.Key, user, cli)
+	return updateUser(systemInfo.Key, user, client)
 }
 
-func pushOneUserById(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneUserById(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing user with user_id %s\n", UserId)
 	users, err := getUsers()
 	if err != nil {
@@ -189,170 +189,170 @@ func pushOneUserById(systemInfo *System_meta, cli *cb.DevClient) error {
 			continue
 		}
 		if id == UserId {
-			return updateUser(systemInfo.Key, user, cli)
+			return updateUser(systemInfo.Key, user, client)
 		}
 	}
 	return fmt.Errorf("User with user_id %+s not found.", UserId)
 }
 
-func pushOneRole(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing role %s\n", RoleName)
 	role, err := getRole(RoleName)
 	if err != nil {
 		return err
 	}
-	return updateRole(systemInfo.Key, role, cli)
+	return updateRole(systemInfo.Key, role, client)
 }
 
-func pushOneTrigger(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing trigger %+s\n", TriggerName)
 	trigger, err := getTrigger(TriggerName)
 	if err != nil {
 		return err
 	}
-	return updateTrigger(systemInfo.Key, trigger, cli)
+	return updateTrigger(systemInfo.Key, trigger, client)
 }
 
-func pushOneTimer(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing timer %+s\n", TimerName)
 	timer, err := getTimer(TimerName)
 	if err != nil {
 		return err
 	}
-	return updateTimer(systemInfo.Key, timer, cli)
+	return updateTimer(systemInfo.Key, timer, client)
 }
 
-func pushOneDevice(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing device %+s\n", DeviceName)
 	device, err := getDevice(DeviceName)
 	if err != nil {
 		return err
 	}
-	return updateDevice(systemInfo.Key, device, cli)
+	return updateDevice(systemInfo.Key, device, client)
 }
 
-func pushAllDevices(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	devices, err := getDevices()
 	if err != nil {
 		return err
 	}
 	for _, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
-		if err := updateDevice(systemInfo.Key, device, cli); err != nil {
+		if err := updateDevice(systemInfo.Key, device, client); err != nil {
 			return fmt.Errorf("Error updating device '%s': %s\n", device["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func pushOneEdge(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneEdge(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing edge %+s\n", EdgeName)
 	edge, err := getEdge(EdgeName)
 	if err != nil {
 		return err
 	}
-	return updateEdge(systemInfo.Key, edge, cli)
+	return updateEdge(systemInfo.Key, edge, client)
 }
 
-func pushAllEdges(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllEdges(systemInfo *System_meta, client *cb.DevClient) error {
 	edges, err := getEdges()
 	if err != nil {
 		return err
 	}
 	for _, edge := range edges {
 		fmt.Printf("Pushing edge %+s\n", edge["name"].(string))
-		if err := updateEdge(systemInfo.Key, edge, cli); err != nil {
+		if err := updateEdge(systemInfo.Key, edge, client); err != nil {
 			return fmt.Errorf("Error updating edge '%s': %s\n", edge["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func pushOnePortal(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOnePortal(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing portal %+s\n", PortalName)
 	portal, err := getPortal(PortalName)
 	if err != nil {
 		return err
 	}
-	return updatePortal(systemInfo.Key, portal, cli)
+	return updatePortal(systemInfo.Key, portal, client)
 }
 
-func pushAllPortals(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
 	portals, err := getPortals()
 	if err != nil {
 		return err
 	}
 	for _, portal := range portals {
 		fmt.Printf("Pushing portal %+s\n", portal["name"].(string))
-		if err := updatePortal(systemInfo.Key, portal, cli); err != nil {
+		if err := updatePortal(systemInfo.Key, portal, client); err != nil {
 			return fmt.Errorf("Error updating portal '%s': %s\n", portal["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func pushOnePlugin(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOnePlugin(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing portal %+s\n", PluginName)
 	plugin, err := getPlugin(PluginName)
 	if err != nil {
 		return err
 	}
-	return updatePlugin(systemInfo.Key, plugin, cli)
+	return updatePlugin(systemInfo.Key, plugin, client)
 }
 
-func pushAllPlugins(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllPlugins(systemInfo *System_meta, client *cb.DevClient) error {
 	plugins, err := getPlugins()
 	if err != nil {
 		return err
 	}
 	for _, plugin := range plugins {
 		fmt.Printf("Pushing plugin %+s\n", plugin["name"].(string))
-		if err := updatePlugin(systemInfo.Key, plugin, cli); err != nil {
+		if err := updatePlugin(systemInfo.Key, plugin, client); err != nil {
 			return fmt.Errorf("Error updating plugin '%s': %s\n", plugin["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func pushAllServices(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllServices(systemInfo *System_meta, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
 		return err
 	}
 	for _, service := range services {
 		fmt.Printf("Pushing service %+s\n", service["name"].(string))
-		if err := updateService(systemInfo.Key, service, cli); err != nil {
+		if err := updateService(systemInfo.Key, service, client); err != nil {
 			return fmt.Errorf("Error updating service '%s': %s\n", service["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func pushOneLibrary(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing library %+s\n", LibraryName)
 
 	library, err := getLibrary(LibraryName)
 	if err != nil {
 		return err
 	}
-	return updateLibrary(systemInfo.Key, library, cli)
+	return updateLibrary(systemInfo.Key, library, client)
 }
 
-func pushAllLibraries(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushAllLibraries(systemInfo *System_meta, client *cb.DevClient) error {
 	libraries, err := getLibraries()
 	if err != nil {
 		return err
 	}
 	for _, library := range libraries {
 		fmt.Printf("Pushing library %+s\n", library["name"].(string))
-		if err := updateLibrary(systemInfo.Key, library, cli); err != nil {
+		if err := updateLibrary(systemInfo.Key, library, client); err != nil {
 			return fmt.Errorf("Error updating library '%s': %s\n", library["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkPushArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -362,11 +362,29 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 	setRootDir(".")
 
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	_, err = client.GetAllRoles(systemInfo.Key)
+	if err != nil{
+		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
+		"developerEmail":    Email,
+		"assetRefreshDates": []interface{}{},
+		"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return err
+		}
+	}
 	didSomething := false
 
 	if AllServices {
 		didSomething = true
-		if err := pushAllServices(systemInfo, cli); err != nil {
+		if err := pushAllServices(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -374,119 +392,119 @@ func doPush(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	// Adding code to update user schema when pushed to system
 	if UserSchema {
 		didSomething = true
-		if err := pushUserSchema(systemInfo, cli); err != nil {
+		if err := pushUserSchema(systemInfo, client); err != nil {
 			return err
 		}
 	}	
 
 	if ServiceName != "" {
 		didSomething = true
-		if err := pushOneService(systemInfo, cli); err != nil {
+		if err := pushOneService(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if AllLibraries {
 		didSomething = true
-		if err := pushAllLibraries(systemInfo, cli); err != nil {
+		if err := pushAllLibraries(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if LibraryName != "" {
 		didSomething = true
-		if err := pushOneLibrary(systemInfo, cli); err != nil {
+		if err := pushOneLibrary(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := pushOneCollection(systemInfo, cli); err != nil {
+		if err := pushOneCollection(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if User != "" {
 		didSomething = true
-		if err := pushOneUser(systemInfo, cli); err != nil {
+		if err := pushOneUser(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if RoleName != "" {
 		didSomething = true
-		if err := pushOneRole(systemInfo, cli); err != nil {
+		if err := pushOneRole(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := pushOneTrigger(systemInfo, cli); err != nil {
+		if err := pushOneTrigger(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		if err := pushOneTimer(systemInfo, cli); err != nil {
+		if err := pushOneTimer(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if AllDevices {
 		didSomething = true
-		if err := pushAllDevices(systemInfo, cli); err != nil {
+		if err := pushAllDevices(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if DeviceName != "" {
 		didSomething = true
-		if err := pushOneDevice(systemInfo, cli); err != nil {
+		if err := pushOneDevice(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if AllEdges {
 		didSomething = true
-		if err := pushAllEdges(systemInfo, cli); err != nil {
+		if err := pushAllEdges(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if EdgeName != "" {
 		didSomething = true
-		if err := pushOneEdge(systemInfo, cli); err != nil {
+		if err := pushOneEdge(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if AllPortals {
 		didSomething = true
-		if err := pushAllPortals(systemInfo, cli); err != nil {
+		if err := pushAllPortals(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if PortalName != "" {
 		didSomething = true
-		if err := pushOnePortal(systemInfo, cli); err != nil {
+		if err := pushOnePortal(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if AllPlugins {
 		didSomething = true
-		if err := pushAllPlugins(systemInfo, cli); err != nil {
+		if err := pushAllPlugins(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if PluginName != "" {
 		didSomething = true
-		if err := pushOnePlugin(systemInfo, cli); err != nil {
+		if err := pushOnePlugin(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -1190,9 +1208,9 @@ func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevC
 	return nil
 }
 
-func updateRole(systemKey string, role map[string]interface{}, cli *cb.DevClient) error {
+func updateRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
-	if err := cli.UpdateRole(systemKey, roleName, role); err != nil {
+	if err := client.UpdateRole(systemKey, roleName, role); err != nil {
 		return fmt.Errorf("Role %s not updated\n", roleName)
 	}
 	return nil
