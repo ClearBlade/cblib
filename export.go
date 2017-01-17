@@ -69,6 +69,12 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	}
 	rval := make([]map[string]interface{}, len(colls))
 	for i, col := range colls {
+		// Checking if collection is CB collection or different
+		// Exporting only CB collections
+		_, ok := col.(map[string]interface{})["dbtype"]
+		if ok {
+			continue
+		}
 		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
@@ -496,15 +502,13 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	} else {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
+	setRootDir(".")
 	
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
-	_, err := client.GetAllRoles(SystemKey)
-	if err != nil{
-		fmt.Println("Token has probably expired. Please enter details for authentication again...\n")
-		MetaInfo = nil
-		client, _ = Authorize(nil)
-		return ExportSystem(client, SystemKey)
+	client, err := checkIfTokenHasExpired(client, SystemKey)
+	if err != nil {
+		return fmt.Errorf("Re-auth failed...",err)
 	}
 	return ExportSystem(client, SystemKey)
 }

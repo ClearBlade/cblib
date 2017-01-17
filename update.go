@@ -32,7 +32,7 @@ func checkUpdateArgsAndFlags(args []string) error {
 	return nil
 }
 
-func doUpdate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkUpdateArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -42,67 +42,74 @@ func doUpdate(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	}
 	setRootDir(".")
 
+	// This is a hack to check if token has expired and auth again
+	// since we dont have an endpoint to determine this
+	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
+	if err != nil {
+		return fmt.Errorf("Re-auth failed...",err)
+	}
+	
 	didSomething := false
 
 	if ServiceName != "" {
 		didSomething = true
-		if err := pushOneService(systemInfo, cli); err != nil {
+		if err := pushOneService(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if LibraryName != "" {
 		didSomething = true
-		if err := pushOneLibrary(systemInfo, cli); err != nil {
+		if err := pushOneLibrary(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := pushOneCollection(systemInfo, cli); err != nil {
+		if err := pushOneCollection(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if CollectionId != "" {
 		didSomething = true
-		if err := pushOneCollectionById(systemInfo, cli); err != nil {
+		if err := pushOneCollectionById(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if User != "" {
 		didSomething = true
-		if err := pushOneUser(systemInfo, cli); err != nil {
+		if err := pushOneUser(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if UserId != "" {
 		didSomething = true
-		if err := pushOneUserById(systemInfo, cli); err != nil {
+		if err := pushOneUserById(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if RoleName != "" {
 		didSomething = true
-		if err := pushOneRole(systemInfo, cli); err != nil {
+		if err := pushOneRole(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := pushOneTrigger(systemInfo, cli); err != nil {
+		if err := pushOneTrigger(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		if err := pushOneTimer(systemInfo, cli); err != nil {
+		if err := pushOneTimer(systemInfo, client); err != nil {
 			return err
 		}
 	}
