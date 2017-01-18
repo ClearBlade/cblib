@@ -102,7 +102,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		exportRows = true
+		ExportRows = true
 		fmt.Printf("Pulling collection %+s\n", CollectionName)
 		if allColls, err := client.GetAllCollections(systemInfo.Key); err != nil {
 			return err
@@ -121,7 +121,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			if coll, err := client.GetCollectionInfo(collID); err != nil {
 				return err
 			} else {
-				if data, err := pullCollection(systemInfo, coll, client); err != nil {
+				if data, err := PullCollection(systemInfo, coll, client); err != nil {
 					return err
 				} else {
 					writeCollection(data["name"].(string), data)

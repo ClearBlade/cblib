@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	exportRows  bool
 	exportUsers bool
 	inARepo     bool
 )
@@ -31,7 +30,7 @@ func init() {
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
-	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
+	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
 	ImportPageSize = 100 // TODO -- fix this
@@ -75,7 +74,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if ok {
 			continue
 		}
-		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
+		if r, err := PullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
 			writeCollection(r["name"].(string), r)
@@ -85,7 +84,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	return rval, nil
 }
 
-func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
+func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
 	id := co["collectionID"].(string)
 	isConnect := isConnectCollection(co)
 	var columnsResp []interface{}
@@ -103,36 +102,13 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 		return nil, err
 	}
 	co["items"] = []interface{}{}
-	if !isConnect && exportRows {
+	if !isConnect && ExportRows {
+		fmt.Println("PULL coll")
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
 		}
-		co["items"] = items
-	}
-	return co, nil
-}
-
-func ExportCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
-	id := co["collectionID"].(string)
-	isConnect := isConnectCollection(co)
-	var columnsResp []interface{}
-	var err error
-	if isConnect {
-		columnsResp = []interface{}{}
-	} else {
-		columnsResp, err = cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
-		if err != nil {
-			return nil, err
-		}
-	}
-	co["schema"] = columnsResp
-	co["items"] = []interface{}{}
-	if !isConnect {
-		items, err := pullCollectionData(co, cli)
-		if err != nil {
-			return nil, err
-		}
+		fmt.Println(items)
 		co["items"] = items
 	}
 	return co, nil
@@ -158,7 +134,7 @@ func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (
 	if err != nil {
 		return nil, err
 	}
-	return pullCollection(sysMeta, colInfo, cli)
+	return PullCollection(sysMeta, colInfo, cli)
 }
 
 func getRolesForCollection(collection map[string]interface{}) error {
@@ -193,6 +169,11 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	colId := collection["collectionID"].(string)
 
 	totalItems, err := client.GetItemCount(colId)
+
+	fmt.Println("YO")
+
+	fmt.Println(totalItems)
+
 	if err != nil {
 		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}
@@ -207,8 +188,14 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
+		fmt.Println(curData)
+
 		allData = append(allData, curData...)
+
 	}
+
+	fmt.Println(allData)
+
 	return allData, nil
 }
 

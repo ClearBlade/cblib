@@ -1056,7 +1056,7 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
 				collection["name"] = collName
-				if err := createCollection(systemKey, collection, client); err != nil {
+				if err := CreateCollection(systemKey, collection, client); err != nil {
 					return fmt.Errorf("Could not create collection %s: %s", collName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new collection %s\n", collName)
@@ -1069,7 +1069,7 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	return nil
 }
 
-func createCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
+func CreateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	collectionName := collection["name"].(string)
 	isConnect := isConnectCollection(collection)
 	var colId string

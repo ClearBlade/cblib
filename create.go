@@ -120,7 +120,7 @@ func createOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	return createCollection(systemInfo.Key, collection, client)
+	return CreateCollection(systemInfo.Key, collection, client)
 }
 
 func createOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
