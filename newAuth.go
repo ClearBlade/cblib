@@ -109,7 +109,13 @@ func GoToRepoRootDir() error {
 func makeClientFromMetaInfo() *cb.DevClient {
 	devToken := MetaInfo["token"].(string)
 	email := MetaInfo["developerEmail"].(string)
-	setupAddrs(MetaInfo["platformURL"].(string), MetaInfo["messagingURL"].(string))
+	// Checking if meta has messagingURL attribute to support systems that were exported before
+	messagingURL, ok := MetaInfo["messagingURL"].(string)
+	if !ok {
+		setupAddrs(MetaInfo["platformURL"].(string), "")
+	} else {
+		setupAddrs(MetaInfo["platformURL"].(string), messagingURL)
+	}
 	return cb.NewDevClientWithToken(devToken, email)
 }
 
@@ -133,4 +139,25 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 		return nil, err
 	}
 	return cli, nil
+}
+
+func checkIfTokenHasExpired(client *cb.DevClient, systemKey string) (*cb.DevClient, error) {
+	_, err := client.GetAllRoles(systemKey)
+	if err != nil{
+		fmt.Printf("Token has probably expired. Please enter details for authentication again...\n")
+		MetaInfo = nil
+		client, _ = Authorize(nil)
+		metaStuff := map[string]interface{}{
+		"platformURL":       cb.CB_ADDR,
+		"messagingURL":		 cb.CB_MSG_ADDR,
+		"developerEmail":    Email,
+		"assetRefreshDates": []interface{}{},
+		"token":             client.DevToken,
+		}
+		if err = storeCBMeta(metaStuff); err != nil {
+			return nil, err
+		}
+		return client, nil
+	}
+	return client, nil
 }
