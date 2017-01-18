@@ -11,7 +11,6 @@ import (
 
 var (
 	rootDir     string
-	tempDir     string
 	dataDir     string
 	svcDir      string
 	libDir      string
@@ -27,7 +26,6 @@ var (
 
 func setRootDir(theRootDir string) {
 	rootDir = theRootDir
-	tempDir = rootDir + "/temp"
 	svcDir = rootDir + "/code/services"
 	libDir = rootDir + "/code/libraries"
 	dataDir = rootDir + "/data"
@@ -76,9 +74,6 @@ func setupDirectoryStructure(sys *System_meta) error {
 	}
 	if err := os.MkdirAll(pluginsDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", pluginsDir, err.Error())
-	}
-	if err := os.MkdirAll(tempDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", tempDir, err.Error())
 	}
 	return nil
 }

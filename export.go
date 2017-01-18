@@ -530,12 +530,12 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	}
 
 	setRootDir(".")
-	
+
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
 	client, err := checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...",err)
+		return fmt.Errorf("Re-auth failed...", err)
 	}
 	return ExportSystem(client, SystemKey)
 }

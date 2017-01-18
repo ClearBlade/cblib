@@ -143,16 +143,16 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 
 func checkIfTokenHasExpired(client *cb.DevClient, systemKey string) (*cb.DevClient, error) {
 	_, err := client.GetAllRoles(systemKey)
-	if err != nil{
+	if err != nil {
 		fmt.Printf("Token has probably expired. Please enter details for authentication again...\n")
 		MetaInfo = nil
 		client, _ = Authorize(nil)
 		metaStuff := map[string]interface{}{
-		"platformURL":       cb.CB_ADDR,
-		"messagingURL":		 cb.CB_MSG_ADDR,
-		"developerEmail":    Email,
-		"assetRefreshDates": []interface{}{},
-		"token":             client.DevToken,
+			"platformURL":       cb.CB_ADDR,
+			"messagingURL":      cb.CB_MSG_ADDR,
+			"developerEmail":    Email,
+			"assetRefreshDates": []interface{}{},
+			"token":             client.DevToken,
 		}
 		if err = storeCBMeta(metaStuff); err != nil {
 			return nil, err
