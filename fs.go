@@ -373,7 +373,11 @@ func getTimers() ([]map[string]interface{}, error) {
 }
 
 func getEdges() ([]map[string]interface{}, error) {
-	return getObjectList(edgesDir, []string{})
+	return getObjectList(edgesDir, []string{"schema.json"})
+}
+
+func getEdgesSchema() (map[string]interface{}, error) {
+	return getObject(edgesDir, "schema.json")
 }
 
 func getDevices() ([]map[string]interface{}, error) {

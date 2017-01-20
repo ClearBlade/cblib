@@ -5,6 +5,7 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -413,6 +414,30 @@ func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	return list, nil
 }
 
+func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
+	resp, err := cli.GetEdgeColumns(systemKey)
+	if err != nil {
+		return nil, err
+	}
+	columns := []map[string]interface{}{}
+	sort.Strings(DefaultEdgeColumns)
+	for _, colIF := range resp {
+		col := colIF.(map[string]interface{})
+		if i := sort.SearchStrings(DefaultEdgeColumns, col["ColumnName"].(string)); i < len(DefaultEdgeColumns) && DefaultEdgeColumns[i] != col["ColumnName"].(string) {
+			columns = append(columns, col)
+		}
+	}
+	schema := map[string]interface{}{
+		"columns": columns,
+	}
+	if writeThem {
+		if err := writeEdge("schema", schema); err != nil {
+			return nil, err
+		}
+	}
+	return schema, nil
+}
+
 func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allDevices, err := cli.GetDevices(sysKey)
@@ -498,17 +523,17 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		setupFromRepo()
 	}
 	if exportOptionsExist() {
-		client = cb.NewDevClientWithToken(DevToken, Email)	
+		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
 	setRootDir(".")
-	
+
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
 	client, err := checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...",err)
+		return fmt.Errorf("Re-auth failed...", err)
 	}
 	return ExportSystem(client, SystemKey)
 }
@@ -636,7 +661,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       cb.CB_ADDR,
-		"messagingURL":		 cb.CB_MSG_ADDR,
+		"messagingURL":      cb.CB_MSG_ADDR,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,

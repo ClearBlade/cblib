@@ -50,9 +50,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...",err)
+		return fmt.Errorf("Re-auth failed...", err)
 	}
-	
+
 	// ??? we already have them locally
 	if r, err := pullRoles(systemInfo.Key, client, false); err != nil {
 		return err
@@ -221,6 +221,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if _, err := pullEdges(systemInfo, client); err != nil {
 			return err
 		}
+		if _, err := pullEdgesSchema(systemInfo.Key, client, true); err != nil {
+			return err
+		}
 		fmt.Printf("\n")
 	}
 
@@ -231,6 +234,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			return err
 		} else {
 			writeEdge(EdgeName, edge)
+		}
+		if _, err := pullEdgesSchema(systemInfo.Key, client, true); err != nil {
+			return err
 		}
 	}
 

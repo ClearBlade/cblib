@@ -6,6 +6,7 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -20,6 +21,7 @@ func init() {
 	}
 
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
+	pushCommand.flags.BoolVar(&EdgeSchema, "edgeschema", false, "push edges table schema")
 	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
 	pushCommand.flags.BoolVar(&AllDevices, "all-devices", false, "push all of the local devices")
@@ -64,7 +66,6 @@ func pushOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	return updateService(systemInfo.Key, service, client)
 }
 
-
 /* Sample schema defintion - Keys not to be changed. Only the value
    e.g dont change "columns" or "ColumnName" etc tag names
 {
@@ -95,7 +96,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 	// If user removes column from schema.json,
-	// we check it by comparing length of columns in 
+	// we check it by comparing length of columns in
 	// json file and no of columns on system.
 	// len(userColumns) - 2 is done because there exist 2 columns
 	// by default : Email & Date
@@ -125,7 +126,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			data := typedSchema[i].(map[string]interface{})
 			columnName := data["ColumnName"].(string)
 			columnType := data["ColumnType"].(string)
-			for j:= 2; j < len(userColumns); j++ {
+			for j := 2; j < len(userColumns); j++ {
 				existingColumn := userColumns[j].(map[string]interface{})["ColumnName"].(string)
 				if existingColumn == columnName {
 					exists = true
@@ -140,6 +141,73 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 		}
 	}
 	return nil
+}
+
+func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
+	fmt.Println("Pushing edge schema")
+	edgeschema, err := getEdgesSchema()
+	if err != nil {
+		return err
+	}
+	allEdgeColumns, err := client.GetEdgeColumns(systemInfo.Key)
+
+	// lets get rid of the default edge columns
+	customEdgeColumns := []interface{}{}
+	sort.Strings(DefaultEdgeColumns)
+	for _, col := range allEdgeColumns {
+		colName := col.(map[string]interface{})["ColumnName"].(string)
+		if i := sort.SearchStrings(DefaultEdgeColumns, colName); DefaultEdgeColumns[i] != colName {
+			customEdgeColumns = append(customEdgeColumns, col)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	typedSchema, ok := edgeschema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
+	}
+
+	//first lets delete any columns that are no longer present in schema.json
+	for _, existCol := range customEdgeColumns {
+		existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, schemaCol := range typedSchema {
+			schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			if err := client.DeleteEdgeColumn(systemInfo.Key, existColName); err != nil {
+				return fmt.Errorf("Unable to delete column '%s': %s", existColName, err.Error())
+			}
+		}
+	}
+
+	//now add any new columns
+	for _, schemaCol := range typedSchema {
+		schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, existCol := range customEdgeColumns {
+			existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			colType := schemaCol.(map[string]interface{})["ColumnType"].(string)
+			if colType == "" {
+				return fmt.Errorf("You must provide a type for column '%s'", schemaColName)
+			}
+			if err := client.CreateEdgeColumn(systemInfo.Key, schemaColName, colType); err != nil {
+				return fmt.Errorf("Unable to create column '%s': %s", schemaColName, err.Error())
+			}
+		}
+	}
+
+	return nil
+
 }
 
 func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
@@ -384,7 +452,14 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if err := pushUserSchema(systemInfo, client); err != nil {
 			return err
 		}
-	}	
+	}
+
+	if EdgeSchema {
+		didSomething = true
+		if err := pushEdgesSchema(systemInfo, client); err != nil {
+			return err
+		}
+	}
 
 	if ServiceName != "" {
 		didSomething = true
