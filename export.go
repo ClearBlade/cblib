@@ -103,12 +103,10 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 	}
 	co["items"] = []interface{}{}
 	if !isConnect && ExportRows {
-		fmt.Println("PULL coll")
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(items)
 		co["items"] = items
 	}
 	return co, nil
@@ -167,13 +165,7 @@ func getRolesForCollection(collection map[string]interface{}) error {
 
 func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {
 	colId := collection["collectionID"].(string)
-
 	totalItems, err := client.GetItemCount(colId)
-
-	fmt.Println("YO")
-
-	fmt.Println(totalItems)
-
 	if err != nil {
 		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
 	}
@@ -188,14 +180,8 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
-		fmt.Println(curData)
-
 		allData = append(allData, curData...)
-
 	}
-
-	fmt.Println(allData)
-
 	return allData, nil
 }
 
@@ -300,7 +286,6 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	sys, err := cli.GetSystem(systemKey)
 	if err != nil {
-		fmt.Println("Cannot get system")
 		return nil, err
 	}
 	serv_metas := make(map[string]Service_meta)
