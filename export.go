@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	exportRows  bool
 	exportUsers bool
 	inARepo     bool
 )
@@ -31,7 +30,7 @@ func init() {
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
-	myExportCommand.flags.BoolVar(&exportRows, "exportrows", false, "exports all data from all collections")
+	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
 	ImportPageSize = 100 // TODO -- fix this
@@ -75,7 +74,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if ok {
 			continue
 		}
-		if r, err := pullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
+		if r, err := PullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
 			writeCollection(r["name"].(string), r)
@@ -85,7 +84,7 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	return rval, nil
 }
 
-func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
+func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
 	id := co["collectionID"].(string)
 	isConnect := isConnectCollection(co)
 	var columnsResp []interface{}
@@ -103,7 +102,7 @@ func pullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 		return nil, err
 	}
 	co["items"] = []interface{}{}
-	if !isConnect && exportRows {
+	if !isConnect && ExportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
@@ -133,7 +132,7 @@ func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (
 	if err != nil {
 		return nil, err
 	}
-	return pullCollection(sysMeta, colInfo, cli)
+	return PullCollection(sysMeta, colInfo, cli)
 }
 
 func getRolesForCollection(collection map[string]interface{}) error {
@@ -166,7 +165,6 @@ func getRolesForCollection(collection map[string]interface{}) error {
 
 func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {
 	colId := collection["collectionID"].(string)
-
 	totalItems, err := client.GetItemCount(colId)
 	if err != nil {
 		return nil, fmt.Errorf("GetItemCount Failed: %s", err.Error())
@@ -498,17 +496,18 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		setupFromRepo()
 	}
 	if exportOptionsExist() {
-		client = cb.NewDevClientWithToken(DevToken, Email)	
+		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
+
 	setRootDir(".")
-	
+
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
 	client, err := checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...",err)
+		return fmt.Errorf("Re-auth failed...", err)
 	}
 	return ExportSystem(client, SystemKey)
 }
@@ -636,7 +635,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       cb.CB_ADDR,
-		"messagingURL":		 cb.CB_MSG_ADDR,
+		"messagingURL":      cb.CB_MSG_ADDR,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,

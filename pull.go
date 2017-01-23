@@ -50,9 +50,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...",err)
+		return fmt.Errorf("Re-auth failed...", err)
 	}
-	
+
 	// ??? we already have them locally
 	if r, err := pullRoles(systemInfo.Key, client, false); err != nil {
 		return err
@@ -102,7 +102,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		exportRows = true
+		ExportRows = true
 		fmt.Printf("Pulling collection %+s\n", CollectionName)
 		if allColls, err := client.GetAllCollections(systemInfo.Key); err != nil {
 			return err
@@ -121,7 +121,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			if coll, err := client.GetCollectionInfo(collID); err != nil {
 				return err
 			} else {
-				if data, err := pullCollection(systemInfo, coll, client); err != nil {
+				if data, err := PullCollection(systemInfo, coll, client); err != nil {
 					return err
 				} else {
 					writeCollection(data["name"].(string), data)
@@ -297,6 +297,7 @@ func pullRole(systemKey string, roleName string, client *cb.DevClient) (map[stri
 	}
 	return rval, nil
 }
+
 
 func pullService(systemKey string, serviceName string, client *cb.DevClient) (map[string]interface{}, error) {
 	if service, err := client.GetServiceRaw(systemKey, serviceName); err != nil {

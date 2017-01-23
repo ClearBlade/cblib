@@ -54,7 +54,7 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	}
 	metaStuff := map[string]interface{}{
 		"platformURL":       cb.CB_ADDR,
-		"messagingURL":		 cb.CB_MSG_ADDR,
+		"messagingURL":      cb.CB_MSG_ADDR,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,
