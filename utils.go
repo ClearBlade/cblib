@@ -10,14 +10,14 @@ func setupAddrs(paddr string, maddr string) {
 	cb.CB_ADDR = paddr
 
 	preIdx := strings.Index(paddr, "://")
-	if maddr == "" { 
+	if maddr == "" {
 		maddr = paddr[preIdx+3:]
 	}
 	postIdx := strings.Index(maddr, ":")
 	if postIdx != -1 {
 		cb.CB_MSG_ADDR = maddr[:postIdx] + ":1883"
 	} else {
-		cb.CB_MSG_ADDR = maddr + ":1883" 
+		cb.CB_MSG_ADDR = maddr + ":1883"
 	}
 }
 

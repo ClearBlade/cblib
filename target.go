@@ -77,7 +77,7 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 
 	metaStuff := map[string]interface{}{
 		"platformURL":       URL,
-		"messagingURL":		 MsgURL,
+		"messagingURL":      MsgURL,
 		"developerEmail":    Email,
 		"assetRefreshDates": []interface{}{},
 		"token":             cli.DevToken,
@@ -99,7 +99,7 @@ type DefaultInfo struct {
 	url       string
 	email     string
 	systemKey string
-	msgUrl	  string
+	msgUrl    string
 }
 
 func setupTargetDefaults() *DefaultInfo {
@@ -111,6 +111,6 @@ func setupTargetDefaults() *DefaultInfo {
 		url:       MetaInfo["platformURL"].(string),
 		email:     MetaInfo["developerEmail"].(string),
 		systemKey: meta.Key,
-		msgUrl:	   MetaInfo["messagingURL"].(string),
+		msgUrl:    MetaInfo["messagingURL"].(string),
 	}
 }

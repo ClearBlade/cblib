@@ -323,7 +323,7 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 		return err
 	}
 	colId := localCollection["collectionID"].(string)
-	exportRows = false
+	ExportRows = false
 	remoteCollection, err := pullCollectionAndInfo(sys, colId, client)
 	if err != nil {
 		return err
