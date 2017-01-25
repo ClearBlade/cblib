@@ -221,6 +221,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if _, err := pullEdges(systemInfo, client); err != nil {
 			return err
 		}
+		if _, err := pullEdgesSchema(systemInfo.Key, client, true); err != nil {
+			return err
+		}
 		fmt.Printf("\n")
 	}
 
@@ -231,6 +234,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			return err
 		} else {
 			writeEdge(EdgeName, edge)
+		}
+		if _, err := pullEdgesSchema(systemInfo.Key, client, true); err != nil {
+			return err
 		}
 	}
 

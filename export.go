@@ -5,6 +5,7 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -409,6 +410,30 @@ func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	}
 
 	return list, nil
+}
+
+func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
+	resp, err := cli.GetEdgeColumns(systemKey)
+	if err != nil {
+		return nil, err
+	}
+	columns := []map[string]interface{}{}
+	sort.Strings(DefaultEdgeColumns)
+	for _, colIF := range resp {
+		col := colIF.(map[string]interface{})
+		if i := sort.SearchStrings(DefaultEdgeColumns, col["ColumnName"].(string)); i < len(DefaultEdgeColumns) && DefaultEdgeColumns[i] != col["ColumnName"].(string) {
+			columns = append(columns, col)
+		}
+	}
+	schema := map[string]interface{}{
+		"columns": columns,
+	}
+	if writeThem {
+		if err := writeEdge("schema", schema); err != nil {
+			return nil, err
+		}
+	}
+	return schema, nil
 }
 
 func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
