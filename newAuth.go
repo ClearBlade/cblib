@@ -107,24 +107,51 @@ func GoToRepoRootDir() error {
 }
 
 func makeClientFromMetaInfo() *cb.DevClient {
+	var newSchema bool
 	devToken := MetaInfo["token"].(string)
-	email := MetaInfo["developerEmail"].(string)
-	// Checking if meta has messagingURL attribute to support systems that were exported before
-	messagingURL, ok := MetaInfo["messagingURL"].(string)
+	email, ok := MetaInfo["developerEmail"].(string)
 	if !ok {
-		setupAddrs(MetaInfo["platformURL"].(string), "")
-	} else {
-		setupAddrs(MetaInfo["platformURL"].(string), messagingURL)
+		email = MetaInfo["developer_email"].(string)
+		newSchema = true
 	}
+	// Checking if meta has messagingURL attribute to support systems that were exported before
+	// This code is horrible but needs to be done to maintain backward compatibility with 
+	// systems that are already exported
+	if newSchema {
+		messagingURL, ok := MetaInfo["messaging_url"].(string)	
+		if !ok {
+			setupAddrs(MetaInfo["platform_url"].(string), "")
+		} else {
+			setupAddrs(MetaInfo["platform_url"].(string), messagingURL)
+		}
+	} else {
+		messagingURL, ok := MetaInfo["messagingURL"].(string)
+		if !ok {
+			setupAddrs(MetaInfo["platformURL"].(string), "")
+		} else {
+			setupAddrs(MetaInfo["platformURL"].(string), messagingURL)
+		}
+	}
+	
 	return cb.NewDevClientWithToken(devToken, email)
 }
 
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
+	var ok bool
 	if MetaInfo != nil {
 		DevToken = MetaInfo["token"].(string)
-		Email = MetaInfo["developerEmail"].(string)
-		URL = MetaInfo["platformURL"].(string)
-		MsgURL = MetaInfo["messagingURL"].(string)
+		Email, ok = MetaInfo["developerEmail"].(string)
+		if !ok {
+			Email = MetaInfo["developer_email"].(string)
+		}
+		URL, ok = MetaInfo["platformURL"].(string)
+		if !ok {
+			URL = MetaInfo["platform_url"].(string)
+		}
+		MsgURL, ok = MetaInfo["messagingURL"].(string)
+		if !ok {
+			MsgURL = MetaInfo["messaging_url"].(string)
+		}
 		setupAddrs(URL, MsgURL)
 		fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
 		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
@@ -148,10 +175,10 @@ func checkIfTokenHasExpired(client *cb.DevClient, systemKey string) (*cb.DevClie
 		MetaInfo = nil
 		client, _ = Authorize(nil)
 		metaStuff := map[string]interface{}{
-			"platformURL":       cb.CB_ADDR,
-			"messagingURL":      cb.CB_MSG_ADDR,
-			"developerEmail":    Email,
-			"assetRefreshDates": []interface{}{},
+			"platform_url":       cb.CB_ADDR,
+			"messaging_url":      cb.CB_MSG_ADDR,
+			"developer_email":    Email,
+			"asset_refresh_dates": []interface{}{},
 			"token":             client.DevToken,
 		}
 		if err = storeCBMeta(metaStuff); err != nil {

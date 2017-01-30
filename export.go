@@ -78,8 +78,9 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if r, err := PullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
 			return nil, err
 		} else {
-			writeCollection(r["name"].(string), r)
-			rval[i] = r
+			data := makeCollectionJsonConsistent(r)
+            writeCollection(r["name"].(string), data)
+            rval[i] = data
 		}
 	}
 	return rval, nil
@@ -347,10 +348,10 @@ func cleanServices(services []map[string]interface{}) []map[string]interface{} {
 }
 
 func storeMeta(meta *System_meta) {
-	systemDotJSON["platformURL"] = cb.CB_ADDR
-	systemDotJSON["messagingURL"] = cb.CB_MSG_ADDR
-	systemDotJSON["systemKey"] = meta.Key
-	systemDotJSON["systemSecret"] = meta.Secret
+	systemDotJSON["platform_url"] = cb.CB_ADDR
+	systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
+	systemDotJSON["system_key"] = meta.Key
+	systemDotJSON["system_secret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
 	systemDotJSON["description"] = meta.Description
 	systemDotJSON["auth"] = true
@@ -636,7 +637,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	if err != nil {
 		return err
 	}
-	systemDotJSON["edgeSync"] = syncInfo
+	systemDotJSON["edge_sync"] = syncInfo
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := pullPortals(sysMeta, cli)
@@ -659,10 +660,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 
 	metaStuff := map[string]interface{}{
-		"platformURL":       cb.CB_ADDR,
-		"messagingURL":      cb.CB_MSG_ADDR,
-		"developerEmail":    Email,
-		"assetRefreshDates": []interface{}{},
+		"platform_url":       cb.CB_ADDR,
+		"messaging_url":      cb.CB_MSG_ADDR,
+		"developer_email":    Email,
+		"asset_refresh_dates": []interface{}{},
 		"token":             cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
@@ -674,14 +675,21 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 }
 
 func setupFromRepo() {
+	var ok bool
 	sysMeta, err := getSysMeta()
 	if err != nil {
 		fmt.Printf("Error getting sys meta: %s\n", err.Error())
 		curDir, _ := os.Getwd()
 		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
 	}
-	Email = MetaInfo["developerEmail"].(string)
-	URL = MetaInfo["platformURL"].(string)
+	Email, ok= MetaInfo["developerEmail"].(string)
+	if !ok {
+		Email = MetaInfo["developer_email"].(string)
+	}
+	URL, ok = MetaInfo["platformURL"].(string)
+	if !ok {
+		URL = MetaInfo["platform_url"].(string)
+	}
 	DevToken = MetaInfo["token"].(string)
 	SystemKey = sysMeta.Key
 }

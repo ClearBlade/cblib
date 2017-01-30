@@ -34,8 +34,8 @@ func init() {
 	suppressErrors = []int{0}
 	names = NewStack("names")
 	ignores = map[string][]string{
-		"system.json":           []string{"platformURL"},
-		"system.json:data":      []string{"appID", "collectionID"},
+		"system.json":           []string{"platformURL", "platform_url"},
+		"system.json:data":      []string{"appID", "collectionID", "app_id", "collection_id"},
 		"system.json:libraries": []string{"version", "system_key", "library_key"},
 		"system.json:services":  []string{"current_version"},
 		"users.json":            []string{"user_id", "creation_date"},
@@ -318,11 +318,14 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 	if err != nil {
 		return err
 	}
-	localCollection, err := getCollection(collectionName + ".json")
+	localCollection, err := getCollection(collectionName)
 	if err != nil {
 		return err
 	}
-	colId := localCollection["collectionID"].(string)
+	colId, ok:= localCollection["collectionID"].(string)
+	if !ok {
+		colId = localCollection["collection_id"].(string)
+	}
 	ExportRows = false
 	remoteCollection, err := pullCollectionAndInfo(sys, colId, client)
 	if err != nil {

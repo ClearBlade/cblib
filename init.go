@@ -53,10 +53,10 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	metaStuff := map[string]interface{}{
-		"platformURL":       cb.CB_ADDR,
-		"messagingURL":      cb.CB_MSG_ADDR,
-		"developerEmail":    Email,
-		"assetRefreshDates": []interface{}{},
+		"platform_url":       cb.CB_ADDR,
+		"messaging_url":      cb.CB_MSG_ADDR,
+		"developer_email":    Email,
+		"asset_refresh_dates": []interface{}{},
 		"token":             cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {

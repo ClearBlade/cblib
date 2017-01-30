@@ -124,7 +124,8 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 				if data, err := PullCollection(systemInfo, coll, client); err != nil {
 					return err
 				} else {
-					writeCollection(data["name"].(string), data)
+					d := makeCollectionJsonConsistent(data)
+                    writeCollection(d["name"].(string), d)
 				}
 			}
 		}
@@ -182,6 +183,8 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if trigg, err := pullTrigger(systemInfo.Key, TriggerName, client); err != nil {
 			return err
 		} else {
+			delete(trigg, "system_key")
+            delete(trigg, "system_secret")
 			writeTrigger(TriggerName, trigg)
 		}
 	}
