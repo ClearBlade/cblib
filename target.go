@@ -76,10 +76,10 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 	}
 
 	metaStuff := map[string]interface{}{
-		"platformURL":       URL,
-		"messagingURL":      MsgURL,
-		"developerEmail":    Email,
-		"assetRefreshDates": []interface{}{},
+		"platform_url":       URL,
+		"messaging_url":      MsgURL,
+		"developer_email":    Email,
+		"asset_refresh_dates": []interface{}{},
 		"token":             cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
@@ -107,10 +107,24 @@ func setupTargetDefaults() *DefaultInfo {
 	if err != nil || MetaInfo == nil {
 		return nil
 	}
+
+	platform_url, ok := MetaInfo["platformURL"].(string)
+	if !ok {
+		platform_url = MetaInfo["platform_url"].(string)
+	}
+	email, ok := MetaInfo["developerEmail"].(string)
+	if !ok {
+		email = MetaInfo["developer_email"].(string)
+	}
+	messaging_url, ok := MetaInfo["messagingURL"].(string)
+	if !ok {
+		messaging_url = MetaInfo["messaging_url"].(string)
+	}
+
 	return &DefaultInfo{
-		url:       MetaInfo["platformURL"].(string),
-		email:     MetaInfo["developerEmail"].(string),
+		url:       platform_url,
+		email:     email,
 		systemKey: meta.Key,
-		msgUrl:    MetaInfo["messagingURL"].(string),
+		msgUrl:    messaging_url,
 	}
 }

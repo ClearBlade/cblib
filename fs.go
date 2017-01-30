@@ -479,12 +479,33 @@ func getSysMeta() (*System_meta, error) {
 	if err != nil {
 		return nil, err
 	}
+	platform_url, ok := dict["platformURL"].(string)
+	if !ok {
+		platform_url = dict["platform_url"].(string)
+	}
+	system_key, ok := dict["systemKey"].(string)
+	if !ok {
+		system_key = dict["system_key"].(string)
+	}
+	system_secret, ok := dict["systemSecret"].(string)
+	if !ok {
+		system_secret = dict["system_secret"].(string)
+	}
+
 	rval := &System_meta{
 		Name:        dict["name"].(string),
-		Key:         dict["systemKey"].(string),
-		Secret:      dict["systemSecret"].(string),
+		Key:         system_key,
+		Secret:      system_secret,
 		Description: dict["description"].(string),
-		PlatformUrl: dict["platformURL"].(string),
+		PlatformUrl: platform_url,
 	}
 	return rval, nil
+}
+
+func makeCollectionJsonConsistent(data map[string]interface{}) map[string]interface{} {
+	data["collection_id"] = data["collectionID"].(string)
+	data["app_id"] = data["appID"].(string)
+	delete(data, "collectionID")
+	delete(data, "appID")
+	return data
 }

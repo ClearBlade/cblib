@@ -1112,7 +1112,10 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 
 func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	var err error
-	collection_id := collection["collectionID"].(string)
+	collection_id, ok := collection["collectionID"].(string) 
+	if !ok {
+		collection_id = collection["collection_id"].(string)
+	}
 	items := collection["items"].([]interface{})
 	for _, row := range items {
 		query := cb.NewQuery()

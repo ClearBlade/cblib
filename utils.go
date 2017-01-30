@@ -11,7 +11,11 @@ func setupAddrs(paddr string, maddr string) {
 
 	preIdx := strings.Index(paddr, "://")
 	if maddr == "" {
-		maddr = paddr[preIdx+3:]
+		if preIdx != -1 {
+			maddr = paddr[preIdx+3:]
+		} else {
+			maddr = paddr
+		}
 	}
 	postIdx := strings.Index(maddr, ":")
 	if postIdx != -1 {
