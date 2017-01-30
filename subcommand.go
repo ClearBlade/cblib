@@ -28,7 +28,6 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 		helpFunc(c, c.name)
 	}
 	c.flags.Parse(args)
-	fmt.Println(args)
 	if URL != "" && MsgURL != "" {
 		setupAddrs(URL, MsgURL)
 	}
