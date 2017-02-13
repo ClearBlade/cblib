@@ -1239,6 +1239,9 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 	*/
 	// Export stores config as dict, but import wants it as a string
 	delete(port, "system_key")
+	if port["description"] == nil {
+		port["description"] = ""
+	}
 	config, ok := port["config"]
 	if ok {
 		configStr := ""
@@ -1257,8 +1260,7 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 			=======
 				//remove any trash that the API doesn't like
 				delete(port, "system_key")
-				if port["description"] == nil {
-					port["description"] = ""
+				
 			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
 		*/
 	}

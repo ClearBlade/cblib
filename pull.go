@@ -239,7 +239,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			writeEdge(EdgeName, edge)
 		}
 		if _, err := pullEdgesSchema(systemInfo.Key, client, true); err != nil {
-			return err
+			fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
 		}
 	}
 

@@ -624,7 +624,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	if _, err := pullEdgesSchema(sysKey, cli, true); err != nil {
-			return err
+		fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
 	}
 	systemDotJSON["edges"] = edges
 

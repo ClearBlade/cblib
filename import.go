@@ -245,20 +245,22 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	sysSecret := systemInfo["systemSecret"].(string)
-	edgesCols := []interface{}{}
+	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
 	if err != nil {
-		return err
-	}
-	edgesCols = edgesSchema["columns"].([]interface{})
-	for _, columnIF := range edgesCols {
-		column := columnIF.(map[string]interface{})
-		columnName := column["ColumnName"].(string)
-		columnType := column["ColumnType"].(string)
-		if err := client.CreateEdgeColumn(sysKey, columnName, columnType); err != nil {
-			return fmt.Errorf("Could not create edges column %s: %s", columnName, err.Error())
+		edgesCols, ok := edgesSchema["columns"].([]interface{})
+		if ok {
+			for _, columnIF := range edgesCols {
+				column := columnIF.(map[string]interface{})
+				columnName := column["ColumnName"].(string)
+				columnType := column["ColumnType"].(string)
+				if err := client.CreateEdgeColumn(sysKey, columnName, columnType); err != nil {
+					return fmt.Errorf("Could not create edges column %s: %s", columnName, err.Error())
+				}
+			}
 		}
 	}
+		
 
 	edges, err := getEdges()
 	if err != nil {
