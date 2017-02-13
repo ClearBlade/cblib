@@ -623,6 +623,9 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	if err != nil {
 		return err
 	}
+	if _, err := pullEdgesSchema(sysKey, cli, true); err != nil {
+			return err
+	}
 	systemDotJSON["edges"] = edges
 
 	fmt.Printf(" Done.\nExporting Devices...")

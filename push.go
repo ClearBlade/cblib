@@ -670,12 +670,14 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 			val := getMap(valIF)
 			out["push"] = map[string]interface{}{"permissions": val["Level"]}
 		case "Topics":
-			val, err := getASliceOfMaps(valIF)
-			if err != nil {
-				fmt.Printf("Bad format for topic permissions, not a slice of maps: %T\n", valIF)
-				os.Exit(1)
+			if valIF != nil {
+				val, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for topic permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
+				}
+				out["topics"] = val
 			}
-			out["topics"] = val
 		case "UsersList":
 			val := getMap(valIF)
 			out["users"] = map[string]interface{}{"permissions": val["Level"]}
