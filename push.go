@@ -1242,6 +1242,9 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 	if port["description"] == nil {
 		port["description"] = ""
 	}
+	if port["last_updated"] == nil {
+		port["last_updated"] = ""
+	}
 	config, ok := port["config"]
 	if ok {
 		configStr := ""
