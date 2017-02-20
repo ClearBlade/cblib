@@ -214,6 +214,7 @@ func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
 	if err != nil {
+		fmt.Printf("error is %+v\n", err)
 		return err
 	}
 	return updateCollection(systemInfo.Key, collection, client)
@@ -921,6 +922,9 @@ func updatePortal(systemKey string, portal map[string]interface{}, client *cb.De
 	}
 	if portal["config"] == nil {
 		portal["config"] = "{\"version\":1,\"allow_edit\":true,\"plugins\":[],\"panes\":[],\"datasources\":[],\"columns\":null}"
+	} else {
+		rawConfig, _ := json.Marshal(portal["config"])
+		portal["config"] = string(rawConfig)
 	}
 
 	_, err := client.GetPortal(systemKey, portalName)
@@ -1114,7 +1118,7 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 
 func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	var err error
-	collection_id, ok := collection["collectionID"].(string) 
+	collection_id, ok := collection["collectionID"].(string)
 	if !ok {
 		collection_id = collection["collection_id"].(string)
 	}
@@ -1263,7 +1267,7 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 			=======
 				//remove any trash that the API doesn't like
 				delete(port, "system_key")
-				
+
 			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
 		*/
 	}
