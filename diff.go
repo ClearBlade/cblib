@@ -322,6 +322,7 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 	if err != nil {
 		return err
 	}
+
 	colId, ok:= localCollection["collectionID"].(string)
 	if !ok {
 		colId = localCollection["collection_id"].(string)
@@ -538,7 +539,7 @@ func diffMap(a, b map[string]interface{}) int {
 			totalErrors += diffUnknownTypes(aKey, aVal, bVal)
 		} else {
 			totalErrors++
-			printErr("Item '%s' in local version missing in remote version\n", aKey)
+			//printErr("Item '%s' in local version missing in remote version\n", aKey)
 		}
 	}
 	for bKey, _ := range b {
@@ -547,7 +548,7 @@ func diffMap(a, b map[string]interface{}) int {
 			continue
 		}
 		if _, ok := a[bKey]; !ok {
-			printErr("Item '%s' in remote version missing in local version\n", bKey)
+			//printErr("Item '%s' in remote version missing in local version\n", bKey)
 			totalErrors++
 		}
 	}
