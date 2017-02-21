@@ -570,7 +570,9 @@ func diffSlice(aIF, bIF interface{}) int {
 		return 1
 	}
 	if len(a) != len(b) {
-		printErr("Slices are of different length: %d != %d\n", len(a), len(b))
+		newArgs := append([]interface{}{names.stringRep}, len(a), len(b))
+		strFmt := "Slices are of different length: %d != %d\n"
+		fmt.Printf("In %s: "+strFmt, newArgs...)
 		totalErrors++
 	}
 	totalErrors += diffTwoSlices(a, b)
