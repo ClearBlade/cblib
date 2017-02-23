@@ -654,19 +654,21 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 			val := getMap(valIF)
 			out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
 		case "Portals":
-			portals, err := getASliceOfMaps(valIF)
-			if err != nil {
-				fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
-				os.Exit(1)
-			}
-			ptls := make([]map[string]interface{}, len(portals))
-			for idx, mapVal := range portals {
-				ptls[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
+			if valIF != nil {
+				portals, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
 				}
+				ptls := make([]map[string]interface{}, len(portals))
+				for idx, mapVal := range portals {
+					ptls[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["portals"] = ptls
 			}
-			out["portals"] = ptls
 		case "Push":
 			val := getMap(valIF)
 			out["push"] = map[string]interface{}{"permissions": val["Level"]}
