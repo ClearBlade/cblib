@@ -260,7 +260,6 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 			}
 		}
 	}
-		
 
 	edges, err := getEdges()
 	if err != nil {
@@ -404,7 +403,7 @@ func hijackAuthorize() (*cb.DevClient, error) {
 
 func importIt(cli *cb.DevClient) error {
 	//fmt.Printf("Reading system configuration files...")
-	setRootDir(".")
+	SetRootDir(".")
 	users, err := getUsers()
 	if err != nil {
 		return err

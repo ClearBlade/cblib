@@ -37,7 +37,7 @@ func doTest(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return fmt.Errorf("Extra arguments passed to test command:%s\n", args)
 	}
 
-	setRootDir(".")
+	SetRootDir(".")
 	systemInfo, err := getSysMeta()
 	if err != nil {
 		return err

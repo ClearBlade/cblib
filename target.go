@@ -65,7 +65,7 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 		os.Rename(fixo, fixn)
 	}
 
-	setRootDir(fixn)
+	SetRootDir(fixn)
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
@@ -76,11 +76,11 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 	}
 
 	metaStuff := map[string]interface{}{
-		"platform_url":       URL,
-		"messaging_url":      MsgURL,
-		"developer_email":    Email,
+		"platform_url":        URL,
+		"messaging_url":       MsgURL,
+		"developer_email":     Email,
 		"asset_refresh_dates": []interface{}{},
-		"token":             cli.DevToken,
+		"token":               cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
