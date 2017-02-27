@@ -250,7 +250,6 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
-	fmt.Printf("writing service here: %s\n", mySvcDir+"/"+name+".js")
 	if err := ioutil.WriteFile(mySvcDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
