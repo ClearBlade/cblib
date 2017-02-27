@@ -106,7 +106,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		ExportRows = true
 		fmt.Printf("Pulling collection %+s\n", CollectionName)
-		err := PullAndWriteCollections(systemInfo, CollectionName, client)
+		err := PullAndWriteCollection(systemInfo, CollectionName, client)
 		if err != nil {
 			return err
 		}
@@ -337,7 +337,7 @@ func PullAndWriteUsers(systemKey string, userName string, client *cb.DevClient) 
 	return nil
 }
 
-func PullAndWriteCollections(systemInfo *System_meta, collectionName string, client *cb.DevClient) error {
+func PullAndWriteCollection(systemInfo *System_meta, collectionName string, client *cb.DevClient) error {
 	if allColls, err := client.GetAllCollections(systemInfo.Key); err != nil {
 		return err
 	} else {
@@ -362,6 +362,31 @@ func PullAndWriteCollections(systemInfo *System_meta, collectionName string, cli
 				err = writeCollection(d["name"].(string), d)
 				if err != nil {
 					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func PullAndWriteCollections(sysMeta *System_meta, client *cb.DevClient) error {
+	if allColls, err := client.GetAllCollections(sysMeta.Key); err != nil {
+		return err
+	} else {
+		// iterate over allColls and find one with matching name
+		for _, c := range allColls {
+			coll := c.(map[string]interface{})
+			if coll, err := client.GetCollectionInfo(coll["collectionID"].(string)); err != nil {
+				return err
+			} else {
+				if data, err := PullCollection(sysMeta, coll, client); err != nil {
+					return err
+				} else {
+					d := makeCollectionJsonConsistent(data)
+					err = writeCollection(d["name"].(string), d)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
