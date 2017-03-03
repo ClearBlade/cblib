@@ -3,10 +3,11 @@ package cblib
 import (
 	"encoding/json"
 	"fmt"
-	cb "github.com/clearblade/Go-SDK"
 	"os"
 	"sort"
 	"strings"
+
+	cb "github.com/clearblade/Go-SDK"
 )
 
 var (
@@ -99,6 +100,19 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 	}
+
+	//remove the item_id column if it is not supposed to be exported
+	if !ExportItemId {
+		//Loop through the array of maps and find the one where ColumnName = item_id
+		//Remove it from the slice
+		for ndx, columnMap := range columnsResp {
+			if columnMap.(map[string]interface{})["ColumnName"] == "item_id" {
+				columnsResp = append(columnsResp[:ndx], columnsResp[ndx+1:]...)
+				break
+			}
+		}
+	}
+
 	co["schema"] = columnsResp
 	if err = getRolesForCollection(co); err != nil {
 		return nil, err
@@ -182,6 +196,16 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
+
+		//remove the item_id data if it is not supposed to be exported
+		if !ExportItemId {
+			//Loop through the array of maps and find the one where ColumnName = item_id
+			//Remove it from the slice
+			for _, rowMap := range curData {
+				delete(rowMap.(map[string]interface{}), "item_id")
+			}
+		}
+
 		allData = append(allData, curData...)
 	}
 	return allData, nil
