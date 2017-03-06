@@ -99,7 +99,7 @@ func doDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return err
 	}
-	setRootDir(".")
+	SetRootDir(".")
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
@@ -323,7 +323,7 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 		return err
 	}
 
-	colId, ok:= localCollection["collectionID"].(string)
+	colId, ok := localCollection["collectionID"].(string)
 	if !ok {
 		colId = localCollection["collection_id"].(string)
 	}

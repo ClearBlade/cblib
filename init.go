@@ -43,7 +43,7 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	setRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
@@ -53,11 +53,11 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	metaStuff := map[string]interface{}{
-		"platform_url":       cb.CB_ADDR,
-		"messaging_url":      cb.CB_MSG_ADDR,
-		"developer_email":    Email,
+		"platform_url":        cb.CB_ADDR,
+		"messaging_url":       cb.CB_MSG_ADDR,
+		"developer_email":     Email,
 		"asset_refresh_dates": []interface{}{},
-		"token":             cli.DevToken,
+		"token":               cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
