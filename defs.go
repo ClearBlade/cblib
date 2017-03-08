@@ -20,6 +20,7 @@ var (
 	ShouldImportCollectionRows bool
 	ImportRows                 bool
 	ExportRows                 bool
+	ExportItemId               bool
 	ImportUsers                bool
 	ExportUsers                bool
 	CleanUp						bool

@@ -24,7 +24,7 @@ var (
 	pluginsDir  string
 )
 
-func setRootDir(theRootDir string) {
+func SetRootDir(theRootDir string) {
 	rootDir = theRootDir
 	svcDir = rootDir + "/code/services"
 	libDir = rootDir + "/code/libraries"
@@ -243,10 +243,16 @@ func writeEntity(dirName, fileName string, stuff interface{}) error {
 }
 
 func writeCollection(collectionName string, data map[string]interface{}) error {
+	if err := os.MkdirAll(dataDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(dataDir, collectionName, data)
 }
 
 func writeUser(email string, data map[string]interface{}) error {
+	if err := os.MkdirAll(usersDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(usersDir, email, data)
 }
 
@@ -255,14 +261,23 @@ func writeUserSchema(data map[string]interface{}) error {
 }
 
 func writeTrigger(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(triggersDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(triggersDir, name, data)
 }
 
 func writeTimer(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(timersDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(timersDir, name, data)
 }
 
 func writeRole(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(rolesDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(rolesDir, name, data)
 }
 
@@ -295,18 +310,30 @@ func writeLibrary(name string, data map[string]interface{}) error {
 }
 
 func writeEdge(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(edgesDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(edgesDir, name, data)
 }
 
 func writeDevice(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(devicesDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(devicesDir, name, data)
 }
 
 func writePortal(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(portalsDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(portalsDir, name, data)
 }
 
 func writePlugin(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(pluginsDir, 0777); err != nil {
+		return err
+	}
 	return writeEntity(pluginsDir, name, data)
 }
 

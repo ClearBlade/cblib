@@ -3,10 +3,11 @@ package cblib
 import (
 	"encoding/json"
 	"fmt"
-	cb "github.com/clearblade/Go-SDK"
 	"os"
 	"sort"
 	"strings"
+
+	cb "github.com/clearblade/Go-SDK"
 )
 
 var (
@@ -80,8 +81,8 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 			return nil, err
 		} else {
 			data := makeCollectionJsonConsistent(r)
-            writeCollection(r["name"].(string), data)
-            rval[i] = data
+			writeCollection(r["name"].(string), data)
+			rval[i] = data
 		}
 	}
 	return rval, nil
@@ -100,6 +101,19 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 	}
+
+	//remove the item_id column if it is not supposed to be exported
+	if !ExportItemId {
+		//Loop through the array of maps and find the one where ColumnName = item_id
+		//Remove it from the slice
+		for ndx, columnMap := range columnsResp {
+			if columnMap.(map[string]interface{})["ColumnName"] == "item_id" {
+				columnsResp = append(columnsResp[:ndx], columnsResp[ndx+1:]...)
+				break
+			}
+		}
+	}
+
 	co["schema"] = columnsResp
 	if err = getRolesForCollection(co); err != nil {
 		return nil, err
@@ -183,6 +197,16 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			return nil, err
 		}
 		curData := data["DATA"].([]interface{})
+
+		//remove the item_id data if it is not supposed to be exported
+		if !ExportItemId {
+			//Loop through the array of maps and find the one where ColumnName = item_id
+			//Remove it from the slice
+			for _, rowMap := range curData {
+				delete(rowMap.(map[string]interface{}), "item_id")
+			}
+		}
+
 		allData = append(allData, curData...)
 	}
 	return allData, nil
@@ -214,7 +238,7 @@ func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (ma
 	return schema, nil
 }
 
-func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	svcs, err := cli.GetServiceNames(systemKey)
 	if err != nil {
 		return nil, err
@@ -226,13 +250,16 @@ func pullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 			return nil, err
 		} else {
 			services[i] = s
-			writeService(s["name"].(string), s)
+			err = writeService(s["name"].(string), s)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return services, nil
 }
 
-func pullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	libs, err := cli.GetLibraries(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull libraries out of system %s: %s", sysMeta.Key, err.Error())
@@ -245,7 +272,10 @@ func pullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 		}
 		fmt.Printf(" %s", thisLib["name"].(string))
 		libraries = append(libraries, thisLib)
-		writeLibrary(thisLib["name"].(string), thisLib)
+		err = writeLibrary(thisLib["name"].(string), thisLib)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return libraries, nil
 }
@@ -261,7 +291,10 @@ func pullTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfa
 		delete(thisTrig, "system_key")
 		delete(thisTrig, "system_secret")
 		triggers = append(triggers, thisTrig)
-		writeTrigger(thisTrig["name"].(string), thisTrig)
+		err = writeTrigger(thisTrig["name"].(string), thisTrig)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return triggers, nil
 }
@@ -281,7 +314,10 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 		delete(thisTimer, "user_id")
 		delete(thisTimer, "user_token")
 		timers = append(timers, thisTimer)
-		writeTimer(thisTimer["name"].(string), thisTimer)
+		err = writeTimer(thisTimer["name"].(string), thisTimer)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return timers, nil
 }
@@ -381,7 +417,7 @@ func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[st
 	return allUsers, nil
 }
 
-func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allEdges, err := cli.GetEdges(sysKey)
 	if err != nil {
@@ -407,7 +443,10 @@ func pullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 		delete(currentEdge, "local_port")
 		delete(currentEdge, "public_addr")
 		delete(currentEdge, "public_port")
-		writeEdge(currentEdge["name"].(string), currentEdge)
+		err = writeEdge(currentEdge["name"].(string), currentEdge)
+		if err != nil {
+			return nil, err
+		}
 		list = append(list, currentEdge)
 	}
 
@@ -438,7 +477,7 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 	return schema, nil
 }
 
-func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allDevices, err := cli.GetDevices(sysKey)
 	if err != nil {
@@ -454,7 +493,10 @@ func pullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 		delete(currentDevice, "__HostId__")
 		delete(currentDevice, "created_date")
 		delete(currentDevice, "last_active_date")
-		writeDevice(currentDevice["name"].(string), currentDevice)
+		err = writeDevice(currentDevice["name"].(string), currentDevice)
+		if err != nil {
+			return nil, err
+		}
 		list = append(list, currentDevice)
 	}
 	return list, nil
@@ -469,7 +511,7 @@ func pullEdgeSyncInfo(sysMeta *System_meta, cli *cb.DevClient) (map[string]inter
 	return syncMap, nil
 }
 
-func pullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allPortals, err := cli.GetPortals(sysKey)
 	if err != nil {
@@ -483,13 +525,16 @@ func pullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 			return nil, err
 		}
 		fmt.Printf(" %s", currentPortal["name"].(string))
-		writePortal(currentPortal["name"].(string), currentPortal)
+		err = writePortal(currentPortal["name"].(string), currentPortal)
+		if err != nil {
+			return nil, err
+		}
 		list = append(list, currentPortal)
 	}
 	return list, nil
 }
 
-func pullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allPlugins, err := cli.GetPlugins(sysKey)
 	if err != nil {
@@ -499,7 +544,9 @@ func pullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	for i := 0; i < len(allPlugins); i++ {
 		currentPlugin := allPlugins[i].(map[string]interface{})
 		fmt.Printf(" %s", currentPlugin["name"].(string))
-		writePlugin(currentPlugin["name"].(string), currentPlugin)
+		if err = writePlugin(currentPlugin["name"].(string), currentPlugin); err != nil {
+			return nil, err
+		}
 		list = append(list, currentPlugin)
 	}
 
@@ -528,7 +575,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
 	}
 
-	setRootDir(".")
+	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
@@ -557,12 +604,17 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
+<<<<<<< HEAD
 	setRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if CleanUp {
 		cleanUpDirectories(sysMeta)
 	}
 
 	//dir := rootDir
+=======
+	//dir := rootDir
+	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+>>>>>>> master
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
@@ -577,14 +629,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	storeRoles(rolesInfo)
 
 	fmt.Printf(" Done.\nExporting Services...")
-	services, err := pullServices(sysKey, cli)
+	services, err := PullServices(sysKey, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["services"] = services
 
 	fmt.Printf(" Done.\nExporting Libraries...")
-	libraries, err := pullLibraries(sysMeta, cli)
+	libraries, err := PullLibraries(sysMeta, cli)
 	if err != nil {
 		return err
 	}
@@ -624,7 +676,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["users"] = userSchema
 
 	fmt.Printf(" Done.\nExporting Edges...")
-	edges, err := pullEdges(sysMeta, cli)
+	edges, err := PullEdges(sysMeta, cli)
 	if err != nil {
 		return err
 	}
@@ -634,7 +686,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["edges"] = edges
 
 	fmt.Printf(" Done.\nExporting Devices...")
-	devices, err := pullDevices(sysMeta, cli)
+	devices, err := PullDevices(sysMeta, cli)
 	if err != nil {
 		return err
 	}
@@ -648,14 +700,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["edge_sync"] = syncInfo
 
 	fmt.Printf(" Done.\nExporting Portals...")
-	portals, err := pullPortals(sysMeta, cli)
+	portals, err := PullPortals(sysMeta, cli)
 	if err != nil {
 		return err
 	}
 	systemDotJSON["portals"] = portals
 
 	fmt.Printf(" Done.\nExporting Plugins...")
-	plugins, err := pullPlugins(sysMeta, cli)
+	plugins, err := PullPlugins(sysMeta, cli)
 	if err != nil {
 		return err
 	}
@@ -668,11 +720,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 
 	metaStuff := map[string]interface{}{
-		"platform_url":       cb.CB_ADDR,
-		"messaging_url":      cb.CB_MSG_ADDR,
-		"developer_email":    Email,
+		"platform_url":        cb.CB_ADDR,
+		"messaging_url":       cb.CB_MSG_ADDR,
+		"developer_email":     Email,
 		"asset_refresh_dates": []interface{}{},
-		"token":             cli.DevToken,
+		"token":               cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
@@ -690,7 +742,7 @@ func setupFromRepo() {
 		curDir, _ := os.Getwd()
 		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
 	}
-	Email, ok= MetaInfo["developerEmail"].(string)
+	Email, ok = MetaInfo["developerEmail"].(string)
 	if !ok {
 		Email = MetaInfo["developer_email"].(string)
 	}

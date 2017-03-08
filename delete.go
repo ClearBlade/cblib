@@ -41,7 +41,7 @@ func doDelete(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return err
 	}
-	setRootDir(".")
+	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
