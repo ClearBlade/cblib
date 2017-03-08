@@ -604,17 +604,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-<<<<<<< HEAD
 	setRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if CleanUp {
 		cleanUpDirectories(sysMeta)
 	}
 
-	//dir := rootDir
-=======
-	//dir := rootDir
-	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
->>>>>>> master
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}
