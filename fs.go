@@ -81,37 +81,37 @@ func setupDirectoryStructure(sys *System_meta) error {
 func cleanUpDirectories(sys *System_meta) error {
 	fmt.Printf("CleaningUp Directories")
 	if err := os.RemoveAll(svcDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", svcDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", svcDir, err.Error())
 	}
 	if err := os.RemoveAll(libDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", libDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", libDir, err.Error())
 	}
 	if err := os.RemoveAll(dataDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", dataDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", dataDir, err.Error())
 	}
 	if err := os.RemoveAll(usersDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", usersDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", usersDir, err.Error())
 	}
 	if err := os.RemoveAll(timersDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", timersDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", timersDir, err.Error())
 	}
 	if err := os.RemoveAll(triggersDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", triggersDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", triggersDir, err.Error())
 	}
 	if err := os.RemoveAll(rolesDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", rolesDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", rolesDir, err.Error())
 	}
 	if err := os.RemoveAll(edgesDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", edgesDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", edgesDir, err.Error())
 	}
 	if err := os.RemoveAll(devicesDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", devicesDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", devicesDir, err.Error())
 	}
 	if err := os.RemoveAll(portalsDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", portalsDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", portalsDir, err.Error())
 	}
 	if err := os.RemoveAll(pluginsDir); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", pluginsDir, err.Error())
+		return fmt.Errorf("Could not remove directory '%s': %s", pluginsDir, err.Error())
 	}
 	return nil
 }
