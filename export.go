@@ -604,7 +604,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	setRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if CleanUp {
 		cleanUpDirectories(sysMeta)
 	}
