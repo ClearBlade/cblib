@@ -22,6 +22,7 @@ var (
 	devicesDir  string
 	portalsDir  string
 	pluginsDir  string
+	arrDir 		[11]string
 )
 
 func SetRootDir(theRootDir string) {
@@ -37,43 +38,38 @@ func SetRootDir(theRootDir string) {
 	devicesDir = rootDir + "/devices"
 	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
+	arrDir[0] = svcDir
+	arrDir[1] = libDir
+	arrDir[2] = dataDir
+	arrDir[3] = usersDir
+	arrDir[4] = timersDir
+	arrDir[5] = triggersDir
+	arrDir[6] = rolesDir
+	arrDir[7] = edgesDir
+	arrDir[8] = devicesDir
+	arrDir[9] = portalsDir
+	arrDir[10] = pluginsDir
 }
+
 func setupDirectoryStructure(sys *System_meta) error {
 	if err := os.MkdirAll(rootDir, 0777); err != nil {
 		return fmt.Errorf("Could not make directory '%s': %s", rootDir, err.Error())
 	}
-	if err := os.MkdirAll(svcDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", svcDir, err.Error())
+
+	for i:=0; i<len(arrDir); i++ {
+		if err := os.MkdirAll(arrDir[i], 0777); err != nil {
+			return fmt.Errorf("Could not make directory '%s': %s", arrDir[i], err.Error())
+		}
 	}
-	if err := os.MkdirAll(libDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", libDir, err.Error())
-	}
-	if err := os.MkdirAll(dataDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", dataDir, err.Error())
-	}
-	if err := os.MkdirAll(usersDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", usersDir, err.Error())
-	}
-	if err := os.MkdirAll(timersDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", timersDir, err.Error())
-	}
-	if err := os.MkdirAll(triggersDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", triggersDir, err.Error())
-	}
-	if err := os.MkdirAll(rolesDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", rolesDir, err.Error())
-	}
-	if err := os.MkdirAll(edgesDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", edgesDir, err.Error())
-	}
-	if err := os.MkdirAll(devicesDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", devicesDir, err.Error())
-	}
-	if err := os.MkdirAll(portalsDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", portalsDir, err.Error())
-	}
-	if err := os.MkdirAll(pluginsDir, 0777); err != nil {
-		return fmt.Errorf("Could not make directory '%s': %s", pluginsDir, err.Error())
+	return nil
+}
+
+func cleanUpDirectories(sys *System_meta) error {
+	fmt.Printf("CleaningUp Directories\n")
+	for i:=0; i<len(arrDir); i++ {
+		if err := os.RemoveAll(arrDir[i]); err != nil {
+			return fmt.Errorf("Could not remove directory '%s': %s", arrDir[i], err.Error())
+		}
 	}
 	return nil
 }

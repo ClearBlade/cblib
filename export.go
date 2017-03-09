@@ -32,6 +32,7 @@ func init() {
 	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
 	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
+	myExportCommand.flags.BoolVar(&CleanUp, "cleanup", false, "Cleanup directories before export")
 	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
@@ -603,8 +604,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	//dir := rootDir
 	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+	if CleanUp {
+		cleanUpDirectories(sysMeta)
+	}
+
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err
 	}

@@ -23,6 +23,7 @@ var (
 	ExportItemId               bool
 	ImportUsers                bool
 	ExportUsers                bool
+	CleanUp						bool
 	EdgeSchema                 bool
 	UserSchema                 bool
 	ImportPageSize             int

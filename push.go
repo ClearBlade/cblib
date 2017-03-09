@@ -620,56 +620,68 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 	for key, valIF := range in {
 		switch key {
 		case "CodeServices":
-			services, err := getASliceOfMaps(valIF)
-			if err != nil {
-				fmt.Printf("Bad format for services permissions, not a slice of maps: %T\n", valIF)
-				os.Exit(1)
-			}
-			svcs := make([]map[string]interface{}, len(services))
-			for idx, mapVal := range services {
-				svcs[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
+			if valIF != nil {
+				services, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for services permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
 				}
+				svcs := make([]map[string]interface{}, len(services))
+				for idx, mapVal := range services {
+					svcs[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["services"] = svcs
 			}
-			out["services"] = svcs
 		case "Collections":
-			collections, err := getASliceOfMaps(valIF)
-			if err != nil {
-				fmt.Printf("Bad format for collections permissions, not a slice of maps: %T\n", valIF)
-				os.Exit(1)
-			}
-			cols := make([]map[string]interface{}, len(collections))
-			for idx, mapVal := range collections {
-				cols[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"id": mapVal["ID"]},
-					"permissions": mapVal["Level"],
+			if valIF != nil {
+				collections, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for collections permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
 				}
+				cols := make([]map[string]interface{}, len(collections))
+				for idx, mapVal := range collections {
+					cols[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"id": mapVal["ID"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["collections"] = cols
 			}
-			out["collections"] = cols
 		case "DevicesList":
-			val := getMap(valIF)
-			out["devices"] = map[string]interface{}{"permissions": val["Level"]}
+			if valIF != nil {
+				val := getMap(valIF)
+				out["devices"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		case "MsgHistory":
-			val := getMap(valIF)
-			out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
+			if valIF != nil {
+				val := getMap(valIF)
+				out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		case "Portals":
-			portals, err := getASliceOfMaps(valIF)
-			if err != nil {
-				fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
-				os.Exit(1)
-			}
-			ptls := make([]map[string]interface{}, len(portals))
-			for idx, mapVal := range portals {
-				ptls[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
+			if valIF != nil {
+				portals, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
 				}
+				ptls := make([]map[string]interface{}, len(portals))
+				for idx, mapVal := range portals {
+					ptls[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["portals"] = ptls
 			}
-			out["portals"] = ptls
 		case "Push":
-			val := getMap(valIF)
-			out["push"] = map[string]interface{}{"permissions": val["Level"]}
+			if valIF != nil {
+				val := getMap(valIF)
+				out["push"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		case "Topics":
 			if valIF != nil {
 				val, err := getASliceOfMaps(valIF)
@@ -680,8 +692,10 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 				out["topics"] = val
 			}
 		case "UsersList":
-			val := getMap(valIF)
-			out["users"] = map[string]interface{}{"permissions": val["Level"]}
+			if valIF != nil {
+				val := getMap(valIF)
+				out["users"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 
 		default:
 		}
