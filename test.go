@@ -103,13 +103,9 @@ func doPublishMessage(systemKey string, client *cb.DevClient) error {
 	if Payload == "" {
 		return fmt.Errorf("payload argument missing")
 	}
-	if err := client.InitializeMQTT("", systemKey, 60); err != nil {
+	if err := client.InitializeMQTT("", systemKey, 60, nil, nil); err != nil {
 		return err
 	}
-	if err := client.ConnectMQTT(nil, nil); err != nil {
-		return err
-	}
-
 	if err := client.Publish(Topic, []byte(Payload), 2); err != nil {
 		return err
 	}
