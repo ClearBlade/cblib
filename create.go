@@ -65,7 +65,7 @@ func doCreate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := createOneCollection(systemInfo, client); err != nil {
+		if err := CreateOneCollection(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -114,7 +114,7 @@ func createOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	return createService(systemInfo.Key, service, client)
 }
 
-func createOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
+func CreateOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
 	if err != nil {

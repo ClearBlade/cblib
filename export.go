@@ -11,8 +11,7 @@ import (
 )
 
 var (
-	exportUsers bool
-	inARepo     bool
+	inARepo bool
 )
 
 func init() {
@@ -34,7 +33,7 @@ func init() {
 	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
 	myExportCommand.flags.BoolVar(&CleanUp, "cleanup", false, "Cleanup directories before export")
 	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
-	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
+	myExportCommand.flags.BoolVar(&ExportUsers, "exportusers", false, "exports user info")
 	AddCommand("export", myExportCommand)
 	ImportPageSize = 100 // TODO -- fix this
 }
@@ -396,7 +395,7 @@ func storeMeta(meta *System_meta) {
 
 func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	if !exportUsers {
+	if !ExportUsers {
 		return []map[string]interface{}{}, nil
 	}
 	allUsers, err := cli.GetAllUsers(sysKey)
@@ -569,17 +568,21 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
+	var err error
 	if exportOptionsExist() {
 		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
-		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
+		client, err = Authorize(nil)
+		if err != nil {
+			return fmt.Errorf("Authorization failed: %s\n", err.Error())
+		}
 	}
 
 	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
-	client, err := checkIfTokenHasExpired(client, SystemKey)
+	client, err = checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
 		return fmt.Errorf("Re-auth failed...", err)
 	}

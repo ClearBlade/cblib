@@ -22,7 +22,7 @@ var (
 	devicesDir  string
 	portalsDir  string
 	pluginsDir  string
-	arrDir 		[11]string
+	arrDir      [11]string
 )
 
 func SetRootDir(theRootDir string) {
@@ -56,7 +56,7 @@ func setupDirectoryStructure(sys *System_meta) error {
 		return fmt.Errorf("Could not make directory '%s': %s", rootDir, err.Error())
 	}
 
-	for i:=0; i<len(arrDir); i++ {
+	for i := 0; i < len(arrDir); i++ {
 		if err := os.MkdirAll(arrDir[i], 0777); err != nil {
 			return fmt.Errorf("Could not make directory '%s': %s", arrDir[i], err.Error())
 		}
@@ -66,7 +66,7 @@ func setupDirectoryStructure(sys *System_meta) error {
 
 func cleanUpDirectories(sys *System_meta) error {
 	fmt.Printf("CleaningUp Directories\n")
-	for i:=0; i<len(arrDir); i++ {
+	for i := 0; i < len(arrDir); i++ {
 		if err := os.RemoveAll(arrDir[i]); err != nil {
 			return fmt.Errorf("Could not remove directory '%s': %s", arrDir[i], err.Error())
 		}

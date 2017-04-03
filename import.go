@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	importRows  bool
-	importUsers bool
+	importRows bool
 )
 
 func init() {
@@ -20,7 +19,7 @@ func init() {
 		run:          doImport,
 	}
 	myImportCommand.flags.BoolVar(&importRows, "importrows", false, "imports all data into all collections")
-	myImportCommand.flags.BoolVar(&importUsers, "importusers", false, "imports all users into the system")
+	myImportCommand.flags.BoolVar(&ImportUsers, "importusers", false, "imports all users into the system")
 	myImportCommand.flags.StringVar(&URL, "url", "", "URL for import destination")
 	myImportCommand.flags.StringVar(&Email, "email", "", "Developer email for login to import destination")
 	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
@@ -106,8 +105,7 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 			return err
 		}
 	}
-
-	if !importUsers {
+	if !ImportUsers {
 		return nil
 	}
 
@@ -142,7 +140,6 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 			return fmt.Errorf("Could not update user: %s", err.Error())
 		}
 	}
-
 	return nil
 }
 
@@ -401,25 +398,11 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	return cli, nil
 }
 
-func importIt(cli *cb.DevClient) error {
-	//fmt.Printf("Reading system configuration files...")
-	SetRootDir(".")
-	users, err := getUsers()
+func ImportSystem(cli *cb.DevClient) error {
+	systemInfo, err := getDict(rootDir + "/system.json")
 	if err != nil {
 		return err
 	}
-
-	systemInfo, err := getDict("system.json")
-	if err != nil {
-		return err
-	}
-	// The DevClient should be null at this point because we are delaying auth until
-	// Now.
-	cli, err = hijackAuthorize()
-	if err != nil {
-		return err
-	}
-	//fmt.Printf("Done.\nImporting system...")
 	fmt.Printf("Importing system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
@@ -427,6 +410,10 @@ func importIt(cli *cb.DevClient) error {
 	fmt.Printf(" Done.\nImporting roles...")
 	if err := createRoles(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create roles: %s", err.Error())
+	}
+	users, err := getUsers()
+	if err != nil {
+		return err
 	}
 	fmt.Printf(" Done.\nImporting users...")
 	if err := createUsers(systemInfo, users, cli); err != nil {
@@ -476,4 +463,18 @@ func importIt(cli *cb.DevClient) error {
 
 	fmt.Printf("Done\n")
 	return nil
+}
+
+func importIt(cli *cb.DevClient) error {
+	//fmt.Printf("Reading system configuration files...")
+	SetRootDir(".")
+
+	// The DevClient should be null at this point because we are delaying auth until
+	// Now.
+	cli, err := hijackAuthorize()
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("Done.\nImporting system...")
+	return ImportSystem(cli)
 }

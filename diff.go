@@ -343,7 +343,7 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 }
 
 func diffUser(sys *System_meta, client *cb.DevClient, userName string) error {
-	exportUsers = true
+	ExportUsers = true
 	allUsers, err := pullUsers(sys, client, false)
 	if err != nil {
 		return err
