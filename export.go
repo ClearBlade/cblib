@@ -35,6 +35,8 @@ func init() {
 	myExportCommand.flags.BoolVar(&CleanUp, "cleanup", false, "Cleanup directories before export")
 	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
+	// TODO Should I create a var like 'exportUsers', instead of 'ExportUsers' for example?
+	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection's rows' item_id column")
 	AddCommand("export", myExportCommand)
 	ImportPageSize = 100 // TODO -- fix this
 }
@@ -101,7 +103,6 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 	}
-
 	//remove the item_id column if it is not supposed to be exported
 	if !ExportItemId {
 		//Loop through the array of maps and find the one where ColumnName = item_id

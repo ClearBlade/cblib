@@ -211,17 +211,36 @@ func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 }
 
 func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
-	fmt.Printf("Pushing collection %s\n", CollectionName)
+	fmt.Printf("Pushing collection %s to %s\n", CollectionName, systemInfo.Key)
+
 	collection, err := getCollection(CollectionName)
 	if err != nil {
 		fmt.Printf("error is %+v\n", err)
 		return err
 	}
-	return updateCollection(systemInfo.Key, collection, client)
+	targetSystem := systemInfo.Key
+	originSystem := collection["app_id"].(string)
+
+	// If true, we are pushing this collection to another system
+	systemPromotionInProgress := targetSystem != originSystem
+
+	if systemPromotionInProgress {
+		fmt.Printf("Origin: %s", originSystem)
+		fmt.Printf("Target: %s", targetSystem)
+		fmt.Printf("System Promotion in progress from %s to %s \n",originSystem, targetSystem)
+		// If we are pushing a collection to another system, we have only 
+		// the collection name, not the collection ID
+		return updateCollectionByName(systemInfo.Key, collection, client)
+	} else{
+		// Pushing collections by id is less expensive than by name
+		// so by default, we have the collection id, so let's use it
+		return updateCollectionById(systemInfo.Key, collection, client)
+	}
 }
 
 func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing collection with collectionID %s\n", CollectionId)
+
 	collections, err := getCollections()
 	if err != nil {
 		return err
@@ -232,7 +251,7 @@ func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error 
 			continue
 		}
 		if id == CollectionId {
-			return updateCollection(systemInfo.Key, collection, client)
+			return updateCollectionById(systemInfo.Key, collection, client)
 		}
 	}
 	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
@@ -1130,11 +1149,16 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 	return nil
 }
 
-func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
+func updateCollectionById(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	var err error
-	collection_id, ok := collection["collectionID"].(string)
+	var ok bool
+	var collection_id string
+	collection_id, ok = collection["collectionID"].(string)
 	if !ok {
-		collection_id = collection["collection_id"].(string)
+		collection_id, ok =  collection["collection_id"].(string)
+	}
+	if !ok {
+		// TODO Unable to parse collection
 	}
 	items := collection["items"].([]interface{})
 	for _, row := range items {
@@ -1144,7 +1168,53 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 			break
 		}
 	}
+	// We assume the error is caused by the collection not existing
 	if err != nil {
+		fmt.Println(err)
+		collName := collection["name"].(string)
+		fmt.Printf("Error updating collection %s.\n", collName)
+		collName = collName + "2"
+		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				collection["name"] = collName
+				if err := CreateCollection(systemKey, collection, client); err != nil {
+					return fmt.Errorf("Could not create collection %s: %s", collName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new collection %s\n", collName)
+				}
+			} else {
+				fmt.Printf("Collection will not be created.\n")
+			}
+		}
+	}
+	return nil
+}
+
+func updateCollectionByName(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
+	var err error
+	collection_name := ""
+	var ok bool
+	if collection_name, ok = collection["name"].(string); !ok {
+		return fmt.Errorf("Unable to fetch collection name.")
+	}
+	items := collection["items"].([]interface{})
+	for _, row := range items {
+		query := cb.NewQuery()
+		item_id := row.(map[string]interface{})["item_id"]
+		fmt.Printf("Does this item_id exist? %s",item_id)
+		query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
+			if err = client.UpdateDataByName(systemKey, collection_name, query, row.(map[string]interface{})); err != nil {
+				break
+			}
+	}
+	// TODO We assume the error is caused by the collection not existing
+	if err != nil {
+		// TODO Refactor
+		fmt.Println(err)
 		collName := collection["name"].(string)
 		fmt.Printf("Error updating collection %s.\n", collName)
 		collName = collName + "2"
