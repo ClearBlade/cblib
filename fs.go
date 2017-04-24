@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	// "sort"
+	"sort"
 )
 
 var (
@@ -25,20 +25,20 @@ var (
 	arrDir 		[11]string
 )
 
-type CollectionItems struct {
+type CollectionItem struct {
 	item map[string]interface{}
 }
 
-func (c CollectionItems) String() string {
+func (c CollectionItem) String() string {
 	return fmt.Sprintf("%s", c.item)
 }
 
-type Collection []CollectionItems
+type Collection []CollectionItem
 
 func (a Collection) Len() int           { return len(a) }
 func (a Collection) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a Collection) Less(i, j int) bool { 
-	return a[i].item["item_id"].(string)< a[j].item["item_id"].(string) 
+	return a[i].item["item_id"].(string) < a[j].item["item_id"].(string) 
 }
 
 
@@ -229,7 +229,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	numberOfItems := len(rawItemArray) 
 	fmt.Printf("numberOfItems %d \n", numberOfItems)
 
-	sortableItemArray := make([]CollectionItems, numberOfItems)
+	sortableItemArray := make([]CollectionItem, numberOfItems)
 
 	for i := 0; i < numberOfItems; i++ {
 		fmt.Println(rawItemArray[i])
@@ -238,14 +238,14 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		if !ok { 
 			return fmt.Errorf("Unable to parse individual collection item at index: %i\n", i)
 		}
-		var sortableItem CollectionItems = CollectionItems{item:decodedItem}
+		var sortableItem CollectionItem = CollectionItem{item:decodedItem}
 		fmt.Println(sortableItem)
 		fmt.Printf("Storing at %i\n",i)
 		sortableItemArray[i] = sortableItem
     }
 	fmt.Println("All Items Unsorted: ")
 	fmt.Println(sortableItemArray)
-	//sort.Sort(Collection(sortableItemArray))
+	sort.Sort(Collection(sortableItemArray))
 	fmt.Println("All Items Sorted: ")
 	fmt.Println(sortableItemArray)
 
