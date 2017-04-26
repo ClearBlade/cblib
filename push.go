@@ -113,7 +113,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
-					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed\n", err)
+					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 				}
 			}
 		}
@@ -135,7 +135,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
-					return fmt.Errorf("User schema could not be updated\n", err)
+					return fmt.Errorf("User schema could not be updated: %s", err)
 				}
 			}
 		}

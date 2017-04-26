@@ -72,7 +72,7 @@ func doPushService(systemKey string, client *cb.DevClient) error {
 	svcMap, err := findService(systemKey, ServiceName)
 	if err != nil {
 		if err.Error() == NotExistErrorString {
-			fmt.Printf("Service '%s' does not exist locally. Not pushing\n")
+			fmt.Printf("Service '%s' does not exist locally. Not pushing...", ServiceName)
 			return nil
 		}
 		return err
