@@ -24,22 +24,6 @@ var (
 	arrDir 		[11]string
 )
 
-type CollectionItem struct {
-	item map[string]interface{}
-}
-
-func (c CollectionItem) String() string {
-	return fmt.Sprintf("%s", c.item)
-}
-
-type Collection []CollectionItem
-
-func (a Collection) Len() int           { return len(a) }
-func (a Collection) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a Collection) Less(i, j int) bool { 
-	return a[i].item["item_id"].(string) < a[j].item["item_id"].(string) 
-}
-
 func SetRootDir(theRootDir string) {
 	rootDir = theRootDir
 	svcDir = rootDir + "/code/services"
@@ -219,7 +203,6 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	if err := os.MkdirAll(dataDir, 0777); err != nil {
 		return err
 	}
-	fmt.Println(data)
 	rawItemArray := data["items"]
 	if rawItemArray == nil{
 		return fmt.Errorf("Item array not found when accessing collection item array")
@@ -230,10 +213,18 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	}
 
 	var compareCollectionItems compare = func(sliceOfItems *[]interface{}, i, j int) bool {
-		sortKey := "item_id"
-		map1 := (*sliceOfItems)[i].(map[string]interface{})
-		map2 := (*sliceOfItems)[j].(map[string]interface{})
 
+		sortKey := "item_id"
+
+		slice := *sliceOfItems
+
+		map1, castSuccess1 := slice[i].(map[string]interface{})
+		map2, castSuccess2 := slice[j].(map[string]interface{})
+
+		if !castSuccess1 || !castSuccess2 {
+			return false
+		}
+		
 		name1 := map1[sortKey]
 		name2 := map2[sortKey]
 		if !isString(name1) || !isString(name2) {
@@ -276,15 +267,30 @@ func writeRole(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return err
 	}
-	permissions := data["Permissions"].(map[string]interface{});
-	codeServices := permissions["CodeServices"].([]interface{});
+	permissions, castSuccess := data["Permissions"].(map[string]interface{});
+	if !castSuccess{
+		return fmt.Errorf("Unable to process role permissions")
+	}
+	codeServices, castSuccess := permissions["CodeServices"].([]interface{});
+	if !castSuccess{
+		return fmt.Errorf("Unable to process role's code services")
+	}
 
  	var compareCodeServicesInARole compare = func(sliceOfCodeServices *[]interface{}, i, j int) bool {
-		map1 := (*sliceOfCodeServices)[i].(map[string]interface{})
-		map2 := (*sliceOfCodeServices)[j].(map[string]interface{})
+		sortKey := "item_id"
 
-		name1 := map1["Name"]
-		name2 := map2["Name"]
+		slice := *sliceOfCodeServices
+
+		map1, castSuccess1 := slice[i].(map[string]interface{})
+		map2, castSuccess2 := slice[j].(map[string]interface{})
+
+		if !castSuccess1 || !castSuccess2 {
+			return false
+		}
+
+		name1 := map1[sortKey]
+		name2 := map2[sortKey]
+
 		if !isString(name1) || !isString(name2) {
 			return false
 		}
