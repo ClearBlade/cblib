@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sort"
 )
 
 var (
@@ -40,7 +39,6 @@ func (a Collection) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a Collection) Less(i, j int) bool { 
 	return a[i].item["item_id"].(string) < a[j].item["item_id"].(string) 
 }
-
 
 func SetRootDir(theRootDir string) {
 	rootDir = theRootDir
@@ -222,42 +220,31 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return err
 	}
 	fmt.Println(data)
-	rawItemArray := data["items"].([]interface{});
-	// if !ok { fmt.Println("Error\n"); return nil}
-	fmt.Println("Raw")
-	fmt.Println(rawItemArray)
-	numberOfItems := len(rawItemArray) 
-	fmt.Printf("numberOfItems %d \n", numberOfItems)
+	rawItemArray := data["items"]
+	if rawItemArray == nil{
+		return fmt.Errorf("Item array not found when accessing collection item array")
+	}
+	itemArray, castSuccess := rawItemArray.([]interface{});
+	if !castSuccess {
+		return fmt.Errorf("Unable to process collection item array")
+	}
 
-	sortableItemArray := make([]CollectionItem, numberOfItems)
+	numberOfItems := len(itemArray) 
 
-	for i := 0; i < numberOfItems; i++ {
-		fmt.Println(rawItemArray[i])
+	var compareCollectionItems compare = func(sliceOfItems *[]interface{}, i, j int) bool {
+		sortKey := "item_id"
+		map1 := (*sliceOfItems)[i].(map[string]interface{})
+		map2 := (*sliceOfItems)[j].(map[string]interface{})
 
-		decodedItem, ok := rawItemArray[i].(map[string]interface{})
-		if !ok { 
-			return fmt.Errorf("Unable to parse individual collection item at index: %i\n", i)
+		name1 := map1[sortKey]
+		name2 := map2[sortKey]
+		if !isString(name1) || !isString(name2) {
+			return false
 		}
-		var sortableItem CollectionItem = CollectionItem{item:decodedItem}
-		fmt.Println(sortableItem)
-		fmt.Printf("Storing at %i\n",i)
-		sortableItemArray[i] = sortableItem
-    }
-	fmt.Println("All Items Unsorted: ")
-	fmt.Println(sortableItemArray)
-	sort.Sort(Collection(sortableItemArray))
-	fmt.Println("All Items Sorted: ")
-	fmt.Println(sortableItemArray)
+		return name1.(string) < name2.(string)
+	}
 
-	for i := 0; i < numberOfItems; i++ {
-
-		var sortedItem = sortableItemArray[i]
-		rawItemArray[i] = sortedItem.item
-    }
-    fmt.Println("Completed Array:")
-		fmt.Println(rawItemArray)
-
-	// data swallows sorted item array
+	bubbleSort(&itemArray,compareCollectionItems)
 
 	return writeEntity(dataDir, collectionName, data)
 }
@@ -291,6 +278,36 @@ func writeRole(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return err
 	}
+	permissions := data["Permissions"].(map[string]interface{});
+	codeServices := permissions["CodeServices"].([]interface{});
+	updatedCodeServices := make([]interface{},len(codeServices))
+
+	for i := 0; i < len(codeServices); i++ {
+		var ok bool = false
+		updatedCodeServices[i], ok = codeServices[i].(interface{})
+		if !ok { 
+			return fmt.Errorf("Unable to parse individual role code service at index: %i\n", i)
+		}
+ 	}
+
+ 	var compareCodeServicesInARole compare = func(sliceOfCodeServices *[]interface{}, i, j int) bool {
+		map1 := (*sliceOfCodeServices)[i].(map[string]interface{})
+		map2 := (*sliceOfCodeServices)[j].(map[string]interface{})
+
+		name1 := map1["Name"]
+		name2 := map2["Name"]
+		if !isString(name1) || !isString(name2) {
+			return false
+		}
+
+		return name1.(string) < name2.(string)
+	}
+
+ 	bubbleSort(&updatedCodeServices,compareCodeServicesInARole)
+	for i := 0 ; i < len(updatedCodeServices); i++ {
+		codeServices[i] = updatedCodeServices[i]
+	}
+
 	return writeEntity(rolesDir, name, data)
 }
 

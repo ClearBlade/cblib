@@ -4,7 +4,11 @@ import (
 	//"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"strings"
+	"fmt"
+	"reflect"
 )
+
+type compare func(sliceOfCodeServices *[]interface{}, i int, j int) bool 
 
 func setupAddrs(paddr string, maddr string) {
 	cb.CB_ADDR = paddr
@@ -50,4 +54,29 @@ func convertPermissionsNames(perms map[string]interface{}) map[string]interface{
 		}
 	}
 	return rval
+}
+
+func bubbleSort(arrayzor *[]interface{}, fn compare) {
+	array := *arrayzor
+	swapped := true;
+	for swapped {
+		swapped = false
+		for i := 0; i < len(array) - 1; i++ {
+			needToSwap := fn(arrayzor, i+1, i)
+			if  needToSwap {
+				swap(arrayzor, i, i + 1)
+				swapped = true
+			}
+		}
+	}
+}
+
+func swap(arrayzor *[]interface{}, i, j int) {
+	tmp := (*arrayzor)[j]
+	(*arrayzor)[j] = (*arrayzor)[i]
+	(*arrayzor)[i] = tmp
+}
+
+func isString(input interface{}) bool {
+	return input != nil && reflect.TypeOf(input).Name() == "string"
 }

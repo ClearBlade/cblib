@@ -56,6 +56,9 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 		name := role["Name"].(string)
 		fmt.Printf(" %s", name)
 		if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
+			fmt.Println("These are new roles:\n\n")
+			fmt.Println(role)
+			fmt.Println("\n\n")
 			if err := createRole(sysKey, role, client); err != nil {
 				return err
 			}

@@ -56,6 +56,7 @@ func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[strin
 			}
 		}
 	}
+
 	return rval, nil
 }
 func storeRoles(roles []map[string]interface{}) {
