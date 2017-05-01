@@ -229,8 +229,6 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return fmt.Errorf("Unable to process collection item array")
 	}
 
-	numberOfItems := len(itemArray) 
-
 	var compareCollectionItems compare = func(sliceOfItems *[]interface{}, i, j int) bool {
 		sortKey := "item_id"
 		map1 := (*sliceOfItems)[i].(map[string]interface{})
@@ -280,15 +278,6 @@ func writeRole(name string, data map[string]interface{}) error {
 	}
 	permissions := data["Permissions"].(map[string]interface{});
 	codeServices := permissions["CodeServices"].([]interface{});
-	updatedCodeServices := make([]interface{},len(codeServices))
-
-	for i := 0; i < len(codeServices); i++ {
-		var ok bool = false
-		updatedCodeServices[i], ok = codeServices[i].(interface{})
-		if !ok { 
-			return fmt.Errorf("Unable to parse individual role code service at index: %i\n", i)
-		}
- 	}
 
  	var compareCodeServicesInARole compare = func(sliceOfCodeServices *[]interface{}, i, j int) bool {
 		map1 := (*sliceOfCodeServices)[i].(map[string]interface{})
@@ -303,10 +292,7 @@ func writeRole(name string, data map[string]interface{}) error {
 		return name1.(string) < name2.(string)
 	}
 
- 	bubbleSort(&updatedCodeServices,compareCodeServicesInARole)
-	for i := 0 ; i < len(updatedCodeServices); i++ {
-		codeServices[i] = updatedCodeServices[i]
-	}
+ 	bubbleSort(&codeServices,compareCodeServicesInARole)
 
 	return writeEntity(rolesDir, name, data)
 }

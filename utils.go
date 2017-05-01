@@ -4,7 +4,6 @@ import (
 	//"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"strings"
-	"fmt"
 	"reflect"
 )
 
