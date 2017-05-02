@@ -1193,7 +1193,7 @@ func updateCollectionById(systemKey string, collection map[string]interface{}, c
 	}
 	return nil
 }
-
+// Required sync with new Go-SDK endpoint
 func updateCollectionByName(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
 	var err error
 	collection_name := ""
