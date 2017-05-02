@@ -245,15 +245,12 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func pullRole(systemKey string, roleName string, client *cb.DevClient) (map[string]interface{}, error) {
-	
 	r, err := client.GetAllRoles(systemKey)
 	if err != nil {
 		return nil, err
 	}
 	ok := false
 	var rval map[string]interface{}
-
-
 	for _, rIF := range r {
 		r := rIF.(map[string]interface{})
 		if r["Name"].(string) == roleName {
@@ -273,7 +270,6 @@ func PullAndWriteRoles(systemKey string, client *cb.DevClient) error {
 		return err
 	}
 	var roleMap map[string]interface{}
-
 	for i := 0; i < len(r); i++ {
 		roleMap = r[i].(map[string]interface{})
 		err = writeRole(roleMap["Name"].(string), roleMap)

@@ -8,6 +8,9 @@ import (
 	"os"
 )
 
+const SORT_KEY_CODE_SERVICE = "Name"
+const SORT_KEY_COLLECTION_ITEM = "item_id"
+
 var (
 	rootDir     string
 	dataDir     string
@@ -212,26 +215,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return fmt.Errorf("Unable to process collection item array")
 	}
 
-	var compareCollectionItems compare = func(sliceOfItems *[]interface{}, i, j int) bool {
-
-		sortKey := "item_id"
-
-		slice := *sliceOfItems
-
-		map1, castSuccess1 := slice[i].(map[string]interface{})
-		map2, castSuccess2 := slice[j].(map[string]interface{})
-
-		if !castSuccess1 || !castSuccess2 {
-			return false
-		}
-		
-		name1 := map1[sortKey]
-		name2 := map2[sortKey]
-		if !isString(name1) || !isString(name2) {
-			return false
-		}
-		return name1.(string) < name2.(string)
-	}
+	
 
 	bubbleSort(&itemArray,compareCollectionItems)
 
@@ -277,7 +261,7 @@ func writeRole(name string, data map[string]interface{}) error {
 	}
 
  	var compareCodeServicesInARole compare = func(sliceOfCodeServices *[]interface{}, i, j int) bool {
-		sortKey := "item_id"
+		sortKey := "Name"
 
 		slice := *sliceOfCodeServices
 
@@ -299,7 +283,6 @@ func writeRole(name string, data map[string]interface{}) error {
 	}
 
  	bubbleSort(&codeServices,compareCodeServicesInARole)
-
 	return writeEntity(rolesDir, name, data)
 }
 
@@ -596,3 +579,46 @@ func makeCollectionJsonConsistent(data map[string]interface{}) map[string]interf
 	delete(data, "appID")
 	return data
 }
+
+func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
+
+		sortKey := SORT_KEY_COLLECTION_ITEM
+
+		slice := *sliceOfItems
+
+		map1, castSuccess1 := slice[i].(map[string]interface{})
+		map2, castSuccess2 := slice[j].(map[string]interface{})
+
+		if !castSuccess1 || !castSuccess2 {
+			return false
+		}
+		
+		name1 := map1[sortKey]
+		name2 := map2[sortKey]
+		if !isString(name1) || !isString(name2) {
+			return false
+		}
+		return name1.(string) < name2.(string)
+	}
+
+func compareCodeServicesInARole(sliceOfCodeServices *[]interface{}, i, j int) bool {
+		sortKey := SORT_KEY_CODE_SERVICE
+
+		slice := *sliceOfCodeServices
+
+		map1, castSuccess1 := slice[i].(map[string]interface{})
+		map2, castSuccess2 := slice[j].(map[string]interface{})
+
+		if !castSuccess1 || !castSuccess2 {
+			return false
+		}
+
+		name1 := map1[sortKey]
+		name2 := map2[sortKey]
+
+		if !isString(name1) || !isString(name2) {
+			return false
+		}
+
+		return name1.(string) < name2.(string)
+	}
