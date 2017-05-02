@@ -215,8 +215,6 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return fmt.Errorf("Unable to process collection item array")
 	}
 
-	
-
 	bubbleSort(&itemArray,compareCollectionItems)
 
 	return writeEntity(dataDir, collectionName, data)
@@ -251,35 +249,17 @@ func writeRole(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return err
 	}
-	permissions, castSuccess := data["Permissions"].(map[string]interface{});
+	rawPermissions := data["Permissions"]
+	if rawPermissions == nil {
+		return fmt.Errorf("Permissions not found while processing role")
+	}
+	permissions, castSuccess := rawPermissions.(map[string]interface{});
 	if !castSuccess{
 		return fmt.Errorf("Unable to process role permissions")
 	}
 	codeServices, castSuccess := permissions["CodeServices"].([]interface{});
 	if !castSuccess{
 		return fmt.Errorf("Unable to process role's code services")
-	}
-
- 	var compareCodeServicesInARole compare = func(sliceOfCodeServices *[]interface{}, i, j int) bool {
-		sortKey := "Name"
-
-		slice := *sliceOfCodeServices
-
-		map1, castSuccess1 := slice[i].(map[string]interface{})
-		map2, castSuccess2 := slice[j].(map[string]interface{})
-
-		if !castSuccess1 || !castSuccess2 {
-			return false
-		}
-
-		name1 := map1[sortKey]
-		name2 := map2[sortKey]
-
-		if !isString(name1) || !isString(name2) {
-			return false
-		}
-
-		return name1.(string) < name2.(string)
 	}
 
  	bubbleSort(&codeServices,compareCodeServicesInARole)
