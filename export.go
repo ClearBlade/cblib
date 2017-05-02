@@ -102,7 +102,7 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 			return nil, err
 		}
 	}
-	
+
 	//remove the item_id column if it is not supposed to be exported
 	if !ExportItemId {
 		//Loop through the array of maps and find the one where ColumnName = item_id

@@ -560,6 +560,8 @@ func makeCollectionJsonConsistent(data map[string]interface{}) map[string]interf
 	return data
 }
 
+// Although this is similar to function below it,
+// The logic in this function will diverge soon from the one below it in cb-cli v3
 func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 
 		sortKey := SORT_KEY_COLLECTION_ITEM
