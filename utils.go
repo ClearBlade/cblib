@@ -55,25 +55,28 @@ func convertPermissionsNames(perms map[string]interface{}) map[string]interface{
 	return rval
 }
 
-func bubbleSort(arrayzor *[]interface{}, fn compare) {
-	array := *arrayzor
+func bubbleSort(arrayPointer *[]interface{}, compareFn compare) {
+	if(arrayPointer == nil){
+		return
+	}
+	array := *arrayPointer
 	swapped := true;
 	for swapped {
 		swapped = false
 		for i := 0; i < len(array) - 1; i++ {
-			needToSwap := fn(arrayzor, i+1, i)
+			needToSwap := compareFn(arrayPointer, i+1, i)
 			if  needToSwap {
-				swap(arrayzor, i, i + 1)
+				swap(arrayPointer, i, i + 1)
 				swapped = true
 			}
 		}
 	}
 }
 
-func swap(arrayzor *[]interface{}, i, j int) {
-	tmp := (*arrayzor)[j]
-	(*arrayzor)[j] = (*arrayzor)[i]
-	(*arrayzor)[i] = tmp
+func swap(array *[]interface{}, i, j int) {
+	tmp := (*array)[j]
+	(*array)[j] = (*array)[i]
+	(*array)[i] = tmp
 }
 
 func isString(input interface{}) bool {
