@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-type compare func(sliceOfCodeServices *[]interface{}, i int, j int) bool 
+type compare func(sliceOfSystemResources *[]interface{}, i int, j int) bool 
 
 func setupAddrs(paddr string, maddr string) {
 	cb.CB_ADDR = paddr
