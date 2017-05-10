@@ -32,7 +32,7 @@ func TestBubbleSort_Empty(test *testing.T){
 func TestBubbleSort_NilEntry(test *testing.T){
 	sortMe := []interface{}{"","a",nil}
 	truth := []interface{}{nil,"","a"}
-	bubbleSort(&sortMe, compareString)
+	sortByFunction(&sortMe, compareString)
 	for i := 0 ; i < len(sortMe) ; i++ {
 			if sortMe[i] == nil && truth[i] == nil {
 				continue;
@@ -50,7 +50,7 @@ func TestBubbleSort_NilEntry(test *testing.T){
 }
 
 func TestBubbleSort_NilArray(test *testing.T){
-	bubbleSort(nil, compareString)
+	sortByFunction(nil, compareString)
 }
 
 func TestIsString_Normal(t *testing.T){
@@ -82,7 +82,7 @@ func executeBubbleSortTests(inputOutput [][][]string) error {
 			sortMe[i] = input[i]
 		}
 
-		bubbleSort(&sortMe, compareString)
+		sortByFunction(&sortMe, compareString)
 
 
 		for i := 0 ; i < len(input) ; i++ {
