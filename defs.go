@@ -10,6 +10,7 @@ package cblib
 const (
 	NotExistErrorString  = "Does not exist"
 	SpecialNoCBMetaError = "No cbmeta file"
+	ExportItemIdDefault = true
 )
 
 var (
