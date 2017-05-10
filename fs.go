@@ -10,6 +10,7 @@ import (
 
 const SORT_KEY_CODE_SERVICE = "Name"
 const SORT_KEY_COLLECTION_ITEM = "item_id"
+const SORT_KEY_COLLECTION = "Name"
 
 var (
 	rootDir     string
@@ -215,7 +216,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return fmt.Errorf("Unable to process collection item array")
 	}
 
-	bubbleSort(&itemArray,compareCollectionItems)
+	sortByFunction(&itemArray,compareCollectionItems)
 
 	return writeEntity(dataDir, collectionName, data)
 }
@@ -261,8 +262,14 @@ func writeRole(name string, data map[string]interface{}) error {
 	if !castSuccess{
 		return fmt.Errorf("Unable to process role's code services")
 	}
+	collections, castSuccess := permissions["Collections"].([]interface{});
+	if !castSuccess{
+		return fmt.Errorf("Unable to process role's collections")
+	}
 
- 	bubbleSort(&codeServices,compareCodeServicesInARole)
+ 	sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
+ 	sortByMapKey(&collections, SORT_KEY_COLLECTION)
+ 	
 	return writeEntity(rolesDir, name, data)
 }
 
@@ -560,7 +567,7 @@ func makeCollectionJsonConsistent(data map[string]interface{}) map[string]interf
 	return data
 }
 
-// Although this is similar to function below it,
+// Although this is similar to utils.go's compareWithKey function,
 // The logic in this function will diverge soon from the one below it in cb-cli v3
 func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 
@@ -583,24 +590,3 @@ func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 		return name1.(string) < name2.(string)
 	}
 
-func compareCodeServicesInARole(sliceOfCodeServices *[]interface{}, i, j int) bool {
-		sortKey := SORT_KEY_CODE_SERVICE
-
-		slice := *sliceOfCodeServices
-
-		map1, castSuccess1 := slice[i].(map[string]interface{})
-		map2, castSuccess2 := slice[j].(map[string]interface{})
-
-		if !castSuccess1 || !castSuccess2 {
-			return false
-		}
-
-		name1 := map1[sortKey]
-		name2 := map2[sortKey]
-
-		if !isString(name1) || !isString(name2) {
-			return false
-		}
-
-		return name1.(string) < name2.(string)
-	}

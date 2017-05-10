@@ -55,7 +55,27 @@ func convertPermissionsNames(perms map[string]interface{}) map[string]interface{
 	return rval
 }
 
-func bubbleSort(arrayPointer *[]interface{}, compareFn compare) {
+// Bubble sort, compare by map key
+func sortByMapKey(arrayPointer *[]interface{}, sortKey string) {
+	if(arrayPointer == nil){
+		return
+	}
+	array := *arrayPointer
+	swapped := true;
+	for swapped {
+		swapped = false
+		for i := 0; i < len(array) - 1; i++ {
+			needToSwap := compareWithKey(sortKey, arrayPointer, i+1, i)
+			if  needToSwap {
+				swap(arrayPointer, i, i + 1)
+				swapped = true
+			}
+		}
+	}
+}
+
+// Bubble sort, compare by function
+func sortByFunction(arrayPointer *[]interface{}, compareFn compare) {
 	if(arrayPointer == nil){
 		return
 	}
@@ -82,3 +102,24 @@ func swap(array *[]interface{}, i, j int) {
 func isString(input interface{}) bool {
 	return input != nil && reflect.TypeOf(input).Name() == "string"
 }
+
+func compareWithKey(sortKey string, sliceOfCodeServices *[]interface{}, i, j int) bool {
+		slice := *sliceOfCodeServices
+
+		map1, castSuccess1 := slice[i].(map[string]interface{})
+		map2, castSuccess2 := slice[j].(map[string]interface{})
+
+		if !castSuccess1 || !castSuccess2 {
+			return false
+		}
+
+		name1 := map1[sortKey]
+		name2 := map2[sortKey]
+
+		if !isString(name1) || !isString(name2) {
+			return false
+		}
+
+		return name1.(string) < name2.(string)
+	}
+
