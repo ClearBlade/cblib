@@ -235,8 +235,11 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	delete(remoteThang, "library_key")
 
 	myPid := os.Getpid()
-	localFile := fmt.Sprintf("/tmp/%d-local.js", myPid)
-	remoteFile := fmt.Sprintf("/tmp/%d-remote.js", myPid)
+
+	tempDir := os.TempDir()
+
+	localFile := fmt.Sprintf("%s%d-local.js", tempDir, myPid)
+	remoteFile := fmt.Sprintf("%s%d-remote.js", tempDir, myPid)
 
 	if err = ioutil.WriteFile(localFile, []byte(lCode), 0666); err != nil {
 		return err
@@ -247,7 +250,7 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 
 	var diffCmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		diffCmd = exec.Command(fmt.Sprintf("FC %s %s", localFile, remoteFile))
+		diffCmd = exec.Command("FC", localFile, remoteFile)
 	} else {
 		diffCmd = exec.Command("/usr/bin/diff", localFile, remoteFile)
 	}
