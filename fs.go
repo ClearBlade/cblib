@@ -211,6 +211,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	if rawItemArray == nil{
 		return fmt.Errorf("Item array not found when accessing collection item array")
 	}
+	// Default value for items is an empty array, []
 	itemArray, castSuccess := rawItemArray.([]interface{});
 	if !castSuccess {
 		return fmt.Errorf("Unable to process collection item array")
@@ -256,19 +257,18 @@ func writeRole(name string, data map[string]interface{}) error {
 	}
 	permissions, castSuccess := rawPermissions.(map[string]interface{});
 	if !castSuccess{
-		return fmt.Errorf("Unable to process role permissions")
+		return fmt.Errorf("Unable to process role permissions: %v", rawPermissions)
 	}
+	// Default value for a role with no code services is null
 	codeServices, castSuccess := permissions["CodeServices"].([]interface{});
-	if !castSuccess{
-		return fmt.Errorf("Unable to process role's code services")
+	if castSuccess{
+ 		sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
 	}
+	// Default value for a role with no collections is null
 	collections, castSuccess := permissions["Collections"].([]interface{});
-	if !castSuccess{
-		return fmt.Errorf("Unable to process role's collections")
+	if castSuccess{
+ 		sortByMapKey(&collections, SORT_KEY_COLLECTION)
 	}
-
- 	sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
- 	sortByMapKey(&collections, SORT_KEY_COLLECTION)
  	
 	return writeEntity(rolesDir, name, data)
 }
