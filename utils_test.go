@@ -5,7 +5,7 @@ import (
 	"fmt"
 	)
 
-func TestBubbleSort_String(test *testing.T){
+func TestSort_String(test *testing.T){
 	// input, truth to be tested against output
 	rubric := [][][]string{
 		{{"c", "a", "b"}, {"a","b","c"}},
