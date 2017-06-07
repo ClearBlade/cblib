@@ -4,6 +4,9 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"strings"
+	 "path/filepath" 
+	 "os"
+	 "errors"
 )
 
 var (
@@ -400,26 +403,27 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	MetaInfo = svMetaInfo
 	return cli, nil
 }
+// Used in pairing with importMySystem: 
+func devTokenHardAuthorize()(*cb.DevClient, error) {
+	/*svMetaInfo := MetaInfo
+	path := filepath.Join(rootDir, "/.cbmeta")
+	
+	MetaInfo, _ = getDict(path)
+*/	if MetaInfo == nil {
+		return nil, errors.New("MetaInfo cannot be nil")
+	}	
+	SystemKey = "DummyTemporaryPlaceholder"
+	cli, err := Authorize(nil)
+	if err != nil {
+		return nil, err
+	}
+	SystemKey = ""
+	//MetaInfo = svMetaInfo
+	return cli, nil
+}
 
-func importIt(cli *cb.DevClient) error {
-	//fmt.Printf("Reading system configuration files...")
-	SetRootDir(".")
-	users, err := getUsers()
-	if err != nil {
-		return err
-	}
-
-	systemInfo, err := getDict("system.json")
-	if err != nil {
-		return err
-	}
-	// The DevClient should be null at this point because we are delaying auth until
-	// Now.
-	cli, err = hijackAuthorize()
-	if err != nil {
-		return err
-	}
-	//fmt.Printf("Done.\nImporting system...")
+func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
+	
 	fmt.Printf("Importing system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
@@ -437,12 +441,23 @@ func importIt(cli *cb.DevClient) error {
 		return fmt.Errorf("Could not create collections: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting code services...")
+	// Additonal modifications to the ImportIt functions
 	if err := createServices(systemInfo, cli); err != nil {
-		return err
+		serr, _ := err.(*os.PathError)
+		if err != serr {
+			return err
+	 	} else {
+	 		fmt.Printf("Warning: Could not import code services... -- ignoring\n")
+	 	}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
 	if err := createLibraries(systemInfo, cli); err != nil {
-		return err
+		serr, _ := err.(*os.PathError)
+		if err != serr {
+			return err
+	 	}  else {
+	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+	 	}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
 	if err := createTriggers(systemInfo, cli); err != nil {
@@ -476,4 +491,77 @@ func importIt(cli *cb.DevClient) error {
 
 	fmt.Printf("Done\n")
 	return nil
+}
+
+func importIt(cli *cb.DevClient) error {
+	//fmt.Printf("Reading system configuration files...")
+	SetRootDir(".")
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+
+	systemInfo, err := getDict("system.json")
+	if err != nil {
+		return err
+	}
+	// The DevClient should be null at this point because we are delaying auth until
+	// Now.
+	cli, err = hijackAuthorize()
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("Done.\nImporting system...")
+	
+	return importAllAssets(systemInfo, users, cli)
+}
+
+// Import assuming the system is there in the root directory
+// Alternative to ImportIt for Import from UI
+
+func importMySystem(cli *cb.DevClient, rootdirectory string) error {
+	//fmt.Printf("Reading system configuration files...")
+	// tempRootDir := rootDir 
+	SetRootDir(rootdirectory)
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+	// as we don't cd into folders we have to use full path !! 
+	path := filepath.Join(rootdirectory, "/system.json")
+
+	systemInfo, err := getDict(path)
+	if err != nil {
+		return err
+	}
+	// The DevClient is not null and Hijack to make sure the MetaInfo is not nil
+	cli, err = devTokenHardAuthorize() // Hijacking authorize 
+	if err != nil {
+		return err
+	}
+
+	
+	//SetRootDir(tempRootDir)
+	return importAllAssets(systemInfo, users, cli)
+}
+
+func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
+	
+	// Setting the globals : 
+	
+	tempmetaInfo := MetaInfo
+	MetaInfo = userInfo
+	 fmt.Printf("direcotry is: ", dir)
+	err := importMySystem(cli, dir)
+ 	MetaInfo = tempmetaInfo
+	URL = userInfo["platformURL"].(string)
+	MsgURL = userInfo["messagingURL"].(string)
+	Email = userInfo["developerEmail"].(string)
+	DevToken = userInfo["token"].(string)
+
+	er1 :=  os.Remove(dir)
+	if er1 != nil {
+		fmt.Printf("Error in removing directory: %v", er1.Error())
+	}
+	return err
 }
