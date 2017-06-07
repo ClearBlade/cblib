@@ -405,11 +405,8 @@ func hijackAuthorize() (*cb.DevClient, error) {
 }
 // Used in pairing with importMySystem: 
 func devTokenHardAuthorize()(*cb.DevClient, error) {
-	/*svMetaInfo := MetaInfo
-	path := filepath.Join(rootDir, "/.cbmeta")
-	
-	MetaInfo, _ = getDict(path)
-*/	if MetaInfo == nil {
+	// MetaInfo should not be nil, else the current process will prompt user on command line  
+	if MetaInfo == nil {
 		return nil, errors.New("MetaInfo cannot be nil")
 	}	
 	SystemKey = "DummyTemporaryPlaceholder"
@@ -418,12 +415,12 @@ func devTokenHardAuthorize()(*cb.DevClient, error) {
 		return nil, err
 	}
 	SystemKey = ""
-	//MetaInfo = svMetaInfo
 	return cli, nil
 }
 
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
 	
+	// Common set of calls for a complete system import 
 	fmt.Printf("Importing system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
@@ -520,8 +517,8 @@ func importIt(cli *cb.DevClient) error {
 // Alternative to ImportIt for Import from UI
 
 func importMySystem(cli *cb.DevClient, rootdirectory string) error {
-	//fmt.Printf("Reading system configuration files...")
-	// tempRootDir := rootDir 
+	
+	// Point the rootDirectory to the extracted folder
 	SetRootDir(rootdirectory)
 	users, err := getUsers()
 	if err != nil {
@@ -534,34 +531,31 @@ func importMySystem(cli *cb.DevClient, rootdirectory string) error {
 	if err != nil {
 		return err
 	}
-	// The DevClient is not null and Hijack to make sure the MetaInfo is not nil
-	cli, err = devTokenHardAuthorize() // Hijacking authorize 
+	// Hijack to make sure the MetaInfo is not nil
+	cli, err = devTokenHardAuthorize() // Hijacking Authorize() 
 	if err != nil {
 		return err
 	}
 
-	
-	//SetRootDir(tempRootDir)
 	return importAllAssets(systemInfo, users, cli)
 }
-
+// Call this wrapper from the end point !! 
 func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
 	
-	// Setting the globals : 
-	
+	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL  
+	// not changing the overall metaInfo, in case its used some where else 
 	tempmetaInfo := MetaInfo
 	MetaInfo = userInfo
-	 fmt.Printf("direcotry is: ", dir)
-	err := importMySystem(cli, dir)
+		
+	// similar to old importIt
+	err := importMySystem(cli, dir) 
  	MetaInfo = tempmetaInfo
-	URL = userInfo["platformURL"].(string)
-	MsgURL = userInfo["messagingURL"].(string)
-	Email = userInfo["developerEmail"].(string)
-	DevToken = userInfo["token"].(string)
+	
 
-	er1 :=  os.Remove(dir)
-	if er1 != nil {
-		fmt.Printf("Error in removing directory: %v", er1.Error())
+	// Deleting the extracted system fom the server once import is done
+	errExtractedDel :=  os.RemoveAll(dir)
+	if errExtractedDel != nil {
+		fmt.Printf("Error in removing directory: %v", errExtractedDel.Error())
 	}
 	return err
 }
