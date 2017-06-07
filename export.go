@@ -480,7 +480,7 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 
 func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	allDevices, err := cli.GetDevices(sysKey)
+	allDevices, err := cli.GetDevices(sysKey, nil)
 	if err != nil {
 		return nil, err
 	}
