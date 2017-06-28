@@ -518,7 +518,7 @@ func importIt(cli *cb.DevClient) error {
 // Alternative to ImportIt for Import from UI 
 // if intoExistingSystem is true then userInfo should have system key else error will be thrown
 
-func importSystem(cli *cb.DevClient, rootdirectory string, intoExistingSystem bool, userInfo map[string]interface{}) error {
+func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]interface{}) error {
 	
 	// Point the rootDirectory to the extracted folder
 	SetRootDir(rootdirectory)
@@ -539,7 +539,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, intoExistingSystem bo
 		return err
 	}
 	// updating system info accordingly
-	if intoExistingSystem {
+	if userInfo["import_into_existing_system"].(bool) {
 		systemInfo["systemKey"] = userInfo["system_key"]
 		systemInfo["systemSecret"] = userInfo["system_secret"]
 	} else {
@@ -553,14 +553,14 @@ func importSystem(cli *cb.DevClient, rootdirectory string, intoExistingSystem bo
 
 
 // Call this wrapper from the end point !! 
-func ImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}, intoExistingSystem bool) error {
+func ImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
 	
 	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL  
 	// not changing the overall metaInfo, in case its used some where else 
 	tempmetaInfo := MetaInfo
 	MetaInfo = userInfo	
 	// similar to old importIt
-	err := importSystem(cli, dir, intoExistingSystem, userInfo) 
+	err := importSystem(cli, dir, userInfo) 
  	MetaInfo = tempmetaInfo
 	return err
 }
