@@ -166,6 +166,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if _, err := PullDevices(systemInfo, client); err != nil {
 			return err
 		}
+		if _, err := pullDevicesSchema(systemInfo.Key, client, true); err != nil {
+			return err
+		}
 		fmt.Printf("\n")
 	}
 
@@ -175,6 +178,9 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if device, err := pullDevice(systemInfo.Key, DeviceName, client); err != nil {
 			return err
 		} else {
+			if _, err := pullDevicesSchema(systemInfo.Key, client, true); err != nil {
+				return err
+			}
 			writeDevice(DeviceName, device)
 		}
 	}

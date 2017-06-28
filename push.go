@@ -22,6 +22,7 @@ func init() {
 
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
 	pushCommand.flags.BoolVar(&EdgeSchema, "edgeschema", false, "push edges table schema")
+	pushCommand.flags.BoolVar(&DeviceSchema, "deviceschema", false, "push devices table schema")
 	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
 	pushCommand.flags.BoolVar(&AllDevices, "all-devices", false, "push all of the local devices")
@@ -210,6 +211,77 @@ func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 
 }
 
+func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
+	fmt.Println("Pushing device schema")
+	deviceSchema, err := getDevicesSchema()
+	if err != nil {
+		if strings.Contains(err.Error(), "No such file or directory") {
+			DeviceSchemaPresent = false
+		}
+		return err
+	}
+	DeviceSchemaPresent = true
+	allDeviceColumns, err := client.GetDeviceColumns(systemInfo.Key)
+
+	// lets get rid of the default edge columns
+	customDeviceColumns := []interface{}{}
+	sort.Strings(DefaultDeviceColumns)
+	for _, col := range allDeviceColumns {
+		colName := col.(map[string]interface{})["ColumnName"].(string)
+		if i := sort.SearchStrings(DefaultDeviceColumns, colName); DefaultDeviceColumns[i] != colName {
+			customDeviceColumns = append(customDeviceColumns, col)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	typedSchema, ok := deviceSchema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
+	}
+
+	//first lets delete any columns that are no longer present in schema.json
+	for _, existCol := range customDeviceColumns {
+		existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, schemaCol := range typedSchema {
+			schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			if err := client.DeleteDeviceColumn(systemInfo.Key, existColName); err != nil {
+				return fmt.Errorf("Unable to delete column '%s': %s", existColName, err.Error())
+			}
+		}
+	}
+
+	//now add any new columns
+	for _, schemaCol := range typedSchema {
+		schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, existCol := range customEdgeColumns {
+			existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			colType := schemaCol.(map[string]interface{})["ColumnType"].(string)
+			if colType == "" {
+				return fmt.Errorf("You must provide a type for column '%s'", schemaColName)
+			}
+			if err := client.CreateDeviceColumn(systemInfo.Key, schemaColName, colType); err != nil {
+				return fmt.Errorf("Unable to create column '%s': %s", schemaColName, err.Error())
+			}
+		}
+	}
+
+	return nil
+
+}
+
 func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
@@ -297,6 +369,19 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
+	if !DeviceSchemaPresent {
+		for columnName, _ := range device {
+			switch strings.ToLower(columnName) {
+				case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+					continue
+				default:
+					err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+					if err != nil {
+						return err
+					}
+			}
+		}
+	}
 	return updateDevice(systemInfo.Key, device, client)
 }
 
@@ -305,8 +390,21 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	for _, device := range devices {
+	for idx, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
+		if !DeviceSchemaPresent && idx == 0{
+			for columnName, _ := range device {
+				switch strings.ToLower(columnName) {
+					case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+						continue
+					default:
+						err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+						if err != nil {
+							return err
+						}
+				}
+			}
+		}
 		if err := updateDevice(systemInfo.Key, device, client); err != nil {
 			return fmt.Errorf("Error updating device '%s': %s\n", device["name"].(string), err.Error())
 		}
@@ -460,6 +558,15 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if err := pushEdgesSchema(systemInfo, client); err != nil {
 			return err
 		}
+	}
+
+	if DeviceSchema {
+		didSomething = true
+		if err := pushDevicesSchema(systemInfo, client); err != nil {
+			return err
+		}
+	} else {
+		DeviceSchemaPresent = false
 	}
 
 	if ServiceName != "" {
