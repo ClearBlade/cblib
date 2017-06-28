@@ -442,7 +442,7 @@ func getDevicesSchema() (map[string]interface{}, error) {
 }
 
 func getDevices() ([]map[string]interface{}, error) {
-	return getObjectList(devicesDir, []string{})
+	return getObjectList(devicesDir, []string{"schema.json"})
 }
 
 func getPortals() ([]map[string]interface{}, error) {

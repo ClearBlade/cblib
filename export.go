@@ -463,7 +463,10 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 	sort.Strings(DefaultEdgeColumns)
 	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
-		if i := sort.SearchStrings(DefaultEdgeColumns, col["ColumnName"].(string)); i < len(DefaultEdgeColumns) && DefaultEdgeColumns[i] != col["ColumnName"].(string) {
+		switch strings.ToLower(col["ColumnName"].(string)) {
+		case "edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables":
+			continue;
+		default:
 			columns = append(columns, col)
 		}
 	}
@@ -487,7 +490,10 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 	sort.Strings(DefaultDeviceColumns)
 	for _, colIF := range deviceCustomColumns {
 		col := colIF.(map[string]interface{})
-		if i := sort.SearchStrings(DefaultDeviceColumns, col["ColumnName"].(string)); i < len(DefaultDeviceColumns) && DefaultDeviceColumns[i] != col["ColumnName"].(string) {
+		switch strings.ToLower(col["ColumnName"].(string)) {
+		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+			continue;
+		default:
 			columns = append(columns, col)
 		}
 	}

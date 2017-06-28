@@ -250,7 +250,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	sysSecret := systemInfo["systemSecret"].(string)
 	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
-	if err != nil {
+	if err == nil {
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
 			for _, columnIF := range edgesCols {
@@ -262,6 +262,8 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 				}
 			}
 		}
+	} else {
+		return err
 	}
 
 	edges, err := getEdges()
@@ -286,7 +288,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 	sysKey := systemInfo["systemKey"].(string)
 	devicesSchema, err := getDevicesSchema()
 	if err != nil {
-		if strings.Contains(err.Error(), "No such file or directory") {
+		if strings.Contains(err.Error(), "no such file or directory") {
 			schemaPresent = false
 		} else {
 			return err

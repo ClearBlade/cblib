@@ -215,7 +215,7 @@ func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Println("Pushing device schema")
 	deviceSchema, err := getDevicesSchema()
 	if err != nil {
-		if strings.Contains(err.Error(), "No such file or directory") {
+		if strings.Contains(err.Error(), "no such file or directory") {
 			DeviceSchemaPresent = false
 		}
 		return err
@@ -963,6 +963,19 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 	delete(device, "device_key")
 	delete(device, "system_key")
 
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range device {
+		switch strings.ToLower(columnName) {
+		case "name", "type", "state", "description", "enabled", "allow_key_auth", "keys", "active_key", "allow_certificate_auth", "certificate":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+
 	if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
 		fmt.Printf("Could not find device %s\n", deviceName)
 		fmt.Printf("Would you like to create a new device named %s? (Y/n)", deviceName)
@@ -972,10 +985,14 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
 				device["name"] = deviceName
-				if _, err := client.CreateDevice(systemKey, deviceName, device); err != nil {
+				if _, err := client.CreateDevice(systemKey, deviceName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create device %s: %s", deviceName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new device %s\n", deviceName)
+				}
+				_, err = client.UpdateDevice(systemKey, deviceName, customColumns);
+				if err != nil {
+					return err
 				}
 			} else {
 				fmt.Printf("Device will not be created.\n")
@@ -1010,6 +1027,19 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 		edge["description"] = ""
 	}
 
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range edge {
+		switch strings.ToLower(columnName) {
+		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+
 	_, err := client.GetEdge(systemKey, edgeName)
 	if err != nil {
 		// Edge does not exist
@@ -1020,10 +1050,16 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 			return err
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
-				if _, err := client.CreateEdge(systemKey, edgeName, edge); err != nil {
+				if _, err := client.CreateEdge(systemKey, edgeName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create edge %s: %s", edgeName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new edge %s\n", edgeName)
+				}
+				_, err = client.UpdateEdge(systemKey, edgeName, customColumns)
+				if err != nil {
+					return err
+				} else {
+					return nil
 				}
 			} else {
 				fmt.Printf("Edge will not be created.\n")
@@ -1343,7 +1379,23 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 }
 
 func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.DevClient) error {
-	_, err := client.CreateEdge(systemKey, name, edge)
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range edge {
+		switch strings.ToLower(columnName) {
+		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+	_, err := client.CreateEdge(systemKey, name, originalColumns)
+	if err != nil {
+		return err
+	}
+	_, err = client.UpdateEdge(systemKey, name, customColumns)
 	if err != nil {
 		return err
 	}
@@ -1351,7 +1403,23 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 }
 
 func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
-	_, err := client.CreateDevice(systemKey, device["name"].(string), device)
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range device {
+		switch strings.ToLower(columnName) {
+		case "name", "type", "state", "description", "enabled", "allow_key_auth", "keys", "active_key", "allow_certificate_auth", "certificate":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+	_, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
+	if err != nil {
+		return err
+	}
+	_, err = client.UpdateDevice(systemKey, device["name"].(string), customColumns)
 	if err != nil {
 		return err
 	}
