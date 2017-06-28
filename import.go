@@ -7,7 +7,6 @@ import (
 	 "path/filepath"
 	 "os"
 	 "errors"
-	 "strings"
 )
 
 var (
@@ -305,7 +304,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 				}
 			}
 		} else {
-			return fmt.Error("columns key not present in schema.json for devices")
+			return fmt.Errorf("columns key not present in schema.json for devices")
 		}
 	}
 	devices, err := getDevices()
@@ -316,7 +315,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 		if !schemaPresent {
 			if idx == 0 {
 				for columnname, _ := range device {
-					switch strings.ToLower(colname) {
+					switch strings.ToLower(columnname) {
 						case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
 							continue
 						default:
@@ -324,6 +323,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 							if err != nil {
 								return err
 							}
+					}
 				}
 			}
 		}

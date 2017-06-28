@@ -478,7 +478,7 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 	return schema, nil
 }
 
-func pullDevicesSchema(systemKey string, cli *cb.DevClient) (map[string]interface{}, error) {
+func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
 	deviceCustomColumns, err := cli.GetDeviceColumns(systemKey)
 	if err != nil {
 		return nil, err

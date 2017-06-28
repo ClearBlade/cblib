@@ -261,7 +261,7 @@ func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	for _, schemaCol := range typedSchema {
 		schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
 		found := false
-		for _, existCol := range customEdgeColumns {
+		for _, existCol := range customDeviceColumns {
 			existColName := existCol.(map[string]interface{})["ColumnName"].(string)
 			if existColName == schemaColName {
 				found = true
