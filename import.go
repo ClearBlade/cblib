@@ -539,7 +539,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 		return err
 	}
 	// updating system info accordingly
-	if userInfo["import_into_existing_system"].(bool) {
+	if userInfo["importIntoExistingSystem"].(bool) {
 		systemInfo["systemKey"] = userInfo["system_key"]
 		systemInfo["systemSecret"] = userInfo["system_secret"]
 	} else {
