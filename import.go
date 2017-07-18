@@ -46,7 +46,6 @@ func createSystem(system map[string]interface{}, client *cb.DevClient) error {
 	}
 	system["systemKey"] = realSystem.Key
 	system["systemSecret"] = realSystem.Secret
-	fmt.Println("in CreateSystem : : : : System ky and secret ", realSystem.Key, realSystem.Secret)
 	return nil
 }
 
@@ -441,7 +440,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 	 	} else {
-	 		fmt.Printf("Warning: Could not import code services... -- ignoring \n")
+	 		fmt.Printf("Warning: Could not import code services... -- ignoring \n", err.Error())
 	 	}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
@@ -450,7 +449,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 	 	}  else {
-	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring \n")
+	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring \n", err.Error())
 	 	}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
@@ -533,6 +532,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 	if err != nil {
 		return err
 	}
+	
 	// Hijack to make sure the MetaInfo is not nil
 	cli, err = devTokenHardAuthorize() // Hijacking Authorize() 
 	if err != nil {
@@ -544,6 +544,9 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 		systemInfo["systemSecret"] = userInfo["system_secret"]
 	} else {
 		fmt.Printf("Importing system...")
+		if userInfo["systemName"] != nil {
+			systemInfo["name"] = userInfo["systemName"]	
+		}
 		if err := createSystem(systemInfo, cli); err != nil {
 			return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
 		}
