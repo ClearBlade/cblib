@@ -1174,6 +1174,26 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 	var colId string
 	var err error
 	if isConnect {
+		user, ok := collection["user"].(string)
+		if !ok {
+			return fmt.Errorf("User not present for connection collection. Please add a user to the json file")
+		}
+		dbtype, ok := collection["dbtype"].(string)
+		if !ok {
+			return fmt.Errorf("Dbtype not present for connection collection. Please add a db type to the json file")
+		}
+		dbname, ok := collection["dbname"].(string)
+		if !ok {
+			return fmt.Errorf("Dbname not present for connection collection. Please add a db name to the json file")
+		}
+		pw, ok := collection["password"].(string)
+		if !ok {
+			fmt.Printf("Database Name: %s\nDatabase Type: %s\nPlease enter the password for user %s : ", dbname, dbtype, user)
+			var newPW string
+			fmt.Scanln(&newPW)
+			fmt.Printf("%s\n", newPW)
+			collection["password"] = newPW
+		}
 		col, err := cb.GenerateConnectCollection(collection)
 		if err != nil {
 			return err
