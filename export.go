@@ -463,7 +463,10 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 	sort.Strings(DefaultEdgeColumns)
 	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
-		if i := sort.SearchStrings(DefaultEdgeColumns, col["ColumnName"].(string)); i < len(DefaultEdgeColumns) && DefaultEdgeColumns[i] != col["ColumnName"].(string) {
+		switch strings.ToLower(col["ColumnName"].(string)) {
+		case "edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables":
+			continue;
+		default:
 			columns = append(columns, col)
 		}
 	}
@@ -478,9 +481,36 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 	return schema, nil
 }
 
+func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
+	deviceCustomColumns, err := cli.GetDeviceColumns(systemKey)
+	if err != nil {
+		return nil, err
+	}
+	columns := []map[string]interface{}{}
+	sort.Strings(DefaultDeviceColumns)
+	for _, colIF := range deviceCustomColumns {
+		col := colIF.(map[string]interface{})
+		switch strings.ToLower(col["ColumnName"].(string)) {
+		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+			continue;
+		default:
+			columns = append(columns, col)
+		}
+	}
+	schema := map[string]interface{}{
+		"columns": columns,
+	}
+	if writeThem {
+		if err := writeDevice("schema", schema); err != nil {
+			return nil, err
+		}
+	}
+	return schema, nil
+}
+
 func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	allDevices, err := cli.GetDevices(sysKey)
+	allDevices, err := cli.GetDevices(sysKey, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -679,8 +709,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
 	}
 	systemDotJSON["edges"] = edges
-
 	fmt.Printf(" Done.\nExporting Devices...")
+	if _, err := pullDevicesSchema(sysKey, cli, true); err != nil {
+		fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
+	}
 	devices, err := PullDevices(sysMeta, cli)
 	if err != nil {
 		return err

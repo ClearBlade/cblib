@@ -4,6 +4,9 @@ import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
 	"strings"
+	 "path/filepath"
+	 "os"
+	 "errors"
 )
 
 var (
@@ -247,7 +250,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	sysSecret := systemInfo["systemSecret"].(string)
 	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
-	if err != nil {
+	if err == nil {
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
 			for _, columnIF := range edgesCols {
@@ -259,6 +262,8 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 				}
 			}
 		}
+	} else {
+		return err
 	}
 
 	edges, err := getEdges()
@@ -279,12 +284,51 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 }
 
 func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	schemaPresent := true
 	sysKey := systemInfo["systemKey"].(string)
+	devicesSchema, err := getDevicesSchema()
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			schemaPresent = false
+		} else {
+			return err
+		}
+	}
+	if schemaPresent {
+		deviceCols, ok := devicesSchema["columns"].([]interface{})
+		if ok {
+			for _, columnIF := range deviceCols {
+				column := columnIF.(map[string]interface{})
+				columnName := column["ColumnName"].(string)
+				columnType := column["ColumnType"].(string)
+				if err := client.CreateDeviceColumn(sysKey, columnName, columnType); err != nil {
+					return fmt.Errorf("Could not create devices column %s: %s", columnName, err.Error())
+				}
+			}
+		} else {
+			return fmt.Errorf("columns key not present in schema.json for devices")
+		}
+	}
 	devices, err := getDevices()
 	if err != nil {
 		return err
 	}
-	for _, device := range devices {
+	for idx, device := range devices {
+		if !schemaPresent {
+			if idx == 0 {
+				for columnname, _ := range device {
+					switch strings.ToLower(columnname) {
+						case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+							continue
+						default:
+							err := client.CreateDeviceColumn(sysKey, columnname, "string")
+							if err != nil {
+								return err
+							}
+					}
+				}
+			}
+		}
 		fmt.Printf(" %s", device["name"].(string))
 		if err := createDevice(sysKey, device, client); err != nil {
 			return err
@@ -400,26 +444,24 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	MetaInfo = svMetaInfo
 	return cli, nil
 }
+// Used in pairing with importMySystem:
+func devTokenHardAuthorize()(*cb.DevClient, error) {
+	// MetaInfo should not be nil, else the current process will prompt user on command line
+	if MetaInfo == nil {
+		return nil, errors.New("MetaInfo cannot be nil")
+	}
+	SystemKey = "DummyTemporaryPlaceholder"
+	cli, err := Authorize(nil)
+	if err != nil {
+		return nil, err
+	}
+	SystemKey = ""
+	return cli, nil
+}
 
-func importIt(cli *cb.DevClient) error {
-	//fmt.Printf("Reading system configuration files...")
-	SetRootDir(".")
-	users, err := getUsers()
-	if err != nil {
-		return err
-	}
+func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
 
-	systemInfo, err := getDict("system.json")
-	if err != nil {
-		return err
-	}
-	// The DevClient should be null at this point because we are delaying auth until
-	// Now.
-	cli, err = hijackAuthorize()
-	if err != nil {
-		return err
-	}
-	//fmt.Printf("Done.\nImporting system...")
+	// Common set of calls for a complete system import
 	fmt.Printf("Importing system...")
 	if err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
@@ -437,12 +479,23 @@ func importIt(cli *cb.DevClient) error {
 		return fmt.Errorf("Could not create collections: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting code services...")
+	// Additonal modifications to the ImportIt functions
 	if err := createServices(systemInfo, cli); err != nil {
-		return err
+		serr, _ := err.(*os.PathError)
+		if err != serr {
+			return err
+	 	} else {
+	 		fmt.Printf("Warning: Could not import code services... -- ignoring\n")
+	 	}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
 	if err := createLibraries(systemInfo, cli); err != nil {
-		return err
+		serr, _ := err.(*os.PathError)
+		if err != serr {
+			return err
+	 	}  else {
+	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+	 	}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
 	if err := createTriggers(systemInfo, cli); err != nil {
@@ -476,4 +529,74 @@ func importIt(cli *cb.DevClient) error {
 
 	fmt.Printf("Done\n")
 	return nil
+}
+
+func importIt(cli *cb.DevClient) error {
+	//fmt.Printf("Reading system configuration files...")
+	SetRootDir(".")
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+
+	systemInfo, err := getDict("system.json")
+	if err != nil {
+		return err
+	}
+	// The DevClient should be null at this point because we are delaying auth until
+	// Now.
+	cli, err = hijackAuthorize()
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("Done.\nImporting system...")
+
+	return importAllAssets(systemInfo, users, cli)
+}
+
+// Import assuming the system is there in the root directory
+// Alternative to ImportIt for Import from UI
+
+func importMySystem(cli *cb.DevClient, rootdirectory string) error {
+
+	// Point the rootDirectory to the extracted folder
+	SetRootDir(rootdirectory)
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+	// as we don't cd into folders we have to use full path !!
+	path := filepath.Join(rootdirectory, "/system.json")
+
+	systemInfo, err := getDict(path)
+	if err != nil {
+		return err
+	}
+	// Hijack to make sure the MetaInfo is not nil
+	cli, err = devTokenHardAuthorize() // Hijacking Authorize()
+	if err != nil {
+		return err
+	}
+
+	return importAllAssets(systemInfo, users, cli)
+}
+// Call this wrapper from the end point !!
+func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
+
+	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL
+	// not changing the overall metaInfo, in case its used some where else
+	tempmetaInfo := MetaInfo
+	MetaInfo = userInfo
+
+	// similar to old importIt
+	err := importMySystem(cli, dir)
+ 	MetaInfo = tempmetaInfo
+
+
+	// Deleting the extracted system fom the server once import is done
+	errExtractedDel :=  os.RemoveAll(dir)
+	if errExtractedDel != nil {
+		fmt.Printf("Error in removing directory: %v", errExtractedDel.Error())
+	}
+	return err
 }

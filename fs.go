@@ -211,6 +211,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	if rawItemArray == nil{
 		return fmt.Errorf("Item array not found when accessing collection item array")
 	}
+	// Default value for items is an empty array, []
 	itemArray, castSuccess := rawItemArray.([]interface{});
 	if !castSuccess {
 		return fmt.Errorf("Unable to process collection item array")
@@ -256,20 +257,19 @@ func writeRole(name string, data map[string]interface{}) error {
 	}
 	permissions, castSuccess := rawPermissions.(map[string]interface{});
 	if !castSuccess{
-		return fmt.Errorf("Unable to process role permissions")
+		return fmt.Errorf("Unable to process role permissions: %v", rawPermissions)
 	}
+	// Default value for a role with no code services is null
 	codeServices, castSuccess := permissions["CodeServices"].([]interface{});
-	if !castSuccess{
-		return fmt.Errorf("Unable to process role's code services")
+	if castSuccess{
+ 		sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
 	}
+	// Default value for a role with no collections is null
 	collections, castSuccess := permissions["Collections"].([]interface{});
-	if !castSuccess{
-		return fmt.Errorf("Unable to process role's collections")
+	if castSuccess{
+ 		sortByMapKey(&collections, SORT_KEY_COLLECTION)
 	}
 
- 	sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
- 	sortByMapKey(&collections, SORT_KEY_COLLECTION)
- 	
 	return writeEntity(rolesDir, name, data)
 }
 
@@ -437,8 +437,12 @@ func getEdgesSchema() (map[string]interface{}, error) {
 	return getObject(edgesDir, "schema.json")
 }
 
+func getDevicesSchema() (map[string]interface{}, error) {
+	return getObject(devicesDir, "schema.json")
+}
+
 func getDevices() ([]map[string]interface{}, error) {
-	return getObjectList(devicesDir, []string{})
+	return getObjectList(devicesDir, []string{"schema.json"})
 }
 
 func getPortals() ([]map[string]interface{}, error) {
@@ -581,7 +585,7 @@ func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 		if !castSuccess1 || !castSuccess2 {
 			return false
 		}
-		
+
 		name1 := map1[sortKey]
 		name2 := map2[sortKey]
 		if !isString(name1) || !isString(name2) {
@@ -589,4 +593,3 @@ func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 		}
 		return name1.(string) < name2.(string)
 	}
-
