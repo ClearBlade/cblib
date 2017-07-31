@@ -269,7 +269,7 @@ func writeRole(name string, data map[string]interface{}) error {
 	if castSuccess{
  		sortByMapKey(&collections, SORT_KEY_COLLECTION)
 	}
- 	
+
 	return writeEntity(rolesDir, name, data)
 }
 
@@ -437,8 +437,12 @@ func getEdgesSchema() (map[string]interface{}, error) {
 	return getObject(edgesDir, "schema.json")
 }
 
+func getDevicesSchema() (map[string]interface{}, error) {
+	return getObject(devicesDir, "schema.json")
+}
+
 func getDevices() ([]map[string]interface{}, error) {
-	return getObjectList(devicesDir, []string{})
+	return getObjectList(devicesDir, []string{"schema.json"})
 }
 
 func getPortals() ([]map[string]interface{}, error) {
@@ -581,7 +585,7 @@ func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 		if !castSuccess1 || !castSuccess2 {
 			return false
 		}
-		
+
 		name1 := map1[sortKey]
 		name2 := map2[sortKey]
 		if !isString(name1) || !isString(name2) {
@@ -589,4 +593,3 @@ func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 		}
 		return name1.(string) < name2.(string)
 	}
-
