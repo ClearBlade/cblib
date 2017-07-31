@@ -5,9 +5,10 @@ import (
 	cb "github.com/clearblade/Go-SDK"
 	"strings"
 	"reflect"
+	"math/rand"
 )
 
-type compare func(sliceOfSystemResources *[]interface{}, i int, j int) bool 
+type compare func(sliceOfSystemResources *[]interface{}, i int, j int) bool
 
 func setupAddrs(paddr string, maddr string) {
 	cb.CB_ADDR = paddr
@@ -104,22 +105,30 @@ func isString(input interface{}) bool {
 }
 
 func compareWithKey(sortKey string, sliceOfCodeServices *[]interface{}, i, j int) bool {
-		slice := *sliceOfCodeServices
+	slice := *sliceOfCodeServices
 
-		map1, castSuccess1 := slice[i].(map[string]interface{})
-		map2, castSuccess2 := slice[j].(map[string]interface{})
+	map1, castSuccess1 := slice[i].(map[string]interface{})
+	map2, castSuccess2 := slice[j].(map[string]interface{})
 
-		if !castSuccess1 || !castSuccess2 {
-			return false
-		}
-
-		name1 := map1[sortKey]
-		name2 := map2[sortKey]
-
-		if !isString(name1) || !isString(name2) {
-			return false
-		}
-
-		return name1.(string) < name2.(string)
+	if !castSuccess1 || !castSuccess2 {
+		return false
 	}
 
+	name1 := map1[sortKey]
+	name2 := map2[sortKey]
+
+	if !isString(name1) || !isString(name2) {
+		return false
+	}
+
+	return name1.(string) < name2.(string)
+}
+
+func randSeq(n int) string {
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+  b := make([]rune, n)
+  for i := range b {
+      b[i] = letters[rand.Intn(len(letters))]
+  }
+  return string(b)
+}
