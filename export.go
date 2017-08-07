@@ -465,7 +465,7 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
 		case "edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables":
-			continue;
+			continue
 		default:
 			columns = append(columns, col)
 		}
@@ -492,7 +492,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
 		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
-			continue;
+			continue
 		default:
 			columns = append(columns, col)
 		}
@@ -533,9 +533,9 @@ func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
-func pullEdgeSyncInfo(sysMeta *System_meta, cli *cb.DevClient) (map[string]interface{}, error) {
+func pullEdgeDeployInfo(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	syncMap, err := cli.GetSyncResourcesForEdge(sysKey)
+	syncMap, err := cli.GetDeployResourcesForSystem(sysKey)
 	if err != nil {
 		return nil, err
 	}
@@ -719,8 +719,8 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["devices"] = devices
 
-	fmt.Printf(" Done.\nExporting Edge Sync Information...")
-	syncInfo, err := pullEdgeSyncInfo(sysMeta, cli)
+	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
+	syncInfo, err := pullEdgeDeployInfo(sysMeta, cli)
 	if err != nil {
 		return err
 	}
