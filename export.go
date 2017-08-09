@@ -535,11 +535,11 @@ func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 
 func pullEdgeDeployInfo(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	syncMap, err := cli.GetDeployResourcesForSystem(sysKey)
+	deployList, err := cli.GetDeployResourcesForSystem(sysKey)
 	if err != nil {
 		return nil, err
 	}
-	return syncMap, nil
+	return deployList, nil
 }
 
 func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -600,17 +600,22 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	if exportOptionsExist() {
+	var err error
+	//if exportOptionsExist() {
+	if DevToken != "" {
 		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
-		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
+		client, err = Authorize(nil)
+		if err != nil {
+			return fmt.Errorf("Authorize FAILED: %s\n", err)
+		}
 	}
 
 	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
-	client, err := checkIfTokenHasExpired(client, SystemKey)
+	client, err = checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
 		return fmt.Errorf("Re-auth failed: %s", err)
 	}
@@ -720,11 +725,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["devices"] = devices
 
 	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
-	syncInfo, err := pullEdgeDeployInfo(sysMeta, cli)
+	deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["edge_sync"] = syncInfo
+	systemDotJSON["edge_deploy"] = deployInfo
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := PullPortals(sysMeta, cli)
@@ -741,6 +746,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["plugins"] = plugins
 
 	fmt.Printf(" Done.\n")
+
+	if err = storeDeployDotJSON(deployInfo); err != nil {
+		return err
+	}
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
@@ -767,7 +776,7 @@ func setupFromRepo() {
 	if err != nil {
 		fmt.Printf("Error getting sys meta: %s\n", err.Error())
 		curDir, _ := os.Getwd()
-		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
+		fmt.Printf("Current directory is %s\n", curDir)
 	}
 	Email, ok = MetaInfo["developerEmail"].(string)
 	if !ok {

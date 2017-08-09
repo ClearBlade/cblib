@@ -25,11 +25,9 @@ var (
 	uniqueKeys       map[string]string
 	suppressErrors   []int
 	printedDiffCount int
-	runtimeStack     []byte
 )
 
 func init() {
-	runtimeStack = make([]byte, 1000000)
 	printedDiffCount = 0
 	suppressErrors = []int{0}
 	names = NewStack("names")
@@ -205,10 +203,6 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	if err != nil {
 		return err
 	}
-	/*
-		byts, _ := json.MarshalIndent(rolesInfo, "", "    ")
-		fmt.Printf("RolesInfo: %s\n", string(byts))
-	*/
 	localThang, err := lf(thangName)
 	if err != nil {
 		return err
