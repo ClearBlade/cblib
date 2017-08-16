@@ -1,12 +1,18 @@
 package cblib
 
 import (
+	"errors"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"os"
+	"path/filepath"
 	"strings"
+<<<<<<< HEAD
 	 "path/filepath"
 	 "os"
 	 "errors"
+=======
+>>>>>>> master
 )
 
 var (
@@ -58,11 +64,11 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	for _, role := range roles {
 		name := role["Name"].(string)
 		fmt.Printf(" %s", name)
-		if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
-			if err := createRole(sysKey, role, client); err != nil {
-				return err
-			}
+		//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
+		if err := createRole(sysKey, role, client); err != nil {
+			return err
 		}
+		//}
 	}
 	// ids were created on import for the new roles, grab those
 	rolesInfo, err = pullRoles(sysKey, client, false) // global :(
@@ -250,7 +256,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	sysSecret := systemInfo["systemSecret"].(string)
 	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
-	if err != nil {
+	if err == nil {
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
 			for _, columnIF := range edgesCols {
@@ -262,6 +268,8 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 				}
 			}
 		}
+	} else {
+		return err
 	}
 
 	edges, err := getEdges()
@@ -282,12 +290,51 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 }
 
 func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	schemaPresent := true
 	sysKey := systemInfo["systemKey"].(string)
+	devicesSchema, err := getDevicesSchema()
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			schemaPresent = false
+		} else {
+			return err
+		}
+	}
+	if schemaPresent {
+		deviceCols, ok := devicesSchema["columns"].([]interface{})
+		if ok {
+			for _, columnIF := range deviceCols {
+				column := columnIF.(map[string]interface{})
+				columnName := column["ColumnName"].(string)
+				columnType := column["ColumnType"].(string)
+				if err := client.CreateDeviceColumn(sysKey, columnName, columnType); err != nil {
+					return fmt.Errorf("Could not create devices column %s: %s", columnName, err.Error())
+				}
+			}
+		} else {
+			return fmt.Errorf("columns key not present in schema.json for devices")
+		}
+	}
 	devices, err := getDevices()
 	if err != nil {
 		return err
 	}
-	for _, device := range devices {
+	for idx, device := range devices {
+		if !schemaPresent {
+			if idx == 0 {
+				for columnname, _ := range device {
+					switch strings.ToLower(columnname) {
+					case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+						continue
+					default:
+						err := client.CreateDeviceColumn(sysKey, columnname, "string")
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
 		fmt.Printf(" %s", device["name"].(string))
 		var randomActiveKey string
 		activeKey, ok := device["active_key"].(string)
@@ -325,11 +372,47 @@ func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) erro
 	return nil
 }
 
-func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createAllEdgeDeployment(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	//  First, look for deploy.json file. This is the new way of doing edge
+	//  deployment. If that fails try the old way.
+	if fileExists(rootDir + "/deploy.json") {
+		info, err := getEdgeDeployInfo()
+		if err != nil {
+			return err
+		}
+		return createEdgeDeployInfo(systemInfo, info, client)
+	}
+	return oldCreateEdgeDeployInfo(systemInfo, client) // old deprecated way
+}
+
+func createEdgeDeployInfo(systemInfo, deployInfo map[string]interface{}, client *cb.DevClient) error {
+	deployList := deployInfo["deployInfo"].([]interface{})
+	sysKey := systemInfo["systemKey"].(string)
+
+	for _, deployOneIF := range deployList {
+		deployOne, ok := deployOneIF.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("Poorly structured edge deploy info")
+		}
+		platform := deployOne["platform"].(bool)
+		resName := deployOne["resource_identifier"].(string)
+		resType := deployOne["resource_type"].(string)
+
+		//  Go sdk expects the edge query to be in the Query format, not a string
+		edgeQueryStr := deployOne["edge"].(string)
+		_, err := client.CreateDeployResourcesForSystem(sysKey, resName, resType, platform, edgeQueryStr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func oldCreateEdgeDeployInfo(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	edgeInfo, ok := systemInfo["edgeSync"].(map[string]interface{})
 	if !ok {
-		fmt.Printf("WARNING: Could not find any edge sync information\n")
+		fmt.Printf("Warning: Could not find any edge sync information\n")
 		return nil
 	}
 	for edgeName, edgeSyncInfoIF := range edgeInfo {
@@ -337,7 +420,7 @@ func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient)
 		if !ok {
 			return fmt.Errorf("Poorly formed edge sync info")
 		}
-		converted, err := convertSyncInfo(edgeSyncInfo)
+		converted, err := convertOldEdgeDeployInfo(edgeSyncInfo)
 		if err != nil {
 			return err
 		}
@@ -363,7 +446,8 @@ func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) erro
 	}
 	return nil
 }
-func convertSyncInfo(info map[string]interface{}) (map[string][]string, error) {
+
+func convertOldEdgeDeployInfo(info map[string]interface{}) (map[string][]string, error) {
 	rval := map[string][]string{
 		"service": []string{},
 		"library": []string{},
@@ -417,8 +501,14 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	MetaInfo = svMetaInfo
 	return cli, nil
 }
+<<<<<<< HEAD
 // Used in pairing with importMySystem:
 func devTokenHardAuthorize()(*cb.DevClient, error) {
+=======
+
+// Used in pairing with importMySystem:
+func devTokenHardAuthorize() (*cb.DevClient, error) {
+>>>>>>> master
 	// MetaInfo should not be nil, else the current process will prompt user on command line
 	if MetaInfo == nil {
 		return nil, errors.New("MetaInfo cannot be nil")
@@ -457,18 +547,18 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
-	 	} else {
-	 		fmt.Printf("Warning: Could not import code services... -- ignoring\n")
-	 	}
+		} else {
+			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
+		}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
 	if err := createLibraries(systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
-	 	}  else {
-	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
-	 	}
+		} else {
+			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+		}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
 	if err := createTriggers(systemInfo, cli); err != nil {
@@ -495,12 +585,12 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	if err := createPlugins(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create plugins: %s", err.Error())
 	}
-	fmt.Printf(" Done.\nImporting edge sync information...")
-	if err := createEdgeSyncInfo(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create edge sync information: %s", err.Error())
+	fmt.Printf(" Done.\nImporting edge deploy information...")
+	if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create edge deploy information: %s", err.Error())
 	}
 
-	fmt.Printf("Done\n")
+	fmt.Printf(" Done\n")
 	return nil
 }
 
@@ -553,6 +643,10 @@ func importMySystem(cli *cb.DevClient, rootdirectory string) error {
 
 	return importAllAssets(systemInfo, users, cli)
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 // Call this wrapper from the end point !!
 func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
 
@@ -563,11 +657,15 @@ func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[strin
 
 	// similar to old importIt
 	err := importMySystem(cli, dir)
+<<<<<<< HEAD
  	MetaInfo = tempmetaInfo
 
+=======
+	MetaInfo = tempmetaInfo
+>>>>>>> master
 
 	// Deleting the extracted system fom the server once import is done
-	errExtractedDel :=  os.RemoveAll(dir)
+	errExtractedDel := os.RemoveAll(dir)
 	if errExtractedDel != nil {
 		fmt.Printf("Error in removing directory: %v", errExtractedDel.Error())
 	}

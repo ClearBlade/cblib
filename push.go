@@ -22,6 +22,7 @@ func init() {
 
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
 	pushCommand.flags.BoolVar(&EdgeSchema, "edgeschema", false, "push edges table schema")
+	pushCommand.flags.BoolVar(&DeviceSchema, "deviceschema", false, "push devices table schema")
 	pushCommand.flags.BoolVar(&AllServices, "all-services", false, "push all of the local services")
 	pushCommand.flags.BoolVar(&AllLibraries, "all-libraries", false, "push all of the local libraries")
 	pushCommand.flags.BoolVar(&AllDevices, "all-devices", false, "push all of the local devices")
@@ -113,7 +114,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
-					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed\n", err)
+					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 				}
 			}
 		}
@@ -135,7 +136,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
-					return fmt.Errorf("User schema could not be updated\n", err)
+					return fmt.Errorf("User schema could not be updated: %s", err)
 				}
 			}
 		}
@@ -201,6 +202,77 @@ func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 				return fmt.Errorf("You must provide a type for column '%s'", schemaColName)
 			}
 			if err := client.CreateEdgeColumn(systemInfo.Key, schemaColName, colType); err != nil {
+				return fmt.Errorf("Unable to create column '%s': %s", schemaColName, err.Error())
+			}
+		}
+	}
+
+	return nil
+
+}
+
+func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
+	fmt.Println("Pushing device schema")
+	deviceSchema, err := getDevicesSchema()
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			DeviceSchemaPresent = false
+		}
+		return err
+	}
+	DeviceSchemaPresent = true
+	allDeviceColumns, err := client.GetDeviceColumns(systemInfo.Key)
+
+	// lets get rid of the default edge columns
+	customDeviceColumns := []interface{}{}
+	sort.Strings(DefaultDeviceColumns)
+	for _, col := range allDeviceColumns {
+		colName := col.(map[string]interface{})["ColumnName"].(string)
+		if i := sort.SearchStrings(DefaultDeviceColumns, colName); DefaultDeviceColumns[i] != colName {
+			customDeviceColumns = append(customDeviceColumns, col)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	typedSchema, ok := deviceSchema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
+	}
+
+	//first lets delete any columns that are no longer present in schema.json
+	for _, existCol := range customDeviceColumns {
+		existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, schemaCol := range typedSchema {
+			schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			if err := client.DeleteDeviceColumn(systemInfo.Key, existColName); err != nil {
+				return fmt.Errorf("Unable to delete column '%s': %s", existColName, err.Error())
+			}
+		}
+	}
+
+	//now add any new columns
+	for _, schemaCol := range typedSchema {
+		schemaColName := schemaCol.(map[string]interface{})["ColumnName"].(string)
+		found := false
+		for _, existCol := range customDeviceColumns {
+			existColName := existCol.(map[string]interface{})["ColumnName"].(string)
+			if existColName == schemaColName {
+				found = true
+			}
+		}
+		if !found {
+			colType := schemaCol.(map[string]interface{})["ColumnType"].(string)
+			if colType == "" {
+				return fmt.Errorf("You must provide a type for column '%s'", schemaColName)
+			}
+			if err := client.CreateDeviceColumn(systemInfo.Key, schemaColName, colType); err != nil {
 				return fmt.Errorf("Unable to create column '%s': %s", schemaColName, err.Error())
 			}
 		}
@@ -297,6 +369,7 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	var randomActiveKey string
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
@@ -309,6 +382,19 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 			randomActiveKey = randSeq(8)
 			device["active_key"] = randomActiveKey
+=======
+	if !DeviceSchemaPresent {
+		for columnName, _ := range device {
+			switch strings.ToLower(columnName) {
+			case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+				continue
+			default:
+				err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+				if err != nil {
+					return err
+				}
+			}
+>>>>>>> master
 		}
 	}
 	return updateDevice(systemInfo.Key, device, client)
@@ -319,8 +405,9 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	for _, device := range devices {
+	for idx, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
+<<<<<<< HEAD
 		var randomActiveKey string
 		activeKey, ok := device["active_key"].(string)
 		if !ok {
@@ -333,6 +420,19 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 				fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 				randomActiveKey = randSeq(8)
 				device["active_key"] = randomActiveKey
+=======
+		if !DeviceSchemaPresent && idx == 0 {
+			for columnName, _ := range device {
+				switch strings.ToLower(columnName) {
+				case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+					continue
+				default:
+					err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+					if err != nil {
+						return err
+					}
+				}
+>>>>>>> master
 			}
 		}
 		if err := updateDevice(systemInfo.Key, device, client); err != nil {
@@ -490,6 +590,15 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if DeviceSchema {
+		didSomething = true
+		if err := pushDevicesSchema(systemInfo, client); err != nil {
+			return err
+		}
+	} else {
+		DeviceSchemaPresent = false
+	}
+
 	if ServiceName != "" {
 		didSomething = true
 		if err := pushOneService(systemInfo, client); err != nil {
@@ -610,18 +719,23 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func createRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
-	createIF, err := client.CreateRole(systemKey, role["Name"].(string))
-	if err != nil {
-		return err
-	}
-	createDict, ok := createIF.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("return value from CreateRole is not a map. It is %T", createIF)
-	}
-	fmt.Printf("Create Role returned: %+v\n", createDict)
-	roleID, ok := createDict["role_id"].(string)
-	if !ok {
-		return fmt.Errorf("Did not get role_id key back from successful CreateRole call")
+	roleName := role["Name"].(string)
+	var roleID string
+	if roleName != "Authenticated" && roleName != "Anonymous" && roleName != "Administrator" {
+		createIF, err := client.CreateRole(systemKey, role["Name"].(string))
+		if err != nil {
+			return err
+		}
+		createDict, ok := createIF.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("return value from CreateRole is not a map. It is %T", createIF)
+		}
+		roleID, ok = createDict["role_id"].(string)
+		if !ok {
+			return fmt.Errorf("Did not get role_id key back from successful CreateRole call")
+		}
+	} else {
+		roleID = roleName // Administrator, Authorized, Anonymous
 	}
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
@@ -629,7 +743,7 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 	}
 	convertedPermissions := convertPermissionsStructure(permissions)
 	convertedRole := map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}
-	if err = client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
+	if err := client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
 		return err
 	}
 	return nil
@@ -643,7 +757,6 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 //  THis is a gigantic cluster. We need to fix and learn from this. -swm
 //
 func convertPermissionsStructure(in map[string]interface{}) map[string]interface{} {
-	fmt.Printf("convertPermissionStructure: %+v\n", in)
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -728,7 +841,6 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 		default:
 		}
 	}
-	fmt.Printf("convert results: %+v\n", out)
 	return out
 }
 
@@ -884,6 +996,19 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 	delete(device, "device_key")
 	delete(device, "system_key")
 
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range device {
+		switch strings.ToLower(columnName) {
+		case "name", "type", "state", "description", "enabled", "allow_key_auth", "keys", "active_key", "allow_certificate_auth", "certificate":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+
 	if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
 		fmt.Printf("Could not find device %s\n", deviceName)
 		fmt.Printf("Would you like to create a new device named %s? (Y/n)", deviceName)
@@ -893,10 +1018,14 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
 				device["name"] = deviceName
-				if _, err := client.CreateDevice(systemKey, deviceName, device); err != nil {
+				if _, err := client.CreateDevice(systemKey, deviceName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create device %s: %s", deviceName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new device %s\n", deviceName)
+				}
+				_, err = client.UpdateDevice(systemKey, deviceName, customColumns)
+				if err != nil {
+					return err
 				}
 			} else {
 				fmt.Printf("Device will not be created.\n")
@@ -931,6 +1060,19 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 		edge["description"] = ""
 	}
 
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range edge {
+		switch strings.ToLower(columnName) {
+		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+
 	_, err := client.GetEdge(systemKey, edgeName)
 	if err != nil {
 		// Edge does not exist
@@ -941,10 +1083,16 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 			return err
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
-				if _, err := client.CreateEdge(systemKey, edgeName, edge); err != nil {
+				if _, err := client.CreateEdge(systemKey, edgeName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create edge %s: %s", edgeName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new edge %s\n", edgeName)
+				}
+				_, err = client.UpdateEdge(systemKey, edgeName, customColumns)
+				if err != nil {
+					return err
+				} else {
+					return nil
 				}
 			} else {
 				fmt.Printf("Edge will not be created.\n")
@@ -1264,7 +1412,28 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 }
 
 func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.DevClient) error {
-	_, err := client.CreateEdge(systemKey, name, edge)
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range edge {
+		switch strings.ToLower(columnName) {
+		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+	_, err := client.CreateEdge(systemKey, name, originalColumns)
+	if err != nil {
+		return err
+	}
+	if len(customColumns) == 0 {
+		return nil
+	}
+
+	//  We only do this if there ARE custom columns to create
+	_, err = client.UpdateEdge(systemKey, name, customColumns)
 	if err != nil {
 		return err
 	}
@@ -1272,6 +1441,7 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 }
 
 func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
+<<<<<<< HEAD
 	var randomActiveKey string
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
@@ -1287,7 +1457,28 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 		}
 	}
 	_, err := client.CreateDevice(systemKey, device["name"].(string), device)
+=======
+	originalColumns := make(map[string]interface{})
+	customColumns := make(map[string]interface{})
+	for columnName, value := range device {
+		switch strings.ToLower(columnName) {
+		case "name", "type", "state", "description", "enabled", "allow_key_auth", "keys", "active_key", "allow_certificate_auth", "certificate":
+			originalColumns[columnName] = value
+			break
+		default:
+			customColumns[columnName] = value
+			break
+		}
+	}
+	_, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
 	if err != nil {
+		fmt.Printf("CREATE DEVICE ERROR: %s\n", err)
+		return err
+	}
+	_, err = client.UpdateDevice(systemKey, device["name"].(string), customColumns)
+>>>>>>> master
+	if err != nil {
+		fmt.Printf("UPDATE DEVICE ERROR: %s\n", err)
 		return err
 	}
 	return nil
