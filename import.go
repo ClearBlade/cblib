@@ -7,12 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-<<<<<<< HEAD
-	 "path/filepath"
-	 "os"
-	 "errors"
-=======
->>>>>>> master
 )
 
 var (
@@ -501,14 +495,9 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	MetaInfo = svMetaInfo
 	return cli, nil
 }
-<<<<<<< HEAD
-// Used in pairing with importMySystem:
-func devTokenHardAuthorize()(*cb.DevClient, error) {
-=======
 
 // Used in pairing with importMySystem:
 func devTokenHardAuthorize() (*cb.DevClient, error) {
->>>>>>> master
 	// MetaInfo should not be nil, else the current process will prompt user on command line
 	if MetaInfo == nil {
 		return nil, errors.New("MetaInfo cannot be nil")
@@ -643,10 +632,7 @@ func importMySystem(cli *cb.DevClient, rootdirectory string) error {
 
 	return importAllAssets(systemInfo, users, cli)
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> master
 // Call this wrapper from the end point !!
 func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
 
@@ -657,12 +643,8 @@ func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[strin
 
 	// similar to old importIt
 	err := importMySystem(cli, dir)
-<<<<<<< HEAD
  	MetaInfo = tempmetaInfo
 
-=======
-	MetaInfo = tempmetaInfo
->>>>>>> master
 
 	// Deleting the extracted system fom the server once import is done
 	errExtractedDel := os.RemoveAll(dir)

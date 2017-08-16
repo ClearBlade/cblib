@@ -369,7 +369,6 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	var randomActiveKey string
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
@@ -382,7 +381,8 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 			randomActiveKey = randSeq(8)
 			device["active_key"] = randomActiveKey
-=======
+		}
+	}
 	if !DeviceSchemaPresent {
 		for columnName, _ := range device {
 			switch strings.ToLower(columnName) {
@@ -394,7 +394,6 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 					return err
 				}
 			}
->>>>>>> master
 		}
 	}
 	return updateDevice(systemInfo.Key, device, client)
@@ -407,7 +406,6 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 	for idx, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
-<<<<<<< HEAD
 		var randomActiveKey string
 		activeKey, ok := device["active_key"].(string)
 		if !ok {
@@ -420,7 +418,8 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 				fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 				randomActiveKey = randSeq(8)
 				device["active_key"] = randomActiveKey
-=======
+			}
+		}
 		if !DeviceSchemaPresent && idx == 0 {
 			for columnName, _ := range device {
 				switch strings.ToLower(columnName) {
@@ -432,7 +431,6 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 						return err
 					}
 				}
->>>>>>> master
 			}
 		}
 		if err := updateDevice(systemInfo.Key, device, client); err != nil {
@@ -1441,7 +1439,6 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 }
 
 func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
-<<<<<<< HEAD
 	var randomActiveKey string
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
@@ -1456,8 +1453,7 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 			device["active_key"] = randomActiveKey
 		}
 	}
-	_, err := client.CreateDevice(systemKey, device["name"].(string), device)
-=======
+
 	originalColumns := make(map[string]interface{})
 	customColumns := make(map[string]interface{})
 	for columnName, value := range device {
@@ -1476,7 +1472,6 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 		return err
 	}
 	_, err = client.UpdateDevice(systemKey, device["name"].(string), customColumns)
->>>>>>> master
 	if err != nil {
 		fmt.Printf("UPDATE DEVICE ERROR: %s\n", err)
 		return err
