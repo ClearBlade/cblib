@@ -182,19 +182,22 @@ func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) err
 	return nil
 }
 
-func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	timers, err := getTimers()
 	if err != nil {
 		return err
 	}
+	timers := []map[string]interface{}{}
 	for _, timer := range timers {
 		fmt.Printf(" %s", timer["name"].(string))
-		if err := createTimer(sysKey, timer, client); err != nil {
+		timerVal, err := createTimer(sysKey, timer, client)
+		if err != nil {
 			return err
 		}
+		timers = append(timers, timerVal)
 	}
-	return nil
+	return timers, nil
 }
 
 func createServices(systemInfo map[string]interface{}, client *cb.DevClient) error {
@@ -449,7 +452,8 @@ func importIt(cli *cb.DevClient) error {
 		return fmt.Errorf("Could not create triggers: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting timers...")
-	if err := createTimers(systemInfo, cli); err != nil {
+	_, err := createTimers(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create timers: %s", err.Error())
 	}
 
