@@ -927,7 +927,7 @@ func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 	if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
 		return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 	}
-	return nil
+	return timer, nil
 }
 
 func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) error {
