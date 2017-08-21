@@ -466,7 +466,7 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
 		case "edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables":
-			continue;
+			continue
 		default:
 			columns = append(columns, col)
 		}
@@ -493,7 +493,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
 		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
-			continue;
+			continue
 		default:
 			columns = append(columns, col)
 		}
@@ -534,13 +534,13 @@ func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
-func pullEdgeSyncInfo(sysMeta *System_meta, cli *cb.DevClient) (map[string]interface{}, error) {
+func pullEdgeDeployInfo(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	syncMap, err := cli.GetSyncResourcesForEdge(sysKey)
+	deployList, err := cli.GetDeployResourcesForSystem(sysKey)
 	if err != nil {
 		return nil, err
 	}
-	return syncMap, nil
+	return deployList, nil
 }
 
 func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -601,19 +601,24 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	if exportOptionsExist() {
+	var err error
+	//if exportOptionsExist() {
+	if DevToken != "" {
 		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
-		client, _ = Authorize(nil) // This is a hack for now. Need to handle error returned by Authorize
+		client, err = Authorize(nil)
+		if err != nil {
+			return fmt.Errorf("Authorize FAILED: %s\n", err)
+		}
 	}
 
 	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
-	client, err := checkIfTokenHasExpired(client, SystemKey)
+	client, err = checkIfTokenHasExpired(client, SystemKey)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...", err)
+		return fmt.Errorf("Re-auth failed: %s", err)
 	}
 	return ExportSystem(client, SystemKey)
 }
@@ -720,12 +725,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["devices"] = devices
 
-	fmt.Printf(" Done.\nExporting Edge Sync Information...")
-	syncInfo, err := pullEdgeSyncInfo(sysMeta, cli)
+	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
+	deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["edge_sync"] = syncInfo
+	systemDotJSON["edge_deploy"] = deployInfo
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := PullPortals(sysMeta, cli)
@@ -742,6 +747,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["plugins"] = plugins
 
 	fmt.Printf(" Done.\n")
+
+	if err = storeDeployDotJSON(deployInfo); err != nil {
+		return err
+	}
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
@@ -768,7 +777,7 @@ func setupFromRepo() {
 	if err != nil {
 		fmt.Printf("Error getting sys meta: %s\n", err.Error())
 		curDir, _ := os.Getwd()
-		fmt.Printf("WORKING DIRECTORY: %s\n", curDir)
+		fmt.Printf("Current directory is %s\n", curDir)
 	}
 	Email, ok = MetaInfo["developerEmail"].(string)
 	if !ok {
