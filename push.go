@@ -874,7 +874,7 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 	return userId, nil
 }
 
-func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) error {
+func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	triggerName := trigger["name"].(string)
 	triggerDef := trigger["event_definition"].(map[string]interface{})
 	trigger["def_module"] = triggerDef["def_module"]
@@ -882,10 +882,11 @@ func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.Dev
 	trigger["system_key"] = sysKey
 	delete(trigger, "name")
 	delete(trigger, "event_definition")
-	if _, err := client.CreateEventHandler(sysKey, triggerName, trigger); err != nil {
-		return fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
+	stuff, err := client.CreateEventHandler(sysKey, triggerName, trigger)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
 	}
-	return nil
+	return stuff, nil
 }
 
 func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.DevClient) error {
@@ -917,7 +918,7 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 	return nil
 }
 
-func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) error {
+func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	timerName := timer["name"].(string)
 	delete(timer, "name")
 	startTime := timer["start_time"].(string)
@@ -925,7 +926,7 @@ func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 		timer["start_time"] = time.Now().Format(time.RFC3339)
 	}
 	if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
-		return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
+		return nil, fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 	}
 	return timer, nil
 }
@@ -1410,7 +1411,7 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 	return nil
 }
 
-func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
+func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	originalColumns := make(map[string]interface{})
 	customColumns := make(map[string]interface{})
 	for columnName, value := range device {
@@ -1423,20 +1424,20 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 			break
 		}
 	}
-	_, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
+	deviceStuff, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
 	if err != nil {
 		fmt.Printf("CREATE DEVICE ERROR: %s\n", err)
-		return err
+		return nil, err
 	}
 	_, err = client.UpdateDevice(systemKey, device["name"].(string), customColumns)
 	if err != nil {
 		fmt.Printf("UPDATE DEVICE ERROR: %s\n", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return deviceStuff, nil
 }
 
-func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) error {
+func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	/*
 		<<<<<<< HEAD
 	*/
@@ -1457,7 +1458,7 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 		default:
 			configBytes, err := json.Marshal(config)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			configStr = string(configBytes)
 		}
@@ -1470,19 +1471,15 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
 		*/
 	}
-	_, err := client.CreatePortal(systemKey, port["name"].(string), port)
+	portalStuff, err := client.CreatePortal(systemKey, port["name"].(string), port)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return portalStuff, nil
 }
 
-func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) error {
-	_, err := client.CreatePlugin(systemKey, plug)
-	if err != nil {
-		return err
-	}
-	return nil
+func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.CreatePlugin(systemKey, plug)
 }
 
 func updateRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {

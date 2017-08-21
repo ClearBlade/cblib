@@ -157,7 +157,8 @@ func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	return createTrigger(systemInfo.Key, trigger, client)
+	_, err = createTrigger(systemInfo.Key, trigger, client)
+	return err
 }
 
 func createOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
@@ -166,5 +167,6 @@ func createOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	return createTimer(systemInfo.Key, timer, client)
+	_, err = createTimer(systemInfo.Key, timer, client)
+	return err
 }
