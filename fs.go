@@ -230,10 +230,10 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return fmt.Errorf("Unable to process collection item array")
 	}
 	if SortCollections {
-		fmt.Println("\nNote: Sorting collections by item_id. This may take time depending on collection size.")
+		fmt.Println("Note: Sorting collections by item_id. This may take time depending on collection size.")
 		sortByFunction(&itemArray, compareCollectionItems)
 	} else{
-		fmt.Println("\nNote: Not sorting collections by item_id. Add sort-collection=true flag if desired.")
+		fmt.Println("Note: Not sorting collections by item_id. Add sort-collection=true flag if desired.")
 	}
 
 	return writeEntity(dataDir, collectionName, data)

@@ -194,6 +194,9 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	allData := []interface{}{}
 	for j := 0; j < totalItems; j += ImportPageSize {
 		dataQuery.PageNumber = (j / ImportPageSize) + 1
+
+		fmt.Printf("Downloading Page: %v / %v\n", dataQuery.PageNumber, (totalItems / ImportPageSize) + 1)
+
 		data, err := client.GetData(colId, dataQuery)
 		if err != nil {
 			return nil, err
