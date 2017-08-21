@@ -12,6 +12,7 @@ const (
 	SpecialNoCBMetaError = "No cbmeta file"
 	ExportItemIdDefault = true
 	SortCollectionsDefault = false
+	PageSizeDefault = 100
 )
 
 var (
@@ -25,13 +26,12 @@ var (
 	ExportItemId               bool
 	ImportUsers                bool
 	ExportUsers                bool
-	CleanUp						bool
+	CleanUp					   bool
 	EdgeSchema                 bool
-	DeviceSchema 						   bool
-	DeviceSchemaPresent				 bool
+	DeviceSchema 			   bool
+	DeviceSchemaPresent		   bool
 	UserSchema                 bool
-	ImportPageSize             int
-	ExportPageSize             int
+	PageSize             	   int
 	Email                      string
 	Password                   string
 	ServiceName                string
