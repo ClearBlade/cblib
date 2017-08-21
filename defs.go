@@ -11,6 +11,7 @@ const (
 	NotExistErrorString  = "Does not exist"
 	SpecialNoCBMetaError = "No cbmeta file"
 	ExportItemIdDefault = true
+	SortCollectionsDefault = false
 )
 
 var (
@@ -37,6 +38,7 @@ var (
 	LibraryName                string
 	CollectionName             string
 	CollectionId               string
+	SortCollections			   bool
 	User                       string
 	UserId                     string
 	RoleName                   string

@@ -30,6 +30,7 @@ func init() {
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
 	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
 	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to pull")
+	pullCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections by item id, for version control ease")
 	pullCommand.flags.StringVar(&User, "user", "", "Name of user to pull")
 	pullCommand.flags.StringVar(&RoleName, "role", "", "Name of role to pull")
 	pullCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to pull")
