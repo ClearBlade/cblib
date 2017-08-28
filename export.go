@@ -36,8 +36,9 @@ func init() {
 	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection's rows' item_id column")
+	myExportCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections by item id, for version control ease")
+	myExportCommand.flags.IntVar(&PageSize, "page-size", PageSizeDefault, "Number of rows in a collection to request at a time")
 	AddCommand("export", myExportCommand)
-	ImportPageSize = 100 // TODO -- fix this
 }
 
 func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[string]interface{}, error) {
@@ -189,10 +190,16 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	}
 
 	dataQuery := &cb.Query{}
-	dataQuery.PageSize = ImportPageSize
+	dataQuery.PageSize = PageSize
 	allData := []interface{}{}
-	for j := 0; j < totalItems; j += ImportPageSize {
-		dataQuery.PageNumber = (j / ImportPageSize) + 1
+	totalDownloaded := 0
+
+	if totalItems / PageSize > 1000 {
+		fmt.Println("Large dataset detected. Recommend increasing page size. use flag: -page-size=1000 or -page-size=10000")
+	}
+	for j := 0; j < totalItems; j += PageSize {
+		dataQuery.PageNumber = (j / PageSize) + 1
+
 		data, err := client.GetData(colId, dataQuery)
 		if err != nil {
 			return nil, err
@@ -207,7 +214,8 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 				delete(rowMap.(map[string]interface{}), "item_id")
 			}
 		}
-
+		totalDownloaded += len(curData)
+		fmt.Printf("Downloading: \tPage(s): %v / %v \tItem(s): %v / %v\n", dataQuery.PageNumber, (totalItems / PageSize) + 1, totalDownloaded, totalItems)
 		allData = append(allData, curData...)
 	}
 	return allData, nil

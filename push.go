@@ -369,6 +369,20 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
+	var randomActiveKey string
+	activeKey, ok := device["active_key"].(string)
+	if !ok {
+		// Active key not present in json file. Creating a random one
+		fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		randomActiveKey = randSeq(8)
+		device["active_key"] = randomActiveKey
+	} else {
+		if activeKey == "" || len(activeKey) < 6 {
+			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		}
+	}
 	if !DeviceSchemaPresent {
 		for columnName, _ := range device {
 			switch strings.ToLower(columnName) {
@@ -392,6 +406,20 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 	for idx, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
+		var randomActiveKey string
+		activeKey, ok := device["active_key"].(string)
+		if !ok {
+			// Active key not present in json file. Creating a random one
+			fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		} else {
+			if activeKey == "" || len(activeKey) < 6 {
+				fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+				randomActiveKey = randSeq(8)
+				device["active_key"] = randomActiveKey
+			}
+		}
 		if !DeviceSchemaPresent && idx == 0 {
 			for columnName, _ := range device {
 				switch strings.ToLower(columnName) {
@@ -1412,6 +1440,21 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 }
 
 func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+	var randomActiveKey string
+	activeKey, ok := device["active_key"].(string)
+	if !ok {
+		// Active key not present in json file. Creating a random one
+		fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		randomActiveKey = randSeq(8)
+		device["active_key"] = randomActiveKey
+	} else {
+		if activeKey == "" || len(activeKey) < 6 {
+			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		}
+	}
+
 	originalColumns := make(map[string]interface{})
 	customColumns := make(map[string]interface{})
 	for columnName, value := range device {
