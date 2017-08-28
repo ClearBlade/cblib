@@ -800,6 +800,11 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 				val := getMap(valIF)
 				out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
 			}
+		case "SystemServices":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["system_services"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		case "Portals":
 			if valIF != nil {
 				portals, err := getASliceOfMaps(valIF)
@@ -1481,9 +1486,6 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 }
 
 func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
-	/*
-		<<<<<<< HEAD
-	*/
 	// Export stores config as dict, but import wants it as a string
 	delete(port, "system_key")
 	if port["description"] == nil {
@@ -1506,13 +1508,6 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 			configStr = string(configBytes)
 		}
 		port["config"] = configStr
-		/*
-			=======
-				//remove any trash that the API doesn't like
-				delete(port, "system_key")
-
-			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
-		*/
 	}
 	portalStuff, err := client.CreatePortal(systemKey, port["name"].(string), port)
 	if err != nil {

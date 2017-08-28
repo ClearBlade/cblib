@@ -308,8 +308,10 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 				columnName := column["ColumnName"].(string)
 				columnType := column["ColumnType"].(string)
 				if err := client.CreateDeviceColumn(sysKey, columnName, columnType); err != nil {
+					fmt.Printf("Failed Creating device column %s\n", columnName)
 					return nil, fmt.Errorf("Could not create devices column %s: %s", columnName, err.Error())
 				}
+				fmt.Printf("Created device column %s\n", columnName)
 			}
 		} else {
 			return nil, fmt.Errorf("columns key not present in schema.json for devices")
@@ -337,12 +339,6 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 			}
 		}
 		fmt.Printf(" %s", device["name"].(string))
-		/*
-			deviceInfo, err := createDevice(sysKey, device, client)
-			if err != nil {
-				return nil, err
-			}
-		*/
 		var randomActiveKey string
 		activeKey, ok := device["active_key"].(string)
 		if !ok {

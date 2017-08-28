@@ -194,7 +194,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	allData := []interface{}{}
 	totalDownloaded := 0
 
-	if totalItems / PageSize > 1000 {
+	if totalItems/PageSize > 1000 {
 		fmt.Println("Large dataset detected. Recommend increasing page size. use flag: -page-size=1000 or -page-size=10000")
 	}
 	for j := 0; j < totalItems; j += PageSize {
@@ -215,7 +215,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 			}
 		}
 		totalDownloaded += len(curData)
-		fmt.Printf("Downloading: \tPage(s): %v / %v \tItem(s): %v / %v\n", dataQuery.PageNumber, (totalItems / PageSize) + 1, totalDownloaded, totalItems)
+		fmt.Printf("Downloading: \tPage(s): %v / %v \tItem(s): %v / %v\n", dataQuery.PageNumber, (totalItems/PageSize)+1, totalDownloaded, totalItems)
 		allData = append(allData, curData...)
 	}
 	return allData, nil
@@ -499,7 +499,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 	for _, colIF := range deviceCustomColumns {
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
-		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt":
 			continue
 		default:
 			columns = append(columns, col)
