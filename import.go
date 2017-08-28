@@ -210,11 +210,13 @@ func createServices(systemInfo map[string]interface{}, client *cb.DevClient) err
 	sysKey := systemInfo["systemKey"].(string)
 	services, err := getServices()
 	if err != nil {
+		fmt.Printf("getServices Failed: %s\n", err)
 		return err
 	}
 	for _, service := range services {
 		fmt.Printf(" %s", service["name"].(string))
 		if err := createService(sysKey, service, client); err != nil {
+			fmt.Printf("createService Failed: %s\n", err)
 			return err
 		}
 	}
@@ -225,11 +227,13 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 	sysKey := systemInfo["systemKey"].(string)
 	libraries, err := getLibraries()
 	if err != nil {
+		fmt.Printf("getLibraries Failed: %s\n", err)
 		return err
 	}
 	for _, library := range libraries {
 		fmt.Printf(" %s", library["name"].(string))
 		if err := createLibrary(sysKey, library, client); err != nil {
+			fmt.Printf("createLibrary Failed: %s\n", err)
 			return err
 		}
 	}
@@ -555,6 +559,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 		} else {
+			fmt.Printf("Path Error importing services: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
 			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
 		}
 	}
@@ -564,6 +569,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 		} else {
+			fmt.Printf("Path Error importing libraries: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
 			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
 		}
 	}

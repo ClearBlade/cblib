@@ -232,7 +232,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	if SortCollections {
 		fmt.Println("Note: Sorting collections by item_id. This may take time depending on collection size.")
 		sortByFunction(&itemArray, compareCollectionItems)
-	} else{
+	} else {
 		fmt.Println("Note: Not sorting collections by item_id. Add sort-collection=true flag if desired.")
 	}
 
@@ -396,19 +396,22 @@ func getObjectList(dirName string, exceptions []string) ([]map[string]interface{
 }
 
 func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
-	dirList, err := getFileList(dirName, []string{})
-	rval := []map[string]interface{}{}
+	dirList, err := getFileList(dirName, []string{".DS_Store", ".git", ".gitignore"}) // For starters
 	if err != nil {
+		fmt.Printf("getFileListFailed: %s, %s\n", dirName, err)
 		return nil, err
 	}
+	rval := []map[string]interface{}{}
 	for _, realDirName := range dirList {
 		myRootDir := dirName + "/" + realDirName + "/"
 		myObj, err := getObject(myRootDir, realDirName+".json")
 		if err != nil {
+			fmt.Printf("getObject failed: %s\n", err)
 			return nil, err
 		}
 		byts, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js")
 		if err != nil {
+			fmt.Printf("ioutil.ReadFile failed: %s\n", err)
 			return nil, err
 		}
 		myObj["code"] = string(byts)
