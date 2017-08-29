@@ -373,7 +373,7 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
 		// Active key not present in json file. Creating a random one
-		fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 		randomActiveKey = randSeq(8)
 		device["active_key"] = randomActiveKey
 	} else {
@@ -410,7 +410,7 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 		activeKey, ok := device["active_key"].(string)
 		if !ok {
 			// Active key not present in json file. Creating a random one
-			fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 			randomActiveKey = randSeq(8)
 			device["active_key"] = randomActiveKey
 		} else {
@@ -1449,7 +1449,7 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 	activeKey, ok := device["active_key"].(string)
 	if !ok {
 		// Active key not present in json file. Creating a random one
-		fmt.Printf("Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
 		randomActiveKey = randSeq(8)
 		device["active_key"] = randomActiveKey
 	} else {
