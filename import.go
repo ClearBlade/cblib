@@ -310,6 +310,10 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 			for _, columnIF := range deviceCols {
 				column := columnIF.(map[string]interface{})
 				columnName := column["ColumnName"].(string)
+				if columnName == "salt" {
+					fmt.Printf("Warning: ignoring exported 'salt' column\n")
+					continue
+				}
 				columnType := column["ColumnType"].(string)
 				if err := client.CreateDeviceColumn(sysKey, columnName, columnType); err != nil {
 					fmt.Printf("Failed Creating device column %s\n", columnName)

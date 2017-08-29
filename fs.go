@@ -347,7 +347,7 @@ func writePlugin(name string, data map[string]interface{}) error {
 }
 
 func isException(name string, exceptions []string) bool {
-	if name == "." || name == ".." {
+	if name == "." || name == ".." || name == ".DS_Store" {
 		return false
 	}
 	for _, exception := range exceptions {
