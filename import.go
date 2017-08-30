@@ -540,7 +540,9 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	
 	// Common set of calls for a complete system import 
 	fmt.Printf(" Done.\nImporting roles...")
-	if err := createRoles(systemInfo, cli); err != nil {
+
+	err := createRoles(systemInfo, cli); 
+	if err != nil {
 		return fmt.Errorf("Could not create roles: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting users...")
@@ -631,7 +633,7 @@ func importIt(cli *cb.DevClient) error {
 	}
 	//fmt.Printf("Done.\nImporting system...")
 	fmt.Printf("Importing system...")
-	if err := createSystem(systemInfo, cli); err != nil {
+	if _, err := createSystem(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
 	}
 
@@ -672,7 +674,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 		if userInfo["systemName"] != nil {
 			systemInfo["name"] = userInfo["systemName"]	
 		}
-		if err := createSystem(systemInfo, cli); err != nil {
+		if _, err := createSystem(systemInfo, cli); err != nil {
 			return nil, fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
 		}
 	}
