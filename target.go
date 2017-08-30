@@ -13,7 +13,7 @@ func init() {
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myTargetCommand := &SubCommand{
-		name:         "export",
+		name:         "target",
 		usage:        "Ain't no thing",
 		needsAuth:    false,
 		mustBeInRepo: true,

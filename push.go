@@ -114,7 +114,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.DeleteUserColumn(systemInfo.Key, existingColumn); err != nil {
-					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed\n", err)
+					return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 				}
 			}
 		}
@@ -136,7 +136,7 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 			}
 			if exists == false {
 				if err := client.CreateUserColumn(systemInfo.Key, columnName, columnType); err != nil {
-					return fmt.Errorf("User schema could not be updated\n", err)
+					return fmt.Errorf("User schema could not be updated: %s", err)
 				}
 			}
 		}
@@ -369,16 +369,30 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
+	var randomActiveKey string
+	activeKey, ok := device["active_key"].(string)
+	if !ok {
+		// Active key not present in json file. Creating a random one
+		fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		randomActiveKey = randSeq(8)
+		device["active_key"] = randomActiveKey
+	} else {
+		if activeKey == "" || len(activeKey) < 6 {
+			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		}
+	}
 	if !DeviceSchemaPresent {
 		for columnName, _ := range device {
 			switch strings.ToLower(columnName) {
-				case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
-					continue
-				default:
-					err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
-					if err != nil {
-						return err
-					}
+			case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+				continue
+			default:
+				err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -392,16 +406,30 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 	for idx, device := range devices {
 		fmt.Printf("Pushing device %+s\n", device["name"].(string))
-		if !DeviceSchemaPresent && idx == 0{
+		var randomActiveKey string
+		activeKey, ok := device["active_key"].(string)
+		if !ok {
+			// Active key not present in json file. Creating a random one
+			fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		} else {
+			if activeKey == "" || len(activeKey) < 6 {
+				fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+				randomActiveKey = randSeq(8)
+				device["active_key"] = randomActiveKey
+			}
+		}
+		if !DeviceSchemaPresent && idx == 0 {
 			for columnName, _ := range device {
 				switch strings.ToLower(columnName) {
-					case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
-						continue
-					default:
-						err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
-						if err != nil {
-							return err
-						}
+				case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+					continue
+				default:
+					err := client.CreateDeviceColumn(systemInfo.Key, columnName, "string")
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -689,18 +717,23 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func createRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
-	createIF, err := client.CreateRole(systemKey, role["Name"].(string))
-	if err != nil {
-		return err
-	}
-	createDict, ok := createIF.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("return value from CreateRole is not a map. It is %T", createIF)
-	}
-	fmt.Printf("Create Role returned: %+v\n", createDict)
-	roleID, ok := createDict["role_id"].(string)
-	if !ok {
-		return fmt.Errorf("Did not get role_id key back from successful CreateRole call")
+	roleName := role["Name"].(string)
+	var roleID string
+	if roleName != "Authenticated" && roleName != "Anonymous" && roleName != "Administrator" {
+		createIF, err := client.CreateRole(systemKey, role["Name"].(string))
+		if err != nil {
+			return err
+		}
+		createDict, ok := createIF.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("return value from CreateRole is not a map. It is %T", createIF)
+		}
+		roleID, ok = createDict["role_id"].(string)
+		if !ok {
+			return fmt.Errorf("Did not get role_id key back from successful CreateRole call")
+		}
+	} else {
+		roleID = roleName // Administrator, Authorized, Anonymous
 	}
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
@@ -708,7 +741,7 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 	}
 	convertedPermissions := convertPermissionsStructure(permissions)
 	convertedRole := map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}
-	if err = client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
+	if err := client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
 		return err
 	}
 	return nil
@@ -722,7 +755,6 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 //  THis is a gigantic cluster. We need to fix and learn from this. -swm
 //
 func convertPermissionsStructure(in map[string]interface{}) map[string]interface{} {
-	fmt.Printf("convertPermissionStructure: %+v\n", in)
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -768,6 +800,11 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 				val := getMap(valIF)
 				out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
 			}
+		case "SystemServices":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["system_services"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		case "Portals":
 			if valIF != nil {
 				portals, err := getASliceOfMaps(valIF)
@@ -807,7 +844,6 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 		default:
 		}
 	}
-	fmt.Printf("convert results: %+v\n", out)
 	return out
 }
 
@@ -871,7 +907,7 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 	return userId, nil
 }
 
-func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) error {
+func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	triggerName := trigger["name"].(string)
 	triggerDef := trigger["event_definition"].(map[string]interface{})
 	trigger["def_module"] = triggerDef["def_module"]
@@ -879,10 +915,11 @@ func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.Dev
 	trigger["system_key"] = sysKey
 	delete(trigger, "name")
 	delete(trigger, "event_definition")
-	if _, err := client.CreateEventHandler(sysKey, triggerName, trigger); err != nil {
-		return fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
+	stuff, err := client.CreateEventHandler(sysKey, triggerName, trigger)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
 	}
-	return nil
+	return stuff, nil
 }
 
 func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.DevClient) error {
@@ -914,7 +951,7 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 	return nil
 }
 
-func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) error {
+func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	timerName := timer["name"].(string)
 	delete(timer, "name")
 	startTime := timer["start_time"].(string)
@@ -922,9 +959,9 @@ func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 		timer["start_time"] = time.Now().Format(time.RFC3339)
 	}
 	if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
-		return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
+		return nil, fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 	}
-	return nil
+	return timer, nil
 }
 
 func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) error {
@@ -990,7 +1027,7 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 				} else {
 					fmt.Printf("Successfully created new device %s\n", deviceName)
 				}
-				_, err = client.UpdateDevice(systemKey, deviceName, customColumns);
+				_, err = client.UpdateDevice(systemKey, deviceName, customColumns)
 				if err != nil {
 					return err
 				}
@@ -1395,6 +1432,11 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 	if err != nil {
 		return err
 	}
+	if len(customColumns) == 0 {
+		return nil
+	}
+
+	//  We only do this if there ARE custom columns to create
 	_, err = client.UpdateEdge(systemKey, name, customColumns)
 	if err != nil {
 		return err
@@ -1402,7 +1444,22 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 	return nil
 }
 
-func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
+func createDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+	var randomActiveKey string
+	activeKey, ok := device["active_key"].(string)
+	if !ok {
+		// Active key not present in json file. Creating a random one
+		fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+		randomActiveKey = randSeq(8)
+		device["active_key"] = randomActiveKey
+	} else {
+		if activeKey == "" || len(activeKey) < 6 {
+			fmt.Printf("Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		}
+	}
+
 	originalColumns := make(map[string]interface{})
 	customColumns := make(map[string]interface{})
 	for columnName, value := range device {
@@ -1415,21 +1472,20 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 			break
 		}
 	}
-	_, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
+	deviceStuff, err := client.CreateDevice(systemKey, device["name"].(string), originalColumns)
 	if err != nil {
-		return err
+		fmt.Printf("CREATE DEVICE ERROR: %s\n", err)
+		return nil, err
 	}
 	_, err = client.UpdateDevice(systemKey, device["name"].(string), customColumns)
 	if err != nil {
-		return err
+		fmt.Printf("UPDATE DEVICE ERROR: %s\n", err)
+		return nil, err
 	}
-	return nil
+	return deviceStuff, nil
 }
 
-func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) error {
-	/*
-		<<<<<<< HEAD
-	*/
+func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	// Export stores config as dict, but import wants it as a string
 	delete(port, "system_key")
 	if port["description"] == nil {
@@ -1447,32 +1503,21 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 		default:
 			configBytes, err := json.Marshal(config)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			configStr = string(configBytes)
 		}
 		port["config"] = configStr
-		/*
-			=======
-				//remove any trash that the API doesn't like
-				delete(port, "system_key")
-
-			>>>>>>> f8d64d455cb9a80e4642021b1b949ec1b59dc2a0
-		*/
 	}
-	_, err := client.CreatePortal(systemKey, port["name"].(string), port)
+	portalStuff, err := client.CreatePortal(systemKey, port["name"].(string), port)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return portalStuff, nil
 }
 
-func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) error {
-	_, err := client.CreatePlugin(systemKey, plug)
-	if err != nil {
-		return err
-	}
-	return nil
+func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+	return client.CreatePlugin(systemKey, plug)
 }
 
 func updateRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {

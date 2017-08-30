@@ -1,12 +1,12 @@
 package cblib
 
 import (
+	"errors"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"os"
+	"path/filepath"
 	"strings"
-	 "path/filepath"
-	 "os"
-	 "errors"
 )
 
 var (
@@ -32,21 +32,21 @@ func init() {
 	AddCommand("im", myImportCommand)
 }
 
-func createSystem(system map[string]interface{}, client *cb.DevClient) error {
+func createSystem(system map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	name := system["name"].(string)
 	desc := system["description"].(string)
 	auth := system["auth"].(bool)
 	sysKey, sysErr := client.NewSystem(name, desc, auth)
 	if sysErr != nil {
-		return sysErr
+		return nil, sysErr
 	}
 	realSystem, sysErr := client.GetSystem(sysKey)
 	if sysErr != nil {
-		return sysErr
+		return nil, sysErr
 	}
 	system["systemKey"] = realSystem.Key
 	system["systemSecret"] = realSystem.Secret
-	return nil
+	return system, nil
 }
 
 func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error {
@@ -58,11 +58,11 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	for _, role := range roles {
 		name := role["Name"].(string)
 		fmt.Printf(" %s", name)
-		if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
-			if err := createRole(sysKey, role, client); err != nil {
-				return err
-			}
+		//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
+		if err := createRole(sysKey, role, client); err != nil {
+			return err
 		}
+		//}
 	}
 	// ids were created on import for the new roles, grab those
 	rolesInfo, err = pullRoles(sysKey, client, false) // global :(
@@ -170,45 +170,53 @@ func unMungeRoles(roles []string) []interface{} {
 	return rval
 }
 
-func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createTriggers(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	triggers, err := getTriggers()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, trigger := range triggers {
+	triggersRval := make([]map[string]interface{}, len(triggers))
+	for idx, trigger := range triggers {
 		fmt.Printf(" %s", trigger["name"].(string))
-		if err := createTrigger(sysKey, trigger, client); err != nil {
-			return err
+		trigVal, err := createTrigger(sysKey, trigger, client)
+		if err != nil {
+			return nil, err
 		}
+		triggersRval[idx] = trigVal
 	}
-	return nil
+	return triggersRval, nil
 }
 
-func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	timers, err := getTimers()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, timer := range timers {
+	timersRval := make([]map[string]interface{}, len(timers))
+	for idx, timer := range timers {
 		fmt.Printf(" %s", timer["name"].(string))
-		if err := createTimer(sysKey, timer, client); err != nil {
-			return err
+		timerVal, err := createTimer(sysKey, timer, client)
+		if err != nil {
+			return nil, err
 		}
+		timersRval[idx] = timerVal
 	}
-	return nil
+	return timersRval, nil
 }
 
 func createServices(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	services, err := getServices()
 	if err != nil {
+		fmt.Printf("getServices Failed: %s\n", err)
 		return err
 	}
 	for _, service := range services {
 		fmt.Printf(" %s", service["name"].(string))
 		if err := createService(sysKey, service, client); err != nil {
+			fmt.Printf("createService Failed: %s\n", err)
 			return err
 		}
 	}
@@ -219,11 +227,13 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 	sysKey := systemInfo["systemKey"].(string)
 	libraries, err := getLibraries()
 	if err != nil {
+		fmt.Printf("getLibraries Failed: %s\n", err)
 		return err
 	}
 	for _, library := range libraries {
 		fmt.Printf(" %s", library["name"].(string))
 		if err := createLibrary(sysKey, library, client); err != nil {
+			fmt.Printf("createLibrary Failed: %s\n", err)
 			return err
 		}
 	}
@@ -283,7 +293,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	return nil
 }
 
-func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	schemaPresent := true
 	sysKey := systemInfo["systemKey"].(string)
 	devicesSchema, err := getDevicesSchema()
@@ -291,7 +301,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 		if strings.Contains(err.Error(), "no such file or directory") {
 			schemaPresent = false
 		} else {
-			return err
+			return nil, err
 		}
 	}
 	if schemaPresent {
@@ -300,63 +310,125 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) erro
 			for _, columnIF := range deviceCols {
 				column := columnIF.(map[string]interface{})
 				columnName := column["ColumnName"].(string)
+				if columnName == "salt" {
+					fmt.Printf("Warning: ignoring exported 'salt' column\n")
+					continue
+				}
 				columnType := column["ColumnType"].(string)
 				if err := client.CreateDeviceColumn(sysKey, columnName, columnType); err != nil {
-					return fmt.Errorf("Could not create devices column %s: %s", columnName, err.Error())
+					fmt.Printf("Failed Creating device column %s\n", columnName)
+					return nil, fmt.Errorf("Could not create devices column %s: %s", columnName, err.Error())
 				}
+				fmt.Printf("Created device column %s\n", columnName)
 			}
 		} else {
-			return fmt.Errorf("columns key not present in schema.json for devices")
+			return nil, fmt.Errorf("columns key not present in schema.json for devices")
 		}
 	}
 	devices, err := getDevices()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	devicesRval := make([]map[string]interface{}, len(devices))
 	for idx, device := range devices {
 		if !schemaPresent {
 			if idx == 0 {
 				for columnname, _ := range device {
 					switch strings.ToLower(columnname) {
-						case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
-							continue
-						default:
-							err := client.CreateDeviceColumn(sysKey, columnname, "string")
-							if err != nil {
-								return err
-							}
+					case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
+						continue
+					default:
+						err := client.CreateDeviceColumn(sysKey, columnname, "string")
+						if err != nil {
+							return nil, err
+						}
 					}
 				}
 			}
 		}
 		fmt.Printf(" %s", device["name"].(string))
-		if err := createDevice(sysKey, device, client); err != nil {
-			return err
+		var randomActiveKey string
+		activeKey, ok := device["active_key"].(string)
+		if !ok {
+			// Active key not present in json file. Creating a random one
+			fmt.Printf(" Active key not present. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+			randomActiveKey = randSeq(8)
+			device["active_key"] = randomActiveKey
+		} else {
+			if activeKey == "" || len(activeKey) < 6 {
+				fmt.Printf(" Active is either an empty string or less than 6 characters. Creating a random one for device creation. Please update the active key from the ClearBlade Console after export\n")
+				randomActiveKey = randSeq(8)
+				device["active_key"] = randomActiveKey
+			}
 		}
+		deviceInfo, err := createDevice(sysKey, device, client)
+		if err != nil {
+			return nil, err
+		}
+		devicesRval[idx] = deviceInfo
 	}
-	return nil
+	return devicesRval, nil
 }
 
-func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	portals, err := getPortals()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, dash := range portals {
+	portalsRval := make([]map[string]interface{}, len(portals))
+	for idx, dash := range portals {
 		fmt.Printf(" %s", dash["name"].(string))
-		if err := createPortal(sysKey, dash, client); err != nil {
+		portalInfo, err := createPortal(sysKey, dash, client)
+		if err != nil {
+			return nil, err
+		}
+		portalsRval[idx] = portalInfo
+	}
+	return portalsRval, nil
+}
+
+func createAllEdgeDeployment(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	//  First, look for deploy.json file. This is the new way of doing edge
+	//  deployment. If that fails try the old way.
+	if fileExists(rootDir + "/deploy.json") {
+		info, err := getEdgeDeployInfo()
+		if err != nil {
+			return err
+		}
+		return createEdgeDeployInfo(systemInfo, info, client)
+	}
+	return oldCreateEdgeDeployInfo(systemInfo, client) // old deprecated way
+}
+
+func createEdgeDeployInfo(systemInfo, deployInfo map[string]interface{}, client *cb.DevClient) error {
+	deployList := deployInfo["deployInfo"].([]interface{})
+	sysKey := systemInfo["systemKey"].(string)
+
+	for _, deployOneIF := range deployList {
+		deployOne, ok := deployOneIF.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("Poorly structured edge deploy info")
+		}
+		platform := deployOne["platform"].(bool)
+		resName := deployOne["resource_identifier"].(string)
+		resType := deployOne["resource_type"].(string)
+
+		//  Go sdk expects the edge query to be in the Query format, not a string
+		edgeQueryStr := deployOne["edge"].(string)
+		_, err := client.CreateDeployResourcesForSystem(sysKey, resName, resType, platform, edgeQueryStr)
+		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func oldCreateEdgeDeployInfo(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	edgeInfo, ok := systemInfo["edgeSync"].(map[string]interface{})
 	if !ok {
-		fmt.Printf("WARNING: Could not find any edge sync information\n")
+		fmt.Printf("Warning: Could not find any edge sync information\n")
 		return nil
 	}
 	for edgeName, edgeSyncInfoIF := range edgeInfo {
@@ -364,7 +436,7 @@ func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient)
 		if !ok {
 			return fmt.Errorf("Poorly formed edge sync info")
 		}
-		converted, err := convertSyncInfo(edgeSyncInfo)
+		converted, err := convertOldEdgeDeployInfo(edgeSyncInfo)
 		if err != nil {
 			return err
 		}
@@ -376,21 +448,25 @@ func createEdgeSyncInfo(systemInfo map[string]interface{}, client *cb.DevClient)
 	return nil
 }
 
-func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	plugins, err := getPlugins()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, plug := range plugins {
+	pluginsRval := make([]map[string]interface{}, len(plugins))
+	for idx, plug := range plugins {
 		fmt.Printf(" %s", plug["name"].(string))
-		if err := createPlugin(sysKey, plug, client); err != nil {
-			return err
+		pluginVal, err := createPlugin(sysKey, plug, client)
+		if err != nil {
+			return nil, err
 		}
+		pluginsRval[idx] = pluginVal
 	}
-	return nil
+	return pluginsRval, nil
 }
-func convertSyncInfo(info map[string]interface{}) (map[string][]string, error) {
+
+func convertOldEdgeDeployInfo(info map[string]interface{}) (map[string][]string, error) {
 	rval := map[string][]string{
 		"service": []string{},
 		"library": []string{},
@@ -444,8 +520,9 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	MetaInfo = svMetaInfo
 	return cli, nil
 }
+
 // Used in pairing with importMySystem:
-func devTokenHardAuthorize()(*cb.DevClient, error) {
+func devTokenHardAuthorize() (*cb.DevClient, error) {
 	// MetaInfo should not be nil, else the current process will prompt user on command line
 	if MetaInfo == nil {
 		return nil, errors.New("MetaInfo cannot be nil")
@@ -480,25 +557,29 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
-	 	} else {
-	 		fmt.Printf("Warning: Could not import code services... -- ignoring \n", err.Error())
-	 	}
+		} else {
+			fmt.Printf("Path Error importing services: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
+			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
+		}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
 	if err := createLibraries(systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
-	 	}  else {
-	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring \n", err.Error())
-	 	}
+		} else {
+			fmt.Printf("Path Error importing libraries: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
+			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+		}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
-	if err := createTriggers(systemInfo, cli); err != nil {
+	_, err = createTriggers(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create triggers: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting timers...")
-	if err := createTimers(systemInfo, cli); err != nil {
+	_, err = createTimers(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create timers: %s", err.Error())
 	}
 
@@ -507,23 +588,26 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		return fmt.Errorf("Could not create edges: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting devices...")
-	if err := createDevices(systemInfo, cli); err != nil {
+	_, err = createDevices(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create devices: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting portals...")
-	if err := createPortals(systemInfo, cli); err != nil {
+	_, err = createPortals(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create portals: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting plugins...")
-	if err := createPlugins(systemInfo, cli); err != nil {
+	_, err = createPlugins(systemInfo, cli)
+	if err != nil {
 		return fmt.Errorf("Could not create plugins: %s", err.Error())
 	}
-	fmt.Printf(" Done.\nImporting edge sync information...")
-	if err := createEdgeSyncInfo(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create edge sync information: %s", err.Error())
+	fmt.Printf(" Done.\nImporting edge deploy information...")
+	if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create edge deploy information: %s", err.Error())
 	}
 
-	fmt.Printf("Done\n")
+	fmt.Printf(" Done\n")
 	return nil
 }
 

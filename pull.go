@@ -30,6 +30,8 @@ func init() {
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
 	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
 	pullCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to pull")
+	pullCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections by item id, for version control ease")
+	pullCommand.flags.IntVar(&PageSize, "page-size", PageSizeDefault, "Number of rows in a collection to request at a time")
 	pullCommand.flags.StringVar(&User, "user", "", "Name of user to pull")
 	pullCommand.flags.StringVar(&RoleName, "role", "", "Name of role to pull")
 	pullCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to pull")
@@ -54,7 +56,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed...", err)
+		return fmt.Errorf("Re-auth failed: %s", err)
 	}
 
 	// ??? we already have them locally

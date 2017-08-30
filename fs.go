@@ -25,7 +25,7 @@ var (
 	devicesDir  string
 	portalsDir  string
 	pluginsDir  string
-	arrDir 		[11]string
+	arrDir      [11]string
 )
 
 func SetRootDir(theRootDir string) {
@@ -59,7 +59,7 @@ func setupDirectoryStructure(sys *System_meta) error {
 		return fmt.Errorf("Could not make directory '%s': %s", rootDir, err.Error())
 	}
 
-	for i:=0; i<len(arrDir); i++ {
+	for i := 0; i < len(arrDir); i++ {
 		if err := os.MkdirAll(arrDir[i], 0777); err != nil {
 			return fmt.Errorf("Could not make directory '%s': %s", arrDir[i], err.Error())
 		}
@@ -69,7 +69,7 @@ func setupDirectoryStructure(sys *System_meta) error {
 
 func cleanUpDirectories(sys *System_meta) error {
 	fmt.Printf("CleaningUp Directories\n")
-	for i:=0; i<len(arrDir); i++ {
+	for i := 0; i < len(arrDir); i++ {
 		if err := os.RemoveAll(arrDir[i]); err != nil {
 			return fmt.Errorf("Could not remove directory '%s': %s", arrDir[i], err.Error())
 		}
@@ -101,12 +101,25 @@ func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "devices")
 	delete(systemDotJSON, "portals")
 	delete(systemDotJSON, "plugins")
+	delete(systemDotJSON, "edge_deploy")
 	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall system.json: %s", err.Error())
 	}
 	if err = ioutil.WriteFile(rootDir+"/system.json", marshalled, 0666); err != nil {
 		return fmt.Errorf("Could not write to system.json: %s", err.Error())
+	}
+	return nil
+}
+
+func storeDeployDotJSON(deployInfoList []map[string]interface{}) error {
+	deployInfo := map[string]interface{}{"deployInfo": deployInfoList}
+	marshalled, err := json.MarshalIndent(deployInfo, "", "    ")
+	if err != nil {
+		return fmt.Errorf("Could not marshall deploy.json: %s", err.Error())
+	}
+	if err = ioutil.WriteFile(rootDir+"/deploy.json", marshalled, 0666); err != nil {
+		return fmt.Errorf("Could not write to deploy.json: %s", err.Error())
 	}
 	return nil
 }
@@ -208,16 +221,20 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		return err
 	}
 	rawItemArray := data["items"]
-	if rawItemArray == nil{
+	if rawItemArray == nil {
 		return fmt.Errorf("Item array not found when accessing collection item array")
 	}
 	// Default value for items is an empty array, []
-	itemArray, castSuccess := rawItemArray.([]interface{});
+	itemArray, castSuccess := rawItemArray.([]interface{})
 	if !castSuccess {
 		return fmt.Errorf("Unable to process collection item array")
 	}
-
-	sortByFunction(&itemArray,compareCollectionItems)
+	if SortCollections {
+		fmt.Println("Note: Sorting collections by item_id. This may take time depending on collection size.")
+		sortByFunction(&itemArray, compareCollectionItems)
+	} else {
+		fmt.Println("Note: Not sorting collections by item_id. Add sort-collection=true flag if desired.")
+	}
 
 	return writeEntity(dataDir, collectionName, data)
 }
@@ -255,19 +272,19 @@ func writeRole(name string, data map[string]interface{}) error {
 	if rawPermissions == nil {
 		return fmt.Errorf("Permissions not found while processing role")
 	}
-	permissions, castSuccess := rawPermissions.(map[string]interface{});
-	if !castSuccess{
+	permissions, castSuccess := rawPermissions.(map[string]interface{})
+	if !castSuccess {
 		return fmt.Errorf("Unable to process role permissions: %v", rawPermissions)
 	}
 	// Default value for a role with no code services is null
-	codeServices, castSuccess := permissions["CodeServices"].([]interface{});
-	if castSuccess{
- 		sortByMapKey(&codeServices,SORT_KEY_CODE_SERVICE)
+	codeServices, castSuccess := permissions["CodeServices"].([]interface{})
+	if castSuccess {
+		sortByMapKey(&codeServices, SORT_KEY_CODE_SERVICE)
 	}
 	// Default value for a role with no collections is null
-	collections, castSuccess := permissions["Collections"].([]interface{});
-	if castSuccess{
- 		sortByMapKey(&collections, SORT_KEY_COLLECTION)
+	collections, castSuccess := permissions["Collections"].([]interface{})
+	if castSuccess {
+		sortByMapKey(&collections, SORT_KEY_COLLECTION)
 	}
 
 	return writeEntity(rolesDir, name, data)
@@ -330,7 +347,7 @@ func writePlugin(name string, data map[string]interface{}) error {
 }
 
 func isException(name string, exceptions []string) bool {
-	if name == "." || name == ".." {
+	if name == "." || name == ".." || name == ".DS_Store" {
 		return false
 	}
 	for _, exception := range exceptions {
@@ -379,19 +396,22 @@ func getObjectList(dirName string, exceptions []string) ([]map[string]interface{
 }
 
 func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
-	dirList, err := getFileList(dirName, []string{})
-	rval := []map[string]interface{}{}
+	dirList, err := getFileList(dirName, []string{".DS_Store", ".git", ".gitignore"}) // For starters
 	if err != nil {
+		fmt.Printf("getFileListFailed: %s, %s\n", dirName, err)
 		return nil, err
 	}
+	rval := []map[string]interface{}{}
 	for _, realDirName := range dirList {
 		myRootDir := dirName + "/" + realDirName + "/"
 		myObj, err := getObject(myRootDir, realDirName+".json")
 		if err != nil {
+			fmt.Printf("getObject failed: %s\n", err)
 			return nil, err
 		}
 		byts, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js")
 		if err != nil {
+			fmt.Printf("ioutil.ReadFile failed: %s\n", err)
 			return nil, err
 		}
 		myObj["code"] = string(byts)
@@ -451,6 +471,10 @@ func getPortals() ([]map[string]interface{}, error) {
 
 func getPlugins() ([]map[string]interface{}, error) {
 	return getObjectList(pluginsDir, []string{})
+}
+
+func getEdgeDeployInfo() (map[string]interface{}, error) {
+	return getDict(rootDir + "/deploy.json")
 }
 
 //  For most of these calls below (getUser, etc) the second arg
@@ -575,21 +599,33 @@ func makeCollectionJsonConsistent(data map[string]interface{}) map[string]interf
 // The logic in this function will diverge soon from the one below it in cb-cli v3
 func compareCollectionItems(sliceOfItems *[]interface{}, i, j int) bool {
 
-		sortKey := SORT_KEY_COLLECTION_ITEM
+	sortKey := SORT_KEY_COLLECTION_ITEM
 
-		slice := *sliceOfItems
+	slice := *sliceOfItems
 
-		map1, castSuccess1 := slice[i].(map[string]interface{})
-		map2, castSuccess2 := slice[j].(map[string]interface{})
+	map1, castSuccess1 := slice[i].(map[string]interface{})
+	map2, castSuccess2 := slice[j].(map[string]interface{})
 
-		if !castSuccess1 || !castSuccess2 {
-			return false
-		}
-
-		name1 := map1[sortKey]
-		name2 := map2[sortKey]
-		if !isString(name1) || !isString(name2) {
-			return false
-		}
-		return name1.(string) < name2.(string)
+	if !castSuccess1 || !castSuccess2 {
+		return false
 	}
+
+	name1 := map1[sortKey]
+	name2 := map2[sortKey]
+	if !isString(name1) || !isString(name2) {
+		return false
+	}
+	return name1.(string) < name2.(string)
+}
+
+func fileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+		// We have another error, but the file does exist
+		// Just for the sake of this function, we ignore
+		// the error
+	}
+	return true
+}
