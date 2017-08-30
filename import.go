@@ -460,12 +460,8 @@ func devTokenHardAuthorize()(*cb.DevClient, error) {
 }
 
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
-
-	// Common set of calls for a complete system import
-	fmt.Printf("Importing system...")
-	if err := createSystem(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
-	}
+	
+	// Common set of calls for a complete system import 
 	fmt.Printf(" Done.\nImporting roles...")
 	if err := createRoles(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create roles: %s", err.Error())
@@ -485,7 +481,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 	 	} else {
-	 		fmt.Printf("Warning: Could not import code services... -- ignoring\n")
+	 		fmt.Printf("Warning: Could not import code services... -- ignoring \n", err.Error())
 	 	}
 	}
 	fmt.Printf(" Done.\nImporting code libraries...")
@@ -494,7 +490,7 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		if err != serr {
 			return err
 	 	}  else {
-	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+	 		fmt.Printf("Warning: Could not import code libraries... -- ignoring \n", err.Error())
 	 	}
 	}
 	fmt.Printf(" Done.\nImporting triggers...")
@@ -550,53 +546,65 @@ func importIt(cli *cb.DevClient) error {
 		return err
 	}
 	//fmt.Printf("Done.\nImporting system...")
+	fmt.Printf("Importing system...")
+	if err := createSystem(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
+	}
 
 	return importAllAssets(systemInfo, users, cli)
 }
 
 // Import assuming the system is there in the root directory
-// Alternative to ImportIt for Import from UI
+// Alternative to ImportIt for Import from UI 
+// if intoExistingSystem is true then userInfo should have system key else error will be thrown
 
-func importMySystem(cli *cb.DevClient, rootdirectory string) error {
-
+func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]interface{}) (map[string]interface{}, error) {
+	
 	// Point the rootDirectory to the extracted folder
 	SetRootDir(rootdirectory)
 	users, err := getUsers()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// as we don't cd into folders we have to use full path !!
 	path := filepath.Join(rootdirectory, "/system.json")
 
 	systemInfo, err := getDict(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	
 	// Hijack to make sure the MetaInfo is not nil
 	cli, err = devTokenHardAuthorize() // Hijacking Authorize()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return importAllAssets(systemInfo, users, cli)
+	// updating system info accordingly
+	if userInfo["importIntoExistingSystem"].(bool) {
+		systemInfo["systemKey"] = userInfo["system_key"]
+		systemInfo["systemSecret"] = userInfo["system_secret"]
+	} else {
+		fmt.Printf("Importing system...")
+		if userInfo["systemName"] != nil {
+			systemInfo["name"] = userInfo["systemName"]	
+		}
+		if err := createSystem(systemInfo, cli); err != nil {
+			return nil, fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
+		}
+	}
+	return systemInfo, importAllAssets(systemInfo, users, cli)
 }
-// Call this wrapper from the end point !!
-func GetWrapperForImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) error {
 
-	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL
-	// not changing the overall metaInfo, in case its used some where else
+// Call this wrapper from the end point !! 
+func ImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) (map[string]interface{}, error) {
+	
+	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL  
+	// not changing the overall metaInfo, in case its used some where else 
 	tempmetaInfo := MetaInfo
-	MetaInfo = userInfo
-
+	MetaInfo = userInfo	
 	// similar to old importIt
-	err := importMySystem(cli, dir)
- 	MetaInfo = tempmetaInfo
-
-
-	// Deleting the extracted system fom the server once import is done
-	errExtractedDel :=  os.RemoveAll(dir)
-	if errExtractedDel != nil {
-		fmt.Printf("Error in removing directory: %v", errExtractedDel.Error())
-	}
-	return err
+	systemInfo, err := importSystem(cli, dir, userInfo) 
+	MetaInfo = tempmetaInfo
+ 	return systemInfo, err
 }
+
