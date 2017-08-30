@@ -537,7 +537,6 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 }
 
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
-
 	// Common set of calls for a complete system import
 	fmt.Printf("Importing system...")
 	_, err := createSystem(systemInfo, cli)
@@ -640,7 +639,8 @@ func importIt(cli *cb.DevClient) error {
 }
 
 // Import assuming the system is there in the root directory
-// Alternative to ImportIt for Import from UI
+// Alternative to ImportIt for Import from UI 
+// if intoExistingSystem is true then userInfo should have system key else error will be thrown
 
 func importMySystem(cli *cb.DevClient, rootdirectory string) error {
 
@@ -648,22 +648,35 @@ func importMySystem(cli *cb.DevClient, rootdirectory string) error {
 	SetRootDir(rootdirectory)
 	users, err := getUsers()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// as we don't cd into folders we have to use full path !!
 	path := filepath.Join(rootdirectory, "/system.json")
 
 	systemInfo, err := getDict(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	
 	// Hijack to make sure the MetaInfo is not nil
 	cli, err = devTokenHardAuthorize() // Hijacking Authorize()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return importAllAssets(systemInfo, users, cli)
+	// updating system info accordingly
+	if userInfo["importIntoExistingSystem"].(bool) {
+		systemInfo["systemKey"] = userInfo["system_key"]
+		systemInfo["systemSecret"] = userInfo["system_secret"]
+	} else {
+		fmt.Printf("Importing system...")
+		if userInfo["systemName"] != nil {
+			systemInfo["name"] = userInfo["systemName"]	
+		}
+		if err := createSystem(systemInfo, cli); err != nil {
+			return nil, fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
+		}
+	}
+	return systemInfo, importAllAssets(systemInfo, users, cli)
 }
 
 // Call this wrapper from the end point !!
