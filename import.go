@@ -248,7 +248,7 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 		return err
 	}
 	for _, collection := range collections {
-		fmt.Printf(" %s", collection["name"].(string))
+		fmt.Printf(" %s\n", collection["name"].(string))
 		if err := CreateCollection(sysKey, collection, client); err != nil {
 			return err
 		}
