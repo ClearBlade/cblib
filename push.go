@@ -42,6 +42,8 @@ func init() {
 	pushCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to push")
 	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
 
+	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
+
 	AddCommand("push", pushCommand)
 }
 
@@ -1402,15 +1404,27 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 			return err
 		}
 	}
-	items := collection["items"].([]interface{})
-	if len(items) == 0 {
+	allItems := collection["items"].([]interface{})
+	totalItems := len(allItems)
+	if totalItems == 0 {
 		return nil
 	}
-	for idx, itemIF := range items {
-		items[idx] = itemIF.(map[string]interface{})
+	if totalItems/DataPageSize > 1000 {
+		fmt.Println("Large dataset deteced. Recommend increasing page size. Use flag: -data-page-size=1000")
 	}
-	if _, err := client.CreateData(colId, items); err != nil {
-		return err
+	for i := 0; i < totalItems; i += DataPageSize {
+		maxItemIndex := i + DataPageSize - 1
+		if totalItems < maxItemIndex {
+			maxItemIndex = totalItems - 1
+		}
+		items := allItems[i : maxItemIndex+1]
+		fmt.Printf("Uploading:  \tItem(s): %d - %d of %d\n", i+1, maxItemIndex+1, totalItems)
+		for idx, itemIF := range items {
+			items[idx] = itemIF.(map[string]interface{})
+		}
+		if _, err := client.CreateData(colId, items); err != nil {
+			return err
+		}
 	}
 	return nil
 }

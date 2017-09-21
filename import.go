@@ -27,6 +27,7 @@ func init() {
 	myImportCommand.flags.StringVar(&URL, "url", "", "URL for import destination")
 	myImportCommand.flags.StringVar(&Email, "email", "", "Developer email for login to import destination")
 	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
+	myImportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
 	AddCommand("import", myImportCommand)
 	AddCommand("imp", myImportCommand)
 	AddCommand("im", myImportCommand)
@@ -537,11 +538,11 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 }
 
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
-	
-	// Common set of calls for a complete system import 
+
+	// Common set of calls for a complete system import
 	fmt.Printf(" Done.\nImporting roles...")
 
-	err := createRoles(systemInfo, cli); 
+	err := createRoles(systemInfo, cli)
 	if err != nil {
 		return fmt.Errorf("Could not create roles: %s", err.Error())
 	}
@@ -641,11 +642,11 @@ func importIt(cli *cb.DevClient) error {
 }
 
 // Import assuming the system is there in the root directory
-// Alternative to ImportIt for Import from UI 
+// Alternative to ImportIt for Import from UI
 // if intoExistingSystem is true then userInfo should have system key else error will be thrown
 
 func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]interface{}) (map[string]interface{}, error) {
-	
+
 	// Point the rootDirectory to the extracted folder
 	SetRootDir(rootdirectory)
 	users, err := getUsers()
@@ -659,7 +660,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Hijack to make sure the MetaInfo is not nil
 	cli, err = devTokenHardAuthorize() // Hijacking Authorize()
 	if err != nil {
@@ -672,7 +673,7 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 	} else {
 		fmt.Printf("Importing system...")
 		if userInfo["systemName"] != nil {
-			systemInfo["name"] = userInfo["systemName"]	
+			systemInfo["name"] = userInfo["systemName"]
 		}
 		if _, err := createSystem(systemInfo, cli); err != nil {
 			return nil, fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
@@ -681,16 +682,15 @@ func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]i
 	return systemInfo, importAllAssets(systemInfo, users, cli)
 }
 
-// Call this wrapper from the end point !! 
+// Call this wrapper from the end point !!
 func ImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) (map[string]interface{}, error) {
-	
-	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL  
-	// not changing the overall metaInfo, in case its used some where else 
-	tempmetaInfo := MetaInfo
-	MetaInfo = userInfo	
-	// similar to old importIt
-	systemInfo, err := importSystem(cli, dir, userInfo) 
-	MetaInfo = tempmetaInfo
- 	return systemInfo, err
-}
 
+	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL
+	// not changing the overall metaInfo, in case its used some where else
+	tempmetaInfo := MetaInfo
+	MetaInfo = userInfo
+	// similar to old importIt
+	systemInfo, err := importSystem(cli, dir, userInfo)
+	MetaInfo = tempmetaInfo
+	return systemInfo, err
+}
