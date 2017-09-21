@@ -1410,7 +1410,7 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 		return nil
 	}
 	if totalItems/DataPageSize > 1000 {
-		fmt.Println("Large dataset deteced. Recommend increasing page size. Use flag: -data-page-size=1000")
+		fmt.Println("Large dataset detected. Recommend increasing page size. Use flag: -data-page-size=1000")
 	}
 	for i := 0; i < totalItems; i += DataPageSize {
 		maxItemIndex := i + DataPageSize - 1
