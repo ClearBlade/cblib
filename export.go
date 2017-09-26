@@ -37,7 +37,7 @@ func init() {
 	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
 	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection's rows' item_id column")
 	myExportCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections by item id, for version control ease")
-	myExportCommand.flags.IntVar(&DataPageSize, "page-size", DataPageSizeDefault, "Number of rows in a collection to request at a time")
+	myExportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to request at a time")
 	AddCommand("export", myExportCommand)
 }
 
@@ -195,7 +195,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	totalDownloaded := 0
 
 	if totalItems/DataPageSize > 1000 {
-		fmt.Println("Large dataset detected. Recommend increasing page size. use flag: -page-size=1000 or -page-size=10000")
+		fmt.Println("Large dataset detected. Recommend increasing page size. use flag: -data-page-size=1000 or -data-page-size=10000")
 	}
 	for j := 0; j < totalItems; j += DataPageSize {
 		dataQuery.PageNumber = (j / DataPageSize) + 1
