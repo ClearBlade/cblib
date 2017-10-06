@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	cb "github.com/clearblade/Go-SDK"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	cb "github.com/clearblade/Go-SDK"
 )
 
 func init() {
@@ -1412,12 +1413,21 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 	if totalItems/DataPageSize > 1000 {
 		fmt.Println("Large dataset detected. Recommend increasing page size. Use flag: -data-page-size=1000")
 	}
+
+	//If there are less items than the specified page size,
+	//set the page size as the total number of items
+	if totalItems < DataPageSize {
+		DataPageSize = totalItems
+	}
+
 	for i := 0; i < totalItems; i += DataPageSize {
 		maxItemIndex := i + DataPageSize - 1
+
 		if totalItems < maxItemIndex {
 			maxItemIndex = totalItems - 1
 		}
-		items := allItems[i : maxItemIndex+1]
+
+		items := allItems[i:maxItemIndex]
 		fmt.Printf("Uploading:  \tItem(s): %d - %d of %d\n", i+1, maxItemIndex+1, totalItems)
 		for idx, itemIF := range items {
 			items[idx] = itemIF.(map[string]interface{})
