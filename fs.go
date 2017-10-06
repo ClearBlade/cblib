@@ -25,7 +25,8 @@ var (
 	devicesDir  string
 	portalsDir  string
 	pluginsDir  string
-	arrDir      [11]string
+	adaptersDir string
+	arrDir      [12]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -41,6 +42,7 @@ func SetRootDir(theRootDir string) {
 	devicesDir = rootDir + "/devices"
 	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
+	adaptersDir = rootDir + "/adapters"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -52,6 +54,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[8] = devicesDir
 	arrDir[9] = portalsDir
 	arrDir[10] = pluginsDir
+	arrDir[11] = adaptersDir
 }
 
 func setupDirectoryStructure(sys *System_meta) error {
@@ -344,6 +347,13 @@ func writePlugin(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(pluginsDir, name, data)
+}
+
+func writeAdapter(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(adaptersDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(adaptersDir, name, data)
 }
 
 func isException(name string, exceptions []string) bool {
