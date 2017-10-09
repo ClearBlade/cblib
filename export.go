@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/models"
 )
 
 var (
@@ -592,23 +593,27 @@ func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
-func PullAdapters(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
 	sysKey := sysMeta.Key
 	allAdapters, err := cli.GetAdaptors(sysKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	list := make([]map[string]interface{}, len(allAdapters))
 	for i := 0; i < len(allAdapters); i++ {
-		currentAdapter := allAdapters[i].(map[string]interface{})
-		fmt.Printf(" %s", currentAdapter["name"].(string))
-		if err = writeAdapter(currentAdapter["name"].(string), currentAdapter); err != nil {
-			return nil, err
+		currentAdaptorName := allAdapters[i].(map[string]interface{})["name"].(string)
+		currentAdaptor := models.InitializeAdaptor(currentAdaptorName, sysKey, cli)
+
+		err := currentAdaptor.FetchAllInfo()
+		if err != nil {
+			return err
 		}
-		list = append(list, currentAdapter)
+
+		if err = writeAdaptor(currentAdaptor); err != nil {
+			return err
+		}
 	}
 
-	return list, nil
+	return nil
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
@@ -773,11 +778,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["plugins"] = plugins
 
 	fmt.Printf(" Done.\nExporting Adapters...")
-	adapters, err := PullAdapters(sysMeta, cli)
+	err = PullAdaptors(sysMeta, cli)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["adapters"] = adapters
 
 	fmt.Printf(" Done.\n")
 

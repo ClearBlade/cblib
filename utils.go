@@ -3,9 +3,9 @@ package cblib
 import (
 	//"fmt"
 	cb "github.com/clearblade/Go-SDK"
-	"strings"
-	"reflect"
 	"math/rand"
+	"reflect"
+	"strings"
 )
 
 type compare func(sliceOfSystemResources *[]interface{}, i int, j int) bool
@@ -58,17 +58,17 @@ func convertPermissionsNames(perms map[string]interface{}) map[string]interface{
 
 // Bubble sort, compare by map key
 func sortByMapKey(arrayPointer *[]interface{}, sortKey string) {
-	if(arrayPointer == nil){
+	if arrayPointer == nil {
 		return
 	}
 	array := *arrayPointer
-	swapped := true;
+	swapped := true
 	for swapped {
 		swapped = false
-		for i := 0; i < len(array) - 1; i++ {
+		for i := 0; i < len(array)-1; i++ {
 			needToSwap := compareWithKey(sortKey, arrayPointer, i+1, i)
-			if  needToSwap {
-				swap(arrayPointer, i, i + 1)
+			if needToSwap {
+				swap(arrayPointer, i, i+1)
 				swapped = true
 			}
 		}
@@ -77,17 +77,17 @@ func sortByMapKey(arrayPointer *[]interface{}, sortKey string) {
 
 // Bubble sort, compare by function
 func sortByFunction(arrayPointer *[]interface{}, compareFn compare) {
-	if(arrayPointer == nil){
+	if arrayPointer == nil {
 		return
 	}
 	array := *arrayPointer
-	swapped := true;
+	swapped := true
 	for swapped {
 		swapped = false
-		for i := 0; i < len(array) - 1; i++ {
+		for i := 0; i < len(array)-1; i++ {
 			needToSwap := compareFn(arrayPointer, i+1, i)
-			if  needToSwap {
-				swap(arrayPointer, i, i + 1)
+			if needToSwap {
+				swap(arrayPointer, i, i+1)
 				swapped = true
 			}
 		}
@@ -126,9 +126,13 @@ func compareWithKey(sortKey string, sliceOfCodeServices *[]interface{}, i, j int
 
 func randSeq(n int) string {
 	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-  b := make([]rune, n)
-  for i := range b {
-      b[i] = letters[rand.Intn(len(letters))]
-  }
-  return string(b)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func createFilePath(args ...string) string {
+	return strings.Join(args, "/")
 }
