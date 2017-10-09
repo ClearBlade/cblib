@@ -595,12 +595,12 @@ func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 
 func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
 	sysKey := sysMeta.Key
-	allAdapters, err := cli.GetAdaptors(sysKey)
+	allAdaptors, err := cli.GetAdaptors(sysKey)
 	if err != nil {
 		return err
 	}
-	for i := 0; i < len(allAdapters); i++ {
-		currentAdaptorName := allAdapters[i].(map[string]interface{})["name"].(string)
+	for i := 0; i < len(allAdaptors); i++ {
+		currentAdaptorName := allAdaptors[i].(map[string]interface{})["name"].(string)
 		currentAdaptor := models.InitializeAdaptor(currentAdaptorName, sysKey, cli)
 
 		err := currentAdaptor.FetchAllInfo()
@@ -777,7 +777,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["plugins"] = plugins
 
-	fmt.Printf(" Done.\nExporting Adapters...")
+	fmt.Printf(" Done.\nExporting Adaptors...")
 	err = PullAdaptors(sysMeta, cli)
 	if err != nil {
 		return err
