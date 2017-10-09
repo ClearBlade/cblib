@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/models"
 	"io/ioutil"
 	"os"
@@ -192,6 +193,59 @@ func getCollectionItems(collectionName string) ([]interface{}, error) {
 	return getArray(fileName)
 }
 
+func getAdaptors(sysKey string, client *cb.DevClient) ([]*models.Adaptor, error) {
+	adaptorDirList, err := getFileList(adaptorsDir, []string{})
+	if err != nil {
+		return nil, err
+	}
+	rtn := make([]*models.Adaptor, 0)
+	for _, adaptorDirName := range adaptorDirList {
+		currentDir := createFilePath(adaptorsDir, adaptorDirName)
+		currentAdaptorInfo, err := getObject(currentDir, adaptorDirName+".json")
+		if err != nil {
+			return nil, err
+		}
+
+		adap := models.InitializeAdaptor(adaptorDirName, sysKey, client)
+		adap.Info = currentAdaptorInfo
+
+		adaptorFilesDir := createFilePath(currentDir, "files")
+		adaptorFileDirList, err := getFileList(adaptorFilesDir, []string{})
+		if err != nil {
+			return nil, err
+		}
+
+		adap.InfoForFiles = make([]interface{}, 0)
+		adap.ContentsForFiles = make([]map[string]interface{}, 0)
+
+		for _, adaptorFileDirName := range adaptorFileDirList {
+			currentFileDir := createFilePath(adaptorFilesDir, adaptorFileDirName)
+			fileInfo, err := getObject(currentFileDir, adaptorFileDirName+".json")
+			if err != nil {
+				return nil, err
+			}
+
+			adap.InfoForFiles = append(adap.InfoForFiles, fileInfo)
+
+			contentForFile := copyMap(fileInfo)
+
+			fileContents, err := ioutil.ReadFile(createFilePath(currentFileDir, adaptorFileDirName))
+			if err != nil {
+				return nil, err
+			}
+
+			contentForFile["file"] = adap.EncodeFile(fileContents)
+
+			adap.ContentsForFiles = append(adap.ContentsForFiles, contentForFile)
+
+		}
+
+		rtn = append(rtn, adap)
+
+	}
+	return rtn, nil
+}
+
 func writeServiceVersion(name string, data map[string]interface{}) error {
 	mySvcDir := svcDir + "/" + name
 	if err := os.MkdirAll(mySvcDir, 0777); err != nil {
@@ -351,13 +405,18 @@ func writePlugin(name string, data map[string]interface{}) error {
 }
 
 func writeAdaptor(a *models.Adaptor) error {
-	myAdaptorDir := adaptorsDir + "/" + a.Name
+	myAdaptorDir := createFilePath(adaptorsDir, a.Name)
 	if err := os.MkdirAll(myAdaptorDir, 0777); err != nil {
 		return err
 	}
 
 	err := writeEntity(myAdaptorDir, a.Name, a.Info)
 	if err != nil {
+		return err
+	}
+
+	adaptorFilesDir := createFilePath(myAdaptorDir, "files")
+	if err := os.MkdirAll(adaptorFilesDir, 0777); err != nil {
 		return err
 	}
 

@@ -48,6 +48,13 @@ func (a *Adaptor) FetchAllInfo() error {
 	return nil
 }
 
+func (a *Adaptor) UploadAllInfo() error {
+	fmt.Println("upload all info")
+	fmt.Printf("%+v\n", a)
+	//todo: call all the correct endpoints to create the adaptor, create the adaptor file objects, and uploaded the adaptor files
+	return nil
+}
+
 func (a *Adaptor) DecodeFileByName(fileName string) ([]byte, error) {
 	for i := 0; i < len(a.ContentsForFiles); i++ {
 		if a.ContentsForFiles[i]["name"] == fileName {
@@ -60,4 +67,8 @@ func (a *Adaptor) DecodeFileByName(fileName string) ([]byte, error) {
 		}
 	}
 	return nil, fmt.Errorf("No adaptor file with name '%s'", fileName)
+}
+
+func (a *Adaptor) EncodeFile(contents []byte) string {
+	return base64.StdEncoding.EncodeToString(contents)
 }

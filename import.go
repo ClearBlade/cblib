@@ -241,6 +241,21 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 	return nil
 }
 
+func createAdaptors(systemInfo map[string]interface{}, client *cb.DevClient) error {
+	sysKey := systemInfo["systemKey"].(string)
+	adaptors, err := getAdaptors(sysKey, client)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(adaptors); i++ {
+		err := adaptors[i].UploadAllInfo()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	collections, err := getCollections()
@@ -608,6 +623,10 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	fmt.Printf(" Done.\nImporting edge deploy information...")
 	if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create edge deploy information: %s", err.Error())
+	}
+	fmt.Printf(" Done. \nImporting adaptors...")
+	if err := createAdaptors(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create adaptors: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")

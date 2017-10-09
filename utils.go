@@ -136,3 +136,11 @@ func randSeq(n int) string {
 func createFilePath(args ...string) string {
 	return strings.Join(args, "/")
 }
+
+func copyMap(daMap map[string]interface{}) map[string]interface{} {
+	rtn := make(map[string]interface{})
+	for k, v := range daMap {
+		rtn[k] = v
+	}
+	return rtn
+}
