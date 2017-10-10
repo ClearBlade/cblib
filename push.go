@@ -1416,12 +1416,13 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 
 	//If there are less items than the specified page size,
 	//set the page size as the total number of items
+	pageSize := DataPageSize
 	if totalItems < DataPageSize {
-		DataPageSize = totalItems
+		pageSize = totalItems
 	}
 
-	for i := 0; i < totalItems; i += DataPageSize {
-		maxItemIndex := i + DataPageSize - 1
+	for i := 0; i < totalItems; i += pageSize {
+		maxItemIndex := i + pageSize - 1
 
 		if totalItems < maxItemIndex {
 			maxItemIndex = totalItems - 1
