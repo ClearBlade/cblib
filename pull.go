@@ -3,6 +3,7 @@ package cblib
 import (
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/models"
 	"strings"
 )
 
@@ -25,6 +26,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllDevices, "all-devices", false, "pull all devices from system")
 	pullCommand.flags.BoolVar(&AllPortals, "all-portals", false, "pull all portals from system")
 	pullCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "pull all plugins from system")
+	pullCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "pull all adapters from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -40,6 +42,7 @@ func init() {
 	pullCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to pull")
 	pullCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to pull")
 	pullCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to pull")
+	pullCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to pull")
 
 	AddCommand("pull", pullCommand)
 }
@@ -242,6 +245,32 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		fmt.Printf("Pulling plugin %+s\n", PluginName)
 		if err = PullAndWritePlugin(systemInfo.Key, PluginName, client); err != nil {
+			return err
+		}
+	}
+
+	if AllAdaptors {
+		didSomething = true
+		fmt.Printf("Pulling all adaptors:")
+		if err := backupAndCleanDirectory(adaptorsDir); err != nil {
+			return err
+		}
+		if err := PullAdaptors(systemInfo, client); err != nil {
+			if restoreErr := restoreBackupDirectory(adaptorsDir); restoreErr != nil {
+				fmt.Printf("Failed to restore backup directory; %s", restoreErr.Error())
+			}
+			return err
+		}
+		if err := removeBackupDirectory(adaptorsDir); err != nil {
+			fmt.Printf("Warning: Failed to remove backup directory for '%s'", adaptorsDir)
+		}
+		fmt.Printf("\n")
+	}
+
+	if AdaptorName != "" {
+		didSomething = true
+		fmt.Printf("Pulling adaptor %+s\n", AdaptorName)
+		if err = PullAndWriteAdaptor(systemInfo.Key, AdaptorName, client); err != nil {
 			return err
 		}
 	}
@@ -479,6 +508,17 @@ func PullAndWritePlugin(systemKey, name string, client *cb.DevClient) error {
 	return nil
 }
 
+func PullAndWriteAdaptor(systemKey, name string, client *cb.DevClient) error {
+	if adaptor, err := pullAdaptor(systemKey, name, client); err != nil {
+		return err
+	} else {
+		if err = writeAdaptor(adaptor); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func pullTrigger(systemKey string, triggerName string, client *cb.DevClient) (map[string]interface{}, error) {
 	return client.GetEventHandler(systemKey, triggerName)
 }
@@ -501,4 +541,15 @@ func pullPortal(systemKey string, portalName string, client *cb.DevClient) (map[
 
 func pullPlugin(systemKey string, pluginName string, client *cb.DevClient) (map[string]interface{}, error) {
 	return client.GetPlugin(systemKey, pluginName)
+}
+
+func pullAdaptor(systemKey, adaptorName string, client *cb.DevClient) (*models.Adaptor, error) {
+	fmt.Printf("\n %s", adaptorName)
+	currentAdaptor := models.InitializeAdaptor(adaptorName, systemKey, client)
+
+	if err := currentAdaptor.FetchAllInfo(); err != nil {
+		return nil, err
+	}
+
+	return currentAdaptor, nil
 }

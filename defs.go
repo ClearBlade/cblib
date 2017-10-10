@@ -48,6 +48,7 @@ var (
 	EdgeName                   string
 	PortalName                 string
 	PluginName                 string
+	AdaptorName                string
 	Message                    bool
 	Topic                      string
 	Payload                    string
@@ -60,6 +61,7 @@ var (
 	AllEdges                   bool
 	AllPortals                 bool
 	AllPlugins                 bool
+	AllAdaptors                bool
 )
 
 var (

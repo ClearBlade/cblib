@@ -592,6 +592,27 @@ func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
+func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
+	sysKey := sysMeta.Key
+	allAdaptors, err := cli.GetAdaptors(sysKey)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allAdaptors); i++ {
+		currentAdaptorName := allAdaptors[i].(map[string]interface{})["name"].(string)
+		currentAdaptor, err := pullAdaptor(sysKey, currentAdaptorName, cli)
+		if err != nil {
+			return err
+		}
+
+		if err = writeAdaptor(currentAdaptor); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("export command takes no arguments; only options\n")
@@ -752,6 +773,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["plugins"] = plugins
+
+	fmt.Printf(" Done.\nExporting Adaptors...")
+	err = PullAdaptors(sysMeta, cli)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf(" Done.\n")
 
