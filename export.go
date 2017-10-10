@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"clearblade/db"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -191,12 +192,20 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 
 	dataQuery := &cb.Query{}
 	dataQuery.PageSize = DataPageSize
+
+	//We have to add an orderby clause in order to ensure paging works. Without the orderby clause
+	//The order returned for each page is not consistent and could therefore result in duplicate rows
+	//
+	//https://www.postgresql.org/docs/current/static/sql-select.html
+	dataQuery.Order = []cb.Ordering{cb.Ordering{OrderKey: "item_id", SortOrder: db.ASC}}
 	allData := []interface{}{}
+	itemIDs := make(map[string]interface{})
 	totalDownloaded := 0
 
 	if totalItems/DataPageSize > 1000 {
 		fmt.Println("Large dataset detected. Recommend increasing page size. use flag: -data-page-size=1000 or -data-page-size=10000")
 	}
+
 	for j := 0; j < totalItems; j += DataPageSize {
 		dataQuery.PageNumber = (j / DataPageSize) + 1
 
@@ -206,17 +215,27 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 		}
 		curData := data["DATA"].([]interface{})
 
-		//remove the item_id data if it is not supposed to be exported
-		if !ExportItemId {
-			//Loop through the array of maps and find the one where ColumnName = item_id
-			//Remove it from the slice
-			for _, rowMap := range curData {
-				delete(rowMap.(map[string]interface{}), "item_id")
+		//Loop through the array of maps and store the value of the item_id column in
+		//a map so that we can prevent adding duplicate rows
+		//
+		//Duplicate rows can occur when dealing with very large tables if rows are added
+		//to the table while we are attempting to read pages of data. There currently is
+		//no solution to remedy this.
+		for _, rowMap := range curData {
+			itemID := (rowMap.(map[string]interface{})["item_id"]).(string)
+
+			if _, ok := itemIDs[itemID]; !ok {
+				itemIDs[itemID] = ""
+
+				//remove the item_id data if it is not supposed to be exported
+				if !ExportItemId {
+					delete(rowMap.(map[string]interface{}), "item_id")
+				}
+				allData = append(allData, rowMap)
+				totalDownloaded++
 			}
 		}
-		totalDownloaded += len(curData)
-		fmt.Printf("Downloading: \tPage(s): %v / %v \tItem(s): %v / %v\n", dataQuery.PageNumber, (totalItems/DataPageSize)+1, totalDownloaded, totalItems)
-		allData = append(allData, curData...)
+		fmt.Printf("Downloaded: \tPage(s): %v / %v \tItem(s): %v / %v\n", dataQuery.PageNumber, (totalItems/DataPageSize)+1, totalDownloaded, totalItems)
 	}
 	return allData, nil
 }
