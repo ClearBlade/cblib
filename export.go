@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/models"
 )
 
 var (
@@ -601,9 +600,7 @@ func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
 	}
 	for i := 0; i < len(allAdaptors); i++ {
 		currentAdaptorName := allAdaptors[i].(map[string]interface{})["name"].(string)
-		currentAdaptor := models.InitializeAdaptor(currentAdaptorName, sysKey, cli)
-
-		err := currentAdaptor.FetchAllInfo()
+		currentAdaptor, err := pullAdaptor(sysKey, currentAdaptorName, cli)
 		if err != nil {
 			return err
 		}
