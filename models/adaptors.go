@@ -49,16 +49,26 @@ func (a *Adaptor) FetchAllInfo() error {
 }
 
 func (a *Adaptor) UploadAllInfo() error {
-	fmt.Println("upload all info")
-	fmt.Printf("%+v\n", a)
-	//todo: call all the correct endpoints to create the adaptor, create the adaptor file objects, and uploaded the adaptor files
+	delete(a.Info, "version")
+	if _, err := a.client.CreateAdaptor(a.systemKey, a.Name, a.Info); err != nil {
+		return err
+	}
+	for i := 0; i < len(a.ContentsForFiles); i++ {
+		currentFile := a.ContentsForFiles[i]
+		currentFileName := currentFile["name"].(string)
+		delete(currentFile, "version")
+		if _, err := a.client.CreateAdaptorFile(a.systemKey, a.Name, currentFileName, currentFile); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (a *Adaptor) DecodeFileByName(fileName string) ([]byte, error) {
 	for i := 0; i < len(a.ContentsForFiles); i++ {
 		if a.ContentsForFiles[i]["name"] == fileName {
-			decoded, err := base64.StdEncoding.DecodeString(a.ContentsForFiles[i]["file"].(string))
+			decoded, err := a.DecodeFile(a.ContentsForFiles[i]["file"].(string))
 			if err != nil {
 				fmt.Printf("Unable to decode file for '%s'", fileName)
 				return nil, err
@@ -71,4 +81,8 @@ func (a *Adaptor) DecodeFileByName(fileName string) ([]byte, error) {
 
 func (a *Adaptor) EncodeFile(contents []byte) string {
 	return base64.StdEncoding.EncodeToString(contents)
+}
+
+func (a *Adaptor) DecodeFile(encoded string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(encoded)
 }
