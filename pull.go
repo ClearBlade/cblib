@@ -26,7 +26,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllDevices, "all-devices", false, "pull all devices from system")
 	pullCommand.flags.BoolVar(&AllPortals, "all-portals", false, "pull all portals from system")
 	pullCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "pull all plugins from system")
-	pullCommand.flags.BoolVar(&AllAdaptors, "all-adaptors", false, "pull all adaptors from system")
+	pullCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "pull all adapters from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -42,7 +42,7 @@ func init() {
 	pullCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to pull")
 	pullCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to pull")
 	pullCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to pull")
-	pullCommand.flags.StringVar(&AdaptorName, "adaptor", "", "Name of adaptor to pull")
+	pullCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to pull")
 
 	AddCommand("pull", pullCommand)
 }

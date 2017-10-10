@@ -30,7 +30,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllEdges, "all-edges", false, "push all of the local edges")
 	pushCommand.flags.BoolVar(&AllPortals, "all-portals", false, "push all of the local portals")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
-	pushCommand.flags.BoolVar(&AllAdaptors, "all-adaptors", false, "push all of the local adaptors")
+	pushCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "push all of the local adapters")
 
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
@@ -43,7 +43,7 @@ func init() {
 	pushCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to push")
 	pushCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to push")
 	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
-	pushCommand.flags.StringVar(&AdaptorName, "adaptor", "", "Name of adaptor to push")
+	pushCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to push")
 
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
 
