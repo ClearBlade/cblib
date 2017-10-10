@@ -560,7 +560,7 @@ func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	for i := 0; i < len(allPortals); i++ {
 		currentPortal := allPortals[i].(map[string]interface{})
 		var err error
-		if currentPortal["config"], err = parseIfNeeded(currentPortal["config"]); err != nil {
+		if err := transformPortal(currentPortal); err != nil {
 			return nil, err
 		}
 		fmt.Printf(" %s", currentPortal["name"].(string))

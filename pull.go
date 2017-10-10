@@ -535,8 +535,24 @@ func pullEdge(systemKey string, edgeName string, client *cb.DevClient) (map[stri
 	return client.GetEdge(systemKey, edgeName)
 }
 
+func transformPortal(portal map[string]interface{}) error {
+	if parsed, err := parseIfNeeded(portal["config"]); err != nil {
+		return err
+	} else {
+		portal["config"] = parsed
+	}
+	return nil
+}
+
 func pullPortal(systemKey string, portalName string, client *cb.DevClient) (map[string]interface{}, error) {
-	return client.GetPortal(systemKey, portalName)
+	portal, err := client.GetPortal(systemKey, portalName)
+	if err != nil {
+		return nil, err
+	}
+	if err := transformPortal(portal); err != nil {
+		return nil, err
+	}
+	return portal, nil
 }
 
 func pullPlugin(systemKey string, pluginName string, client *cb.DevClient) (map[string]interface{}, error) {
