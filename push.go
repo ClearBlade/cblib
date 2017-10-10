@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/models"
 	"os"
 	"sort"
 	"strings"
@@ -29,6 +30,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllEdges, "all-edges", false, "push all of the local edges")
 	pushCommand.flags.BoolVar(&AllPortals, "all-portals", false, "push all of the local portals")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
+	pushCommand.flags.BoolVar(&AllAdaptors, "all-adaptors", false, "push all of the local adaptors")
 
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
@@ -41,6 +43,7 @@ func init() {
 	pushCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to push")
 	pushCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to push")
 	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
+	pushCommand.flags.StringVar(&AdaptorName, "adaptor", "", "Name of adaptor to push")
 
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
 
@@ -511,6 +514,32 @@ func pushAllPlugins(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
+func pushOneAdaptor(systemInfo *System_meta, client *cb.DevClient) error {
+	fmt.Printf("Pushing adaptor %+s\n", PluginName)
+	sysKey := systemInfo.Key
+	adaptor, err := getAdaptor(sysKey, AdaptorName, client)
+	if err != nil {
+		return err
+	}
+	return handleUpdateAdaptor(systemInfo.Key, adaptor, client)
+}
+
+func pushAllAdaptors(systemInfo *System_meta, client *cb.DevClient) error {
+	sysKey := systemInfo.Key
+	adaptors, err := getAdaptors(sysKey, client)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(adaptors); i++ {
+		currentAdaptor := adaptors[i]
+		fmt.Printf("Pushing adaptor %+s\n", currentAdaptor.Name)
+		if err := handleUpdateAdaptor(sysKey, currentAdaptor, client); err != nil {
+			return fmt.Errorf("Error updating adaptor '%s': %s\n", currentAdaptor.Name, err.Error())
+		}
+	}
+	return nil
+}
+
 func pushAllServices(systemInfo *System_meta, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
@@ -707,6 +736,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if PluginName != "" {
 		didSomething = true
 		if err := pushOnePlugin(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if AllAdaptors {
+		didSomething = true
+		if err := pushAllAdaptors(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if AdaptorName != "" {
+		didSomething = true
+		if err := pushOneAdaptor(systemInfo, client); err != nil {
 			return err
 		}
 	}
@@ -1178,6 +1221,39 @@ func updatePlugin(systemKey string, plugin map[string]interface{}, client *cb.De
 	return nil
 }
 
+func updateAdaptor(adaptor *models.Adaptor) error {
+	return adaptor.UpdateAllInfo()
+}
+
+func handleUpdateAdaptor(systemKey string, adaptor *models.Adaptor, client *cb.DevClient) error {
+	adaptorName := adaptor.Name
+
+	_, err := client.GetAdaptor(systemKey, adaptorName)
+	if err != nil {
+		// adaptor DNE
+		fmt.Printf("Could not find adaptor %s\n", adaptorName)
+		fmt.Printf("Would you like to create a new adaptor named %s? (Y/n)", adaptorName)
+		reader := bufio.NewReader(os.Stdin)
+		if text, err := reader.ReadString('\n'); err != nil {
+			return err
+		} else {
+			if strings.Contains(strings.ToUpper(text), "Y") {
+				if err := createAdaptor(adaptor); err != nil {
+					return fmt.Errorf("Could not create adaptor %s: %s", adaptorName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new adaptor %s\n", adaptorName)
+				}
+			} else {
+				fmt.Printf("Adaptor will not be created.\n")
+			}
+		}
+	} else {
+		return updateAdaptor(adaptor)
+	}
+
+	return nil
+}
+
 func findService(systemKey, serviceName string) (map[string]interface{}, error) {
 	services, err := getServices()
 	if err != nil {
@@ -1532,6 +1608,10 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 
 func createPlugin(systemKey string, plug map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	return client.CreatePlugin(systemKey, plug)
+}
+
+func createAdaptor(adap *models.Adaptor) error {
+	return adap.UploadAllInfo()
 }
 
 func updateRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {

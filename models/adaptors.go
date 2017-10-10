@@ -65,6 +65,33 @@ func (a *Adaptor) UploadAllInfo() error {
 	return nil
 }
 
+func (a *Adaptor) UpdateAllInfo() error {
+	delete(a.Info, "version")
+	delete(a.Info, "name")
+	if _, err := a.client.UpdateAdaptor(a.systemKey, a.Name, a.Info); err != nil {
+		return err
+	}
+	for i := 0; i < len(a.ContentsForFiles); i++ {
+		currentFile := a.ContentsForFiles[i]
+		currentFileName := currentFile["name"].(string)
+		delete(currentFile, "version")
+		delete(currentFile, "adaptor_name")
+		if _, err := a.client.GetAdaptorFile(a.systemKey, a.Name, currentFileName); err != nil {
+			// adaptor file DNE
+			if _, err := a.client.CreateAdaptorFile(a.systemKey, a.Name, currentFileName, currentFile); err != nil {
+				return err
+			}
+		} else {
+			if _, err := a.client.UpdateAdaptorFile(a.systemKey, a.Name, currentFileName, currentFile); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (a *Adaptor) DecodeFileByName(fileName string) ([]byte, error) {
 	for i := 0; i < len(a.ContentsForFiles); i++ {
 		if a.ContentsForFiles[i]["name"] == fileName {

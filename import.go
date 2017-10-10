@@ -248,7 +248,7 @@ func createAdaptors(systemInfo map[string]interface{}, client *cb.DevClient) err
 		return err
 	}
 	for i := 0; i < len(adaptors); i++ {
-		err := adaptors[i].UploadAllInfo()
+		err := createAdaptor(adaptors[i])
 		if err != nil {
 			return err
 		}
