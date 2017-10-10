@@ -44,7 +44,7 @@ func SetRootDir(theRootDir string) {
 	devicesDir = rootDir + "/devices"
 	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
-	adaptorsDir = rootDir + "/adaptors"
+	adaptorsDir = rootDir + "/adapters"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
