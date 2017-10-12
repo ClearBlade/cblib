@@ -579,7 +579,7 @@ func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	for i := 0; i < len(allPortals); i++ {
 		currentPortal := allPortals[i].(map[string]interface{})
 		var err error
-		if currentPortal["config"], err = parseIfNeeded(currentPortal["config"]); err != nil {
+		if err := transformPortal(currentPortal); err != nil {
 			return nil, err
 		}
 		fmt.Printf(" %s", currentPortal["name"].(string))
@@ -609,6 +609,27 @@ func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	}
 
 	return list, nil
+}
+
+func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
+	sysKey := sysMeta.Key
+	allAdaptors, err := cli.GetAdaptors(sysKey)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allAdaptors); i++ {
+		currentAdaptorName := allAdaptors[i].(map[string]interface{})["name"].(string)
+		currentAdaptor, err := pullAdaptor(sysKey, currentAdaptorName, cli)
+		if err != nil {
+			return err
+		}
+
+		if err = writeAdaptor(currentAdaptor); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
@@ -771,6 +792,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["plugins"] = plugins
+
+	fmt.Printf(" Done.\nExporting Adaptors...")
+	err = PullAdaptors(sysMeta, cli)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf(" Done.\n")
 

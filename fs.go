@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/models"
 	"io/ioutil"
 	"os"
 )
@@ -25,7 +27,8 @@ var (
 	devicesDir  string
 	portalsDir  string
 	pluginsDir  string
-	arrDir      [11]string
+	adaptorsDir string
+	arrDir      [12]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -41,6 +44,7 @@ func SetRootDir(theRootDir string) {
 	devicesDir = rootDir + "/devices"
 	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
+	adaptorsDir = rootDir + "/adapters"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -52,6 +56,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[8] = devicesDir
 	arrDir[9] = portalsDir
 	arrDir[10] = pluginsDir
+	arrDir[11] = adaptorsDir
 }
 
 func setupDirectoryStructure(sys *System_meta) error {
@@ -186,6 +191,68 @@ func getCode(dirName, fileName string) (string, error) {
 func getCollectionItems(collectionName string) ([]interface{}, error) {
 	fileName := "data/" + collectionName + ".json"
 	return getArray(fileName)
+}
+
+func getAdaptor(sysKey, adaptorName string, client *cb.DevClient) (*models.Adaptor, error) {
+	currentDir := createFilePath(adaptorsDir, adaptorName)
+	currentAdaptorInfo, err := getObject(currentDir, adaptorName+".json")
+	if err != nil {
+		return nil, err
+	}
+
+	adap := models.InitializeAdaptor(adaptorName, sysKey, client)
+	adap.Info = currentAdaptorInfo
+
+	adaptorFilesDir := createFilePath(currentDir, "files")
+	adaptorFileDirList, err := getFileList(adaptorFilesDir, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	adap.InfoForFiles = make([]interface{}, 0)
+	adap.ContentsForFiles = make([]map[string]interface{}, 0)
+
+	for _, adaptorFileDirName := range adaptorFileDirList {
+		currentFileDir := createFilePath(adaptorFilesDir, adaptorFileDirName)
+		fileInfo, err := getObject(currentFileDir, adaptorFileDirName+".json")
+		if err != nil {
+			return nil, err
+		}
+
+		adap.InfoForFiles = append(adap.InfoForFiles, fileInfo)
+
+		contentForFile := copyMap(fileInfo)
+
+		fileContents, err := ioutil.ReadFile(createFilePath(currentFileDir, adaptorFileDirName))
+		if err != nil {
+			return nil, err
+		}
+
+		contentForFile["file"] = adap.EncodeFile(fileContents)
+
+		adap.ContentsForFiles = append(adap.ContentsForFiles, contentForFile)
+
+	}
+
+	return adap, nil
+}
+
+func getAdaptors(sysKey string, client *cb.DevClient) ([]*models.Adaptor, error) {
+	adaptorDirList, err := getFileList(adaptorsDir, []string{})
+	if err != nil {
+		return nil, err
+	}
+	rtn := make([]*models.Adaptor, 0)
+	for _, adaptorDirName := range adaptorDirList {
+
+		if adap, err := getAdaptor(sysKey, adaptorDirName, client); err != nil {
+			return nil, err
+		} else {
+			rtn = append(rtn, adap)
+		}
+
+	}
+	return rtn, nil
 }
 
 func writeServiceVersion(name string, data map[string]interface{}) error {
@@ -344,6 +411,44 @@ func writePlugin(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(pluginsDir, name, data)
+}
+
+func writeAdaptor(a *models.Adaptor) error {
+	myAdaptorDir := createFilePath(adaptorsDir, a.Name)
+	if err := os.MkdirAll(myAdaptorDir, 0777); err != nil {
+		return err
+	}
+
+	err := writeEntity(myAdaptorDir, a.Name, a.Info)
+	if err != nil {
+		return err
+	}
+
+	adaptorFilesDir := createFilePath(myAdaptorDir, "files")
+	if err := os.MkdirAll(adaptorFilesDir, 0777); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(a.InfoForFiles); i++ {
+		currentInfoForFile := a.InfoForFiles[i].(map[string]interface{})
+		currentFileName := currentInfoForFile["name"].(string)
+		currentAdaptorFileDir := createFilePath(myAdaptorDir, "files", currentFileName)
+		if err := os.MkdirAll(currentAdaptorFileDir, 0777); err != nil {
+			return err
+		}
+		if err := writeEntity(currentAdaptorFileDir, currentFileName, currentInfoForFile); err != nil {
+			return err
+		}
+		fileContents, err := a.DecodeFileByName(currentFileName)
+		if err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(createFilePath(currentAdaptorFileDir, currentFileName), fileContents, 0666); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func isException(name string, exceptions []string) bool {
