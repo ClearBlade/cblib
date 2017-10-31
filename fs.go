@@ -240,7 +240,11 @@ func getAdaptor(sysKey, adaptorName string, client *cb.DevClient) (*models.Adapt
 func getAdaptors(sysKey string, client *cb.DevClient) ([]*models.Adaptor, error) {
 	adaptorDirList, err := getFileList(adaptorsDir, []string{})
 	if err != nil {
-		return nil, err
+		// To ensure backwards-compatibility, we do not require
+		// this folder to be present
+		// As a result, let's log this error, but proceed
+		fmt.Printf("Warning, could not read directory '%s' -- ignoring\n", adaptorsDir)
+		return []*models.Adaptor{}, nil
 	}
 	rtn := make([]*models.Adaptor, 0)
 	for _, adaptorDirName := range adaptorDirList {
