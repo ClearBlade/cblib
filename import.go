@@ -282,7 +282,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 		// To ensure backwards-compatibility, we do not require
 		// this folder to be present
 		// As a result, let's log this error, but proceed
-		fmt.Printf("Warning, could not find optional edge schema -- ignoring\n", adaptorsDir)
+		fmt.Printf("Warning, could not find optional edge schema -- ignoring\n")
 		return nil
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
