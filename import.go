@@ -271,12 +271,19 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 	return nil
 }
 
+// Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
+// Note: Edge schemas are optional, so if it is not found, we log an error and continue
 func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	sysSecret := systemInfo["systemSecret"].(string)
-	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
 	if err == nil {
+		// To ensure backwards-compatibility, we do not require
+		// this folder `edges` to be present
+		// As a result, let's log this error, but proceed
+		fmt.Printf("Warning, could not find optional edge schema -- ignoring\n")
+		return nil
+		
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
 			for _, columnIF := range edgesCols {
