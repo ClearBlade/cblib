@@ -276,14 +276,14 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	sysSecret := systemInfo["systemSecret"].(string)
-	// edgesCols := []interface{}{}
 	edgesSchema, err := getEdgesSchema()
 	if err == nil {
 		// To ensure backwards-compatibility, we do not require
-		// this folder to be present
+		// this folder `edges` to be present
 		// As a result, let's log this error, but proceed
 		fmt.Printf("Warning, could not find optional edge schema -- ignoring\n")
 		return nil
+		
 		edgesCols, ok := edgesSchema["columns"].([]interface{})
 		if ok {
 			for _, columnIF := range edgesCols {
