@@ -1038,6 +1038,15 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 	return nil
 }
 
+func createDeployment(systemKey string, deployment map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+	deploymentName := deployment["name"].(string)
+	//delete(deployment, "name")
+	if _, err := client.CreateDeploymentByName(systemKey, deploymentName, deployment); err != nil {
+		return nil, fmt.Errorf("Could not create deployment %s: %s", deploymentName, err.Error())
+	}
+	return deployment, nil
+}
+
 func updateDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
 	deviceName := device["name"].(string)
 	delete(device, "name")
@@ -1523,10 +1532,10 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 		switch strings.ToLower(columnName) {
 		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
 			originalColumns[columnName] = value
-			break
 		default:
-			customColumns[columnName] = value
-			break
+			if value != nil {
+				customColumns[columnName] = value
+			}
 		}
 	}
 	_, err := client.CreateEdge(systemKey, name, originalColumns)

@@ -207,6 +207,24 @@ func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) ([]ma
 	return timersRval, nil
 }
 
+func createDeployments(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := systemInfo["systemKey"].(string)
+	deployments, err := getDeployments()
+	if err != nil {
+		return nil, err
+	}
+	deploymentsRval := make([]map[string]interface{}, len(deployments))
+	for idx, deployment := range deployments {
+		fmt.Printf(" %s", deployment["name"].(string))
+		deploymentVal, err := createDeployment(sysKey, deployment, client)
+		if err != nil {
+			return nil, err
+		}
+		deploymentsRval[idx] = deploymentVal
+	}
+	return deploymentsRval, nil
+}
+
 func createServices(systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	services, err := getServices()
@@ -284,7 +302,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 		fmt.Printf("Warning, could not find optional edge schema -- ignoring\n")
 		return nil
 	}
-		
+
 	edgesCols, ok := edgesSchema["columns"].([]interface{})
 	if ok {
 		for _, columnIF := range edgesCols {
@@ -632,6 +650,10 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	fmt.Printf(" Done. \nImporting adaptors...")
 	if err := createAdaptors(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create adaptors: %s", err.Error())
+	}
+	fmt.Printf(" Done. \nImporting deployments...")
+	if _, err := createDeployments(systemInfo, cli); err != nil {
+		return fmt.Errorf("Could not create deployments: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")

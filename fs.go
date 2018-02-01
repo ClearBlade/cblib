@@ -15,20 +15,21 @@ const SORT_KEY_COLLECTION_ITEM = "item_id"
 const SORT_KEY_COLLECTION = "Name"
 
 var (
-	rootDir     string
-	dataDir     string
-	svcDir      string
-	libDir      string
-	usersDir    string
-	timersDir   string
-	triggersDir string
-	rolesDir    string
-	edgesDir    string
-	devicesDir  string
-	portalsDir  string
-	pluginsDir  string
-	adaptorsDir string
-	arrDir      [12]string //this is used to set up the directory structure for a system
+	rootDir        string
+	dataDir        string
+	svcDir         string
+	libDir         string
+	usersDir       string
+	timersDir      string
+	triggersDir    string
+	rolesDir       string
+	edgesDir       string
+	devicesDir     string
+	portalsDir     string
+	pluginsDir     string
+	adaptorsDir    string
+	deploymentsDir string
+	arrDir         [13]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -45,6 +46,7 @@ func SetRootDir(theRootDir string) {
 	portalsDir = rootDir + "/portals"
 	pluginsDir = rootDir + "/plugins"
 	adaptorsDir = rootDir + "/adapters"
+	deploymentsDir = rootDir + "/deployments"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -57,6 +59,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[9] = portalsDir
 	arrDir[10] = pluginsDir
 	arrDir[11] = adaptorsDir
+	arrDir[12] = deploymentsDir
 }
 
 func setupDirectoryStructure(sys *System_meta) error {
@@ -335,6 +338,13 @@ func writeTimer(name string, data map[string]interface{}) error {
 	return writeEntity(timersDir, name, data)
 }
 
+func writeDeployment(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(deploymentsDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(deploymentsDir, name, data)
+}
+
 func writeRole(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return err
@@ -556,6 +566,10 @@ func getTriggers() ([]map[string]interface{}, error) {
 
 func getTimers() ([]map[string]interface{}, error) {
 	return getObjectList(timersDir, []string{})
+}
+
+func getDeployments() ([]map[string]interface{}, error) {
+	return getObjectList(deploymentsDir, []string{})
 }
 
 func getEdges() ([]map[string]interface{}, error) {

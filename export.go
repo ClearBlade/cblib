@@ -349,6 +349,28 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 	return timers, nil
 }
 
+func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	theDeployments, err := cli.GetAllDeployments(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull deployments out of system %s: %s", sysMeta.Key, err)
+	}
+	deployments := []map[string]interface{}{}
+	for _, deploymentIF := range theDeployments {
+
+		deploymentSummary := deploymentIF.(map[string]interface{})
+		deplName := deploymentSummary["name"].(string)
+		deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, deplName)
+		if err != nil {
+			return nil, err
+		}
+		deployments = append(deployments, deploymentDetails)
+		if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
+			return nil, err
+		}
+	}
+	return deployments, nil
+}
+
 func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	sys, err := cli.GetSystem(systemKey)
 	if err != nil {
@@ -796,6 +818,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	err = PullAdaptors(sysMeta, cli)
 	if err != nil {
 		return err
+	}
+
+	fmt.Printf(" Done.\nExporting Deployments...")
+	if deployments, err := pullDeployments(sysMeta, cli); err != nil {
+		fmt.Printf("Warning: Could not pull deployments. Might not yet be implemented on your version of the platform: %s ", err)
+		//return err
+	} else {
+		systemDotJSON["deployments"] = deployments
 	}
 
 	fmt.Printf(" Done.\n")
