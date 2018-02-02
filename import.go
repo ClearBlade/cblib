@@ -653,7 +653,8 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	}
 	fmt.Printf(" Done. \nImporting deployments...")
 	if _, err := createDeployments(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create deployments: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")
