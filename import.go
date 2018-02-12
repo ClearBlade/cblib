@@ -643,10 +643,12 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	if err != nil {
 		return fmt.Errorf("Could not create plugins: %s", err.Error())
 	}
-	fmt.Printf(" Done.\nImporting edge deploy information...")
-	if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create edge deploy information: %s", err.Error())
-	}
+	/*
+		fmt.Printf(" Done.\nImporting edge deploy information...")
+		if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
+			return fmt.Errorf("Could not create edge deploy information: %s", err.Error())
+		}
+	*/
 	fmt.Printf(" Done. \nImporting adaptors...")
 	if err := createAdaptors(systemInfo, cli); err != nil {
 		return fmt.Errorf("Could not create adaptors: %s", err.Error())

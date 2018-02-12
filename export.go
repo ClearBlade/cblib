@@ -793,12 +793,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["devices"] = devices
 
-	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
-	deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["edge_deploy"] = deployInfo
+	/*
+		fmt.Printf(" Done.\nExporting Edge Deploy Information...")
+		deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
+		if err != nil {
+			return err
+		}
+		systemDotJSON["edge_deploy"] = deployInfo
+	*/
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := PullPortals(sysMeta, cli)
@@ -830,9 +832,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	fmt.Printf(" Done.\n")
 
-	if err = storeDeployDotJSON(deployInfo); err != nil {
-		return err
-	}
+	/*
+		if err = storeDeployDotJSON(deployInfo); err != nil {
+			return err
+		}
+	*/
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
