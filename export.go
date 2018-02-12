@@ -793,14 +793,16 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	systemDotJSON["devices"] = devices
 
-	/*
-		fmt.Printf(" Done.\nExporting Edge Deploy Information...")
-		deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
-		if err != nil {
-			return err
-		}
+	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
+	deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
+	if err == nil {
 		systemDotJSON["edge_deploy"] = deployInfo
-	*/
+		//return err
+	} else {
+		fmt.Printf(" Warning: error pulling edge deploy info: endpoint probably shut off: %s", err)
+		systemDotJSON["edge_deploy"] = []map[string]interface{}{}
+		deployInfo = []map[string]interface{}{}
+	}
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := PullPortals(sysMeta, cli)
@@ -832,11 +834,9 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	fmt.Printf(" Done.\n")
 
-	/*
-		if err = storeDeployDotJSON(deployInfo); err != nil {
-			return err
-		}
-	*/
+	if err = storeDeployDotJSON(deployInfo); err != nil {
+		return err
+	}
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err

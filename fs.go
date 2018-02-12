@@ -109,7 +109,7 @@ func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
 	delete(systemDotJSON, "devices")
 	delete(systemDotJSON, "portals")
 	delete(systemDotJSON, "plugins")
-	//delete(systemDotJSON, "edge_deploy")
+	delete(systemDotJSON, "edge_deploy")
 	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall system.json: %s", err.Error())
