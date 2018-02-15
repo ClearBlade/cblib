@@ -65,8 +65,6 @@ func SetRootDir(theRootDir string) {
 	arrDir[10] = pluginsDir
 	arrDir[11] = adaptorsDir
 	arrDir[12] = deploymentsDir
-	fmt.Println("Dirs:")
-	fmt.Println(arrDir)
 }
 
 func setupDirectoryStructure(sys *System_meta) error {
