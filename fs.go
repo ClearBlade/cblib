@@ -15,6 +15,8 @@ const SORT_KEY_COLLECTION_ITEM = "item_id"
 const SORT_KEY_COLLECTION = "Name"
 
 var (
+	RootDirIsSet   bool
+	
 	rootDir        string
 	dataDir        string
 	svcDir         string
@@ -33,6 +35,9 @@ var (
 )
 
 func SetRootDir(theRootDir string) {
+
+	RootDirIsSet = true
+
 	rootDir = theRootDir
 	svcDir = rootDir + "/code/services"
 	libDir = rootDir + "/code/libraries"
@@ -60,6 +65,8 @@ func SetRootDir(theRootDir string) {
 	arrDir[10] = pluginsDir
 	arrDir[11] = adaptorsDir
 	arrDir[12] = deploymentsDir
+	fmt.Println("Dirs:")
+	fmt.Println(arrDir)
 }
 
 func setupDirectoryStructure(sys *System_meta) error {

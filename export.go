@@ -680,6 +680,8 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	// Keep an eye on this, this is a side effect
+	// this may inadvertently overwrite a previously set root dir
 	SetRootDir(".")
 
 	// This is a hack to check if token has expired and auth again
@@ -708,8 +710,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	if err != nil {
 		return err
 	}
+	// This was overwriting the rootdir set by cb_console
+	// Only set if it has not already been set
+	if ! RootDirIsSet {
+		SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+	}
 
-	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
 	if CleanUp {
 		cleanUpDirectories(sysMeta)
 	}
