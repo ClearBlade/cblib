@@ -680,10 +680,6 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	// Keep an eye on this, this is a side effect
-	// this may inadvertently overwrite a previously set root dir
-	SetRootDir(".")
-
 	// This is a hack to check if token has expired and auth again
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, SystemKey)
