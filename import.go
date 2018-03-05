@@ -575,6 +575,9 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 	return cli, nil
 }
 
+// TODO Handle more specific error for if folder doesnt exist
+// i.e. plugins folder not found vs plugins import failed due to syntax error
+// https://clearblade.atlassian.net/browse/CBCOMM-227
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
 
 	// Common set of calls for a complete system import
@@ -582,15 +585,18 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 
 	err := createRoles(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create roles: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create roles: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting users...")
 	if err := createUsers(systemInfo, users, cli); err != nil {
-		return fmt.Errorf("Could not create users: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create users: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting collections...")
 	if err := createCollections(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create collections: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create collections: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting code services...")
 	// Additonal modifications to the ImportIt functions
@@ -616,32 +622,38 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	fmt.Printf(" Done.\nImporting triggers...")
 	_, err = createTriggers(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create triggers: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create triggers: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting timers...")
 	_, err = createTimers(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create timers: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create timers: %s", err.Error())
 	}
 
 	fmt.Printf(" Done.\nImporting edges...")
 	if err := createEdges(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create edges: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create edges: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting devices...")
 	_, err = createDevices(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create devices: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create devices: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting portals...")
 	_, err = createPortals(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create portals: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create portals: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting plugins...")
 	_, err = createPlugins(systemInfo, cli)
 	if err != nil {
-		return fmt.Errorf("Could not create plugins: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create plugins: %s", err.Error())
 	}
 	fmt.Printf(" Done.\nImporting edge deploy information...")
 	if err := createAllEdgeDeployment(systemInfo, cli); err != nil {
@@ -650,7 +662,8 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 	}
 	fmt.Printf(" Done. \nImporting adaptors...")
 	if err := createAdaptors(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create adaptors: %s", err.Error())
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create adaptors: %s", err.Error())
 	}
 	fmt.Printf(" Done. \nImporting deployments...")
 	if _, err := createDeployments(systemInfo, cli); err != nil {
