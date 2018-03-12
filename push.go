@@ -1495,30 +1495,29 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 	if totalItems == 0 {
 		return nil
 	}
-	if totalItems/DataPageSize > 1000 {
+	if totalItems / DataPageSize > 1000 {
 		fmt.Println("Large dataset detected. Recommend increasing page size. Use flag: -data-page-size=1000")
 	}
 
-	//If there are less items than the specified page size,
-	//set the page size as the total number of items
-	pageSize := DataPageSize
-	if totalItems < DataPageSize {
-		pageSize = totalItems
-	}
+	for i := 0; i < totalItems; i += DataPageSize {
 
-	for i := 0; i < totalItems; i += pageSize {
-		maxItemIndex := i + pageSize - 1
+		beginningOfRange := i
 
-		if totalItems < maxItemIndex {
-			maxItemIndex = totalItems - 1
+		// this will be equal to max index + 1
+		// to account for golang #slice conventions
+		endOfRange := i + DataPageSize
+
+		// if this is last page, and items on this page are fewer than page size
+		if(totalItems < endOfRange){
+			endOfRange = totalItems
 		}
 
-		items := allItems[i:maxItemIndex]
-		fmt.Printf("Uploading:  \tItem(s): %d - %d of %d\n", i+1, maxItemIndex+1, totalItems)
-		for idx, itemIF := range items {
-			items[idx] = itemIF.(map[string]interface{})
+		itemsInThisPage := allItems[ beginningOfRange : endOfRange ]
+
+		for i, item := range itemsInThisPage {
+			itemsInThisPage[i] = item.(map[string]interface{})
 		}
-		if _, err := client.CreateData(colId, items); err != nil {
+		if _, err := client.CreateData(colId, itemsInThisPage); err != nil {
 			return err
 		}
 	}
