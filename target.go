@@ -38,6 +38,7 @@ func doTarget(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return err
 	}
+	// TODO causes CBCOMM-245
 	if err = os.Chdir(".."); err != nil {
 		return fmt.Errorf("Could not move up to parent directory: %s", err.Error())
 	}
@@ -64,7 +65,6 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 		fmt.Printf("Renaming %s to %s\n", fixo, fixn)
 		os.Rename(fixo, fixn)
 	}
-
 	SetRootDir(fixn)
 	if err := setupDirectoryStructure(sysMeta); err != nil {
 		return err

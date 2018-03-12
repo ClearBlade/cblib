@@ -22,6 +22,7 @@ func init() {
 		mustBeInRepo: true,
 		run:          doImport,
 	}
+	// TODO CBCOMM-248 impl importrows
 	myImportCommand.flags.BoolVar(&importRows, "importrows", false, "imports all data into all collections")
 	myImportCommand.flags.BoolVar(&importUsers, "importusers", false, "imports all users into the system")
 	myImportCommand.flags.StringVar(&URL, "url", "", "URL for import destination")
