@@ -12,12 +12,26 @@ var (
 )
 
 func init() {
+	usage := 
+	`
+	Pull a ClearBlade asset from the Platform to your local filesystem. Use -sort-collections for easier version controlling of datasets.
+
+	Note: Collection rows are pulled by default.
+	`
+
+	example := 
+	`
+	cb-cli pull -service=Service1 									# Pulls Service1 from Platform to local filesystem
+	cb-cli pull -collection=Collection1								# Pulls Collection1 from Platform to local filesystem, with all rows, unsorted
+	cb-cli pull -collection=Collection1 -sort-collections=true		# Pulls Collection1 from Platform to local filesystem, with all rows, sorted
+	`
 	pullCommand := &SubCommand{
 		name:         "pull",
-		usage:        "pull a specified resource from a system",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doPull,
+		example:	  example,
 	}
 
 	pullCommand.flags.BoolVar(&AllServices, "all-services", false, "pull all services from system")
