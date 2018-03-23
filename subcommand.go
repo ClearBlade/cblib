@@ -85,7 +85,6 @@ Usage: cb-cli <command>
 Commands:
 
 `
-	fmt.Println(subCommands)
 	for cmd, _ := range subCommands {
 		usage += fmt.Sprintf("\t%v\n",cmd)
 	 }
