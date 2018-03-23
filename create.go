@@ -6,12 +6,23 @@ import (
 )
 
 func init() {
+	usage := 
+	`
+	Creates a new asset locally
+	`
+
+	example := 
+	`
+	  cb-cli create -service=MyFancyNewService  # Creates a new code service: ./code/services/MyFancyNewServices/
+	  cb-cli create -collection=FreshCollection # Creates a new code library: ./code/libraries/FreshCollection/
+	`
 	createCommand := &SubCommand{
 		name:         "create",
-		usage:        "create a specified resource from the remote system",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doCreate,
+		example:	  example,
 	}
 	createCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to create")
 	createCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to create")
