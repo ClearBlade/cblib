@@ -75,3 +75,28 @@ func AddCommand(commandName string, stuff *SubCommand) {
 	}
 	subCommands[commandName] = stuff
 }
+
+func PrintRootHelp(){
+	var usage = `
+The cb-cli (ClearBlade CLI) provides methods for interacting with ClearBlade platform
+
+Usage: cb-cli <command>
+
+Commands:
+
+`
+	fmt.Println(subCommands)
+	for cmd, _ := range subCommands {
+		usage += fmt.Sprintf("\t%v\n",cmd)
+	 }
+	 usage += `
+
+Examples:
+
+	cb-cli init 							# inits your local workspace
+	cb-cli export							# inits and exports your systems
+	cb-cli push -service=Service1			# pushs an individual service up to Platform
+	cb-cli pull -collection=Collection2	# pulls an individual collection to filesystem
+	 `
+	 fmt.Println(usage)
+}
