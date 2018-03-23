@@ -15,6 +15,7 @@ type SubCommand struct {
 	mustNotBeInRepo bool
 	flags           flag.FlagSet
 	run             func(cmd *SubCommand, client *cb.DevClient, args ...string) error
+	example			string
 }
 
 var (
@@ -55,6 +56,9 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 
 func helpFunc(c *SubCommand, args ...string) {
 	fmt.Printf("Usage: %s\n", c.usage)
+	c.flags.PrintDefaults()
+	fmt.Println("\nExamples:")
+	fmt.Println(c.example)
 }
 
 func GetCommand(commandName string) (*SubCommand, error) {

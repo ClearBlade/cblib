@@ -16,28 +16,40 @@ var (
 )
 
 func init() {
+	usage := `
+	Export a System from a Platform to your local filesystem. By default, all assets are exported, except for Collection rows and Users.
+
+	1) Exporting for first time - Run from any directory, will create a folder with same name as your system
+	2) Exporting into an existing folder - 'cd' into the system's directory, and run 'cb-cli export' to export into that existing folder
+	`
+
+	example := `
+	  cb-cli export                             # export default assets, omits db rows and users
+	  cb-cli export -exportrows -exportusers    # export default asset, additionally rows and users
+	`
+
 	systemDotJSON = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myExportCommand := &SubCommand{
 		name:         "export",
-		usage:        "Ain't no thing",
+		usage:        usage,
 		needsAuth:    false,
 		mustBeInRepo: false,
 		run:          doExport,
-		//  TODO -- add help, usage, etc.
+		example:	  example,
 	}
-	myExportCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
-	myExportCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
-	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
-	myExportCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
-	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Dev token for login")
-	myExportCommand.flags.BoolVar(&CleanUp, "cleanup", false, "Cleanup directories before export")
-	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "exports all data from all collections")
-	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user info")
-	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection's rows' item_id column")
-	myExportCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections by item id, for version control ease")
-	myExportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to request at a time")
+	myExportCommand.flags.StringVar(&URL, "url", "https://platform.clearblade.com", "Clearblade Platform URL where system is hosted")
+	myExportCommand.flags.StringVar(&MsgURL, "messaging-url", "platform.clearblade.com", "Clearblade messaging url for target system")
+	myExportCommand.flags.StringVar(&SystemKey, "system-key", "", "System Key for target system, ex 9b9eea9c0bda8896a3dab5aeec9601")
+	myExportCommand.flags.StringVar(&Email, "email", "", "Developer Email for login")
+	myExportCommand.flags.StringVar(&DevToken, "dev-token", "", "Advanced: Developer Token for login")
+	myExportCommand.flags.BoolVar(&CleanUp, "cleanup", false, "Clean up directories before export, recommended after having deleted assets on Platform")
+	myExportCommand.flags.BoolVar(&ExportRows, "exportrows", false, "Exports all rows from all collections, Note: Large collections may take a long time")
+	myExportCommand.flags.BoolVar(&exportUsers, "exportusers", false, "exports user, Note: Passwords are not exported")
+	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection rows' item_id column, Default: true")
+	myExportCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections version control ease, Note: exportitemid must be enabled")
+	myExportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to fetch at a time, Note: Large collections should increase up to 1000 rows")
 	AddCommand("export", myExportCommand)
 }
 
