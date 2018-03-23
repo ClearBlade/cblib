@@ -6,17 +6,28 @@ import (
 )
 
 func init() {
+	usage := 
+	`
+	Deletes a specified resource from the remote system on the Platform"
+	`
+
+	example := 
+	`
+	  cb-cli delete -service=ServiceToDelete      # Deletes ServiceToDelete from Platform's System
+	  cb-cli delete -collection=CollectonToDelete # Deletes CollectonToDelete from Platform's System
+	`
 	deleteCommand := &SubCommand{
 		name:         "delete",
-		usage:        "delete a specified resource from the remote system",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doDelete,
+		example:	  example,
 	}
 	deleteCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to delete")
 	deleteCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to delete")
-	deleteCommand.flags.StringVar(&CollectionId, "collectionId", "", "Unique id of collection to delete")
-	deleteCommand.flags.StringVar(&UserId, "userId", "", "Unique id of user to delete")
+	deleteCommand.flags.StringVar(&CollectionId, "collectionId", "", "Collection's ID to delete, ex baa5ad9d0b96ac86a8e8cdb4e1b501")
+	deleteCommand.flags.StringVar(&UserId, "userId", "", "Unique id of user to delete, aea5ad9d0bc488f5a0d9d592f58301")
 	deleteCommand.flags.StringVar(&RoleName, "role", "", "Name of role to delete")
 	deleteCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to delete")
 	deleteCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to delete")

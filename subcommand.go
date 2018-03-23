@@ -25,10 +25,8 @@ var (
 func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	var client *cb.DevClient
 	var err error
-	c.flags.Usage = func() {
-		helpFunc(c, c.name)
-	}
 	c.flags.Parse(args)
+
 	if URL != "" && MsgURL != "" {
 		setupAddrs(URL, MsgURL)
 	}
@@ -54,7 +52,7 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	return c.run(c, client, c.flags.Args()...)
 }
 
-func helpFunc(c *SubCommand, args ...string) {
+func PrintHelpFor(c *SubCommand, args ...string) {
 	fmt.Printf("Usage: %s\n", c.usage)
 	c.flags.PrintDefaults()
 	fmt.Println("\nExamples:")
