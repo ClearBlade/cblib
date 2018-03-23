@@ -9,20 +9,31 @@ import (
 )
 
 func init() {
+
+	usage := 
+	`
+	Point your local system to a different remote system within a ClearBlade Platform
+	`
+
+	example := 
+	`
+	cb-cli target
+	cb-cli target -url=https://platform.clearblade.com -messaging-url=platform.clearblade.com -system-key=8abcd6aa0baadcd8bbe3fabca29301 -email=dev@dev.com -password=pw
+	`
 	systemDotJSON = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	rolesInfo = []map[string]interface{}{}
 	myTargetCommand := &SubCommand{
 		name:         "target",
-		usage:        "Ain't no thing",
+		usage:        usage,
 		needsAuth:    false,
 		mustBeInRepo: true,
 		run:          doTarget,
-		//  TODO -- add help, usage, etc.
+		example:	  example,
 	}
 	myTargetCommand.flags.StringVar(&URL, "url", "", "Clearblade platform url for target system")
 	myTargetCommand.flags.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
-	myTargetCommand.flags.StringVar(&SystemKey, "system-key", "", "System key for target system")
+	myTargetCommand.flags.StringVar(&SystemKey, "system-key", "", "System Key for target system, ex 9b9eea9c0bda8896a3dab5aeec9601")
 	myTargetCommand.flags.StringVar(&Email, "email", "", "Developer email for login")
 	myTargetCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	AddCommand("target", myTargetCommand)
