@@ -15,12 +15,24 @@ var (
 )
 
 func init() {
+
+	usage := 
+	`
+	Import a system from your local filesystem to the ClearBlade Platform
+	`
+
+	example := 
+	`
+	cb-cli import 									# prompts for credentials
+	cb-cli import -importrows -importusers			# prompts for credentials, includes rows and users
+	`
 	myImportCommand := &SubCommand{
 		name:         "import",
-		usage:        "just import stuff",
+		usage:        usage,
 		needsAuth:    false,
 		mustBeInRepo: true,
 		run:          doImport,
+		example:	  example,
 	}
 	// TODO CBCOMM-248 impl importrows
 	myImportCommand.flags.BoolVar(&importRows, "importrows", false, "imports all data into all collections")

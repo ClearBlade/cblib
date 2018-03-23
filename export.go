@@ -24,8 +24,9 @@ func init() {
 	`
 
 	example := `
-	  cb-cli export                             # export default assets, omits db rows and users
-	  cb-cli export -exportrows -exportusers    # export default asset, additionally rows and users
+	  cb-cli export                             # export default assets, omits db rows and users, Note: may prompt for remaining flags
+	  cb-cli export -exportrows -exportusers    # export default asset, additionally rows and users, Note: may prompt for remaining flags
+	  cb-cli export -url=https://platform.clearblade.com -messaging-url=platform.clearblade.com -system-key=9b9eea9c0bda8896a3dab5aeec9601 -email=MyDevEmail@dev.com   # Prompts for just password
 	`
 
 	systemDotJSON = map[string]interface{}{}

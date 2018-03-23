@@ -28,6 +28,18 @@ var (
 )
 
 func init() {
+
+	usage := 
+	`
+	Perform a diff operation between your local assets and the remote assets in the ClearBlade Platform. For example, see what changes have been made in the platform since your last export, or pull.
+	`
+
+	example := 
+	`
+	cb-cli diff -all-services                           # Diffs all your local services against all the services in the platform
+	cb-cli diff -collection=someone_modified_coll       # Shows diff between remote and local versions of the collection 'someone_modified_coll'
+	`
+
 	printedDiffCount = 0
 	suppressErrors = []int{0}
 	names = NewStack("names")
@@ -56,10 +68,11 @@ func init() {
 	}
 	myDiffCommand := &SubCommand{
 		name:         "diff",
-		usage:        "what's the difference?",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doDiff,
+		example:	  example,
 	}
 	myDiffCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
 	myDiffCommand.flags.BoolVar(&AllServices, "all-services", false, "diff all of the services stored locally")
