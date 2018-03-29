@@ -315,3 +315,23 @@ func copyDir(src string, dst string) (err error) {
 
 	return
 }
+
+func IsInRepo() bool {
+	return FoundSystemDotJSON()
+}
+
+func FoundSystemDotJSON() bool {
+	if _, err := getDict("system.json"); err == nil {
+			return true
+	}
+	return false
+
+}
+
+func FoundCBMeta() bool {
+	if _, err := getDict(".cbmeta"); err == nil {
+			return true
+	}
+	return false
+
+}
