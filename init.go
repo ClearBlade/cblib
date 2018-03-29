@@ -58,7 +58,6 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	}
 
 	if IsInRepo() {
-			fmt.Println("Setting up shop right here")
 			SetRootDir(".")
 	} else {
 		SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
