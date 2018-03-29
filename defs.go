@@ -64,6 +64,7 @@ var (
 	AllAdaptors                bool
 )
 
+// TODO MetaInfo is global, being modified everywhere. Need to clean up.
 var (
 	systemDotJSON map[string]interface{}
 	libCode       map[string]interface{}

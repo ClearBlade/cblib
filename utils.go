@@ -36,6 +36,46 @@ func setupAddrs(paddr string, maddr string) {
 	}
 }
 
+func FormatURLs(rawPlatformURL string, rawMessagingURL string) (string, string){
+	
+	platformURL := FormatPlatformURL(rawPlatformURL)
+	messagingURL := ""
+
+	if( rawMessagingURL != "" ){
+		messagingURL = FormatMessagingURL(rawMessagingURL)
+	} else {
+		messagingURL = GenerateMessagingURLFrom(platformURL)
+	}
+
+	return platformURL, messagingURL
+}
+
+func FormatPlatformURL(url string) string {
+	return url
+}
+
+func GenerateMessagingURLFrom(platformURL string) string {
+	formatted := ""
+	preIdx := strings.Index(platformURL, "://")
+	if preIdx != -1 {
+		formatted = platformURL[preIdx+3:]
+	} else {
+		formatted = platformURL
+	}
+	return formatted
+}
+
+func FormatMessagingURL(url string) string{
+	formatted := ""
+	postIdx := strings.Index(url, ":")
+	if postIdx != -1 {
+		formatted = url[:postIdx] + ":1883"
+	} else {
+		formatted = url + ":1883"
+	}
+	return formatted
+}
+
 func convertPermissionsNames(perms map[string]interface{}) map[string]interface{} {
 	rval := map[string]interface{}{}
 	for key, val := range perms {
@@ -315,3 +355,82 @@ func copyDir(src string, dst string) (err error) {
 
 	return
 }
+
+func IsInRepo() bool {
+	return FoundSystemDotJSON()
+}
+
+func FoundSystemDotJSON() bool {
+	if _, err := getDict("system.json"); err == nil {
+			return true
+	}
+	return false
+
+}
+
+func FoundCBMeta() bool {
+	if _, err := getDict(".cbmeta"); err == nil {
+			return true
+	}
+	return false
+
+}
+
+func URLSAreConfigured() bool {
+	return URL != "" && MsgURL != ""
+}
+
+func ValidateDevToken() bool{
+	var EMPTY_MSG_URL = ""
+	var EMPTY_EMAIL = ""
+	cbMeta, err := getDict(".cbmeta")
+	if err != nil {
+		fmt.Println("Cannot find .cbmeta")
+		return false
+	}
+
+	// ignore err because we treat empty string same as missing key
+	token, _ := cbMeta["token"].(string)
+	if token == "" {
+		fmt.Println("Invalid dev token in .cbmeta")
+		return false
+	}
+
+	platformURL := cbMeta["platform_url"].(string)
+	if platformURL == "" {
+		fmt.Println("Invalid platform URL in .cbmeta")
+		return false
+	}
+
+	client := cb.NewDevClientWithTokenAndAddrs(platformURL, EMPTY_MSG_URL, token, EMPTY_EMAIL)
+	_, err = client.DevUserInfo()
+	if err != nil {
+		fmt.Printf("Platform said token is invalid : %v\n",err)
+		return false
+	}
+	fmt.Println("Valid token!")
+	return true
+}
+
+func IngestCBMeta() {
+	metaInfo, _ := getDict(".cbmeta")
+	DevToken = metaInfo["token"].(string)
+	var ok bool
+	Email, ok = metaInfo["developerEmail"].(string)
+	if !ok {
+		Email = metaInfo["developer_email"].(string)
+	}
+	URL, ok = metaInfo["platformURL"].(string)
+	if !ok {
+		URL = metaInfo["platform_url"].(string)
+	}
+	MsgURL, ok = metaInfo["messagingURL"].(string)
+	if !ok {
+		MsgURL = metaInfo["messaging_url"].(string)
+	}
+	URL, MsgURL = FormatURLs(URL, MsgURL)
+
+	MetaInfo = metaInfo
+}
+
+

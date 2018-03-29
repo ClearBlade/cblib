@@ -18,20 +18,51 @@ type SubCommand struct {
 	example			string
 }
 
+// centralized state of the repo
+type RepoStatus struct {
+	startedInRepo 		bool
+	hasNavigatedToRepo	bool
+	isInRepo			bool
+	foundSystemDotJSON	bool
+	foundCBMeta			bool
+	hasValidToken		bool
+	isHealthy			bool
+	areURLSConfigured	bool
+}
+
 var (
 	subCommands = map[string]*SubCommand{}
 )
 
-func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
+func (c *SubCommand) Execute(args []string) error {
 	var client *cb.DevClient
 	var err error
 	c.flags.Parse(args)
 
-	if URL != "" && MsgURL != "" {
-		setupAddrs(URL, MsgURL)
+	repoStatus := determineRepoStatus()
+	fmt.Println("Debug1")
+	fmt.Printf("%+v",repoStatus)
+	if ! repoStatus.areURLSConfigured {
+		platformURL, messagingURL := FormatURLs(URL, MsgURL)
+
+		// WHAT DOES THIS DO????
+		cb.CB_ADDR = platformURL
+		cb.CB_MSG_ADDR = messagingURL
 	}
+	if c.mustBeInRepo && ! repoStatus.isInRepo {
+		// Nav to repo to execute
+
+		// TODO Should we change dirs?
+		// cdToRoot()
+		// repoStatus.isInRepo = true
+	} else if c.mustNotBeInRepo && repoStatus.startedInRepo {
+		// throw error
+	}
+	// Should we even change directories?
+	// Should we export into currDir or new folder?
+	/*
 	if err = GoToRepoRootDir(); err != nil {
-		if c.mustBeInRepo {
+		if  {
 			return fmt.Errorf("You must be in an initialized repo to run the '%s' command\n", c.name)
 		}
 		if err.Error() != SpecialNoCBMetaError {
@@ -40,15 +71,31 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	} else if c.mustNotBeInRepo {
 		return fmt.Errorf("You cannot run the '%s' command in an existing ClearBlade repository", c.name)
 	}
-	if MetaInfo != nil {
-		client = makeClientFromMetaInfo()
-	} else if c.needsAuth {
-		client, err = Authorize(nil)
+	*/
+	if repoStatus.foundCBMeta {
+		// Check validity of dev token on disk
+
+		// TODO Handle error, which isnt thrown right now
+		valid := ValidateDevToken()
+		repoStatus.hasValidToken = valid
+		fmt.Println("Debug2")
+		fmt.Printf("Valid? %v",valid)
+		fmt.Printf("%+v",repoStatus)
+	}
+
+	if(repoStatus.hasValidToken){
+		IngestCBMeta()
+		cb.CB_ADDR = URL
+		cb.CB_MSG_ADDR = MsgURL
+		fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
+		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
+		client, _ = makeClientFromMetaInfo(MetaInfo)
+	} else {
+		client, err = PromptForAuthorize(nil)
 		if err != nil {
 			return err
 		}
 	}
-
 	return c.run(c, client, c.flags.Args()...)
 }
 
@@ -98,4 +145,21 @@ Examples:
 	cb-cli pull -collection=Collection2	# pulls an individual collection to filesystem
 	 `
 	 fmt.Println(usage)
+}
+
+func determineRepoStatus() RepoStatus{
+	isInRepo := IsInRepo()
+	foundCBMeta := FoundCBMeta()
+	return RepoStatus{
+		startedInRepo: 			isInRepo,
+		hasNavigatedToRepo: 	false,
+		isInRepo: 				isInRepo,
+		foundSystemDotJSON: 	FoundSystemDotJSON(),
+		foundCBMeta: 			foundCBMeta,
+		hasValidToken: 			false,
+		isHealthy: 				false,
+		areURLSConfigured: 		URLSAreConfigured(),
+	}
+
+
 }

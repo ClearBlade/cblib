@@ -84,6 +84,8 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 	}
 }
 
+// If no .cbmeta, this backs up a folder until at root
+// This is undesirable
 func GoToRepoRootDir() error {
 	var err error
 	whereIReallyAm, _ := os.Getwd()
@@ -96,49 +98,56 @@ func GoToRepoRootDir() error {
 			os.Chdir(whereIReallyAm) //  go back in case this err is ignored
 			return fmt.Errorf(SpecialNoCBMetaError)
 		}
-		if MetaInfo, err = getDict(".cbmeta"); err != nil {
+		if IsInRepo() {
+			// Exit
+			return nil
+		} else
 			if err = os.Chdir(".."); err != nil {
 				return fmt.Errorf("Error changing directory: %s", err.Error())
-			}
-		} else {
-			return nil
 		}
 	}
 }
 
-func makeClientFromMetaInfo() *cb.DevClient {
-	var newSchema bool
-	devToken := MetaInfo["token"].(string)
-	email, ok := MetaInfo["developerEmail"].(string)
+// Note: New Schemas use snake_case, older use camelCase
+func makeClientFromMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, error) {
+	// TODO Validate this schema
+	var oldCBMetaSchema bool
+	devToken := metaInfo["token"].(string)
+	email, ok := metaInfo["developer_email"].(string)
 	if !ok {
-		email = MetaInfo["developer_email"].(string)
-		newSchema = true
+		email = metaInfo["developerEmail"].(string)
+		oldCBMetaSchema = true
 	}
 	// Checking if meta has messagingURL attribute to support systems that were exported before
 	// This code is horrible but needs to be done to maintain backward compatibility with
 	// systems that are already exported
-	if newSchema {
-		messagingURL, ok := MetaInfo["messaging_url"].(string)
-		if !ok {
-			setupAddrs(MetaInfo["platform_url"].(string), "")
-		} else {
-			setupAddrs(MetaInfo["platform_url"].(string), messagingURL)
-		}
-	} else {
-		messagingURL, ok := MetaInfo["messagingURL"].(string)
-		if !ok {
-			setupAddrs(MetaInfo["platformURL"].(string), "")
-		} else {
-			setupAddrs(MetaInfo["platformURL"].(string), messagingURL)
-		}
+	messagingURLKey := 	"messaging_url"
+	platformURLKey  := 	"platform_url"
+	if oldCBMetaSchema {
+		messagingURLKey = 	"messagingURL"
+		platformURLKey = 	"platformURL"
 	}
 
-	return cb.NewDevClientWithToken(devToken, email)
+	fetchedPlatformURL, _ := 	metaInfo[platformURLKey].(string)
+	fetchedMessagingURL, _ := 	metaInfo[messagingURLKey].(string)
+
+	platformURL, messagingURL := FormatURLs(fetchedPlatformURL, fetchedMessagingURL)
+
+	fmt.Println("Debug4")
+	fmt.Printf("Meta: %v\n", )
+
+	// Side-effect
+	// Move to better spot
+	cb.CB_ADDR = platformURL
+	cb.CB_MSG_ADDR = messagingURL
+
+	return cb.NewDevClientWithToken(devToken, email), nil
 }
 
-func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
+func PromptForAuthorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 	var ok bool
 	if MetaInfo != nil {
+		fmt.Println("Desired")
 		DevToken = MetaInfo["token"].(string)
 		Email, ok = MetaInfo["developerEmail"].(string)
 		if !ok {
@@ -157,6 +166,7 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
 		return cb.NewDevClientWithToken(DevToken, Email), nil
 	}
+	fmt.Println("Undesired")
 	// No cb meta file -- get url, syskey, email passwd
 	fillInTheBlanks(defaults)
 	fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
@@ -174,7 +184,7 @@ func checkIfTokenHasExpired(client *cb.DevClient, systemKey string) (*cb.DevClie
 	if err != nil {
 		fmt.Printf("Token has probably expired. Please enter details for authentication again...\n")
 		MetaInfo = nil
-		client, _ = Authorize(nil)
+		client, _ = PromptForAuthorize(nil)
 		metaStuff := map[string]interface{}{
 			"platform_url":        cb.CB_ADDR,
 			"messaging_url":       cb.CB_MSG_ADDR,

@@ -564,7 +564,7 @@ func hijackAuthorize() (*cb.DevClient, error) {
 	svMetaInfo := MetaInfo
 	MetaInfo = nil
 	SystemKey = "DummyTemporaryPlaceholder"
-	cli, err := Authorize(nil)
+	cli, err := PromptForAuthorize(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +580,7 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 		return nil, errors.New("MetaInfo cannot be nil")
 	}
 	SystemKey = "DummyTemporaryPlaceholder"
-	cli, err := Authorize(nil)
+	cli, err := PromptForAuthorize(nil)
 	if err != nil {
 		return nil, err
 	}

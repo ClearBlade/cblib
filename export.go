@@ -687,7 +687,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if DevToken != "" {
 		client = cb.NewDevClientWithToken(DevToken, Email)
 	} else {
-		client, err = Authorize(nil)
+		client, err = PromptForAuthorize(nil)
 		if err != nil {
 			return fmt.Errorf("Authorize FAILED: %s\n", err)
 		}

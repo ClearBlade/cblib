@@ -54,7 +54,7 @@ func doTarget(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return fmt.Errorf("Could not move up to parent directory: %s", err.Error())
 	}
 	MetaInfo = nil
-	client, err = Authorize(defaults)
+	client, err = PromptForAuthorize(defaults)
 	if err != nil {
 		return err
 	}
