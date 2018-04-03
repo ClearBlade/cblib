@@ -31,7 +31,7 @@ func init() {
 		usage:           usage,
 		needsAuth:       true,
 		mustBeInRepo:    false,
-		mustNotBeInRepo: true,
+		mustNotBeInRepo: false,
 		run:             doInit,
 		example:		 example,
 	}
@@ -57,9 +57,13 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
-	if err := setupDirectoryStructure(sysMeta); err != nil {
-		return err
+	if IsInRepo() {
+			SetRootDir(".")
+	} else {
+		SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+		if err := setupDirectoryStructure(sysMeta); err != nil {
+			return err
+		}
 	}
 	storeMeta(sysMeta)
 

@@ -84,6 +84,7 @@ func init() {
 	myDiffCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
 	myDiffCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
 	myDiffCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
+	myDiffCommand.flags.StringVar(&TempDir, "temp-dir", "", "Temporary dir to place diff files")
 	AddCommand("diff", myDiffCommand)
 }
 
@@ -244,6 +245,10 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	myPid := os.Getpid()
 
 	tempDir := os.TempDir()
+	if TempDir != "" {
+		tempDir = TempDir
+	}
+	fmt.Println("Using Temp Dir: " + tempDir)
 
 	localFile := fmt.Sprintf("%s%d-local.js", tempDir, myPid)
 	remoteFile := fmt.Sprintf("%s%d-remote.js", tempDir, myPid)

@@ -96,12 +96,11 @@ func GoToRepoRootDir() error {
 			os.Chdir(whereIReallyAm) //  go back in case this err is ignored
 			return fmt.Errorf(SpecialNoCBMetaError)
 		}
-		if MetaInfo, err = getDict(".cbmeta"); err != nil {
-			if err = os.Chdir(".."); err != nil {
-				return fmt.Errorf("Error changing directory: %s", err.Error())
-			}
-		} else {
+		if IsInRepo() {
+			// Exit
 			return nil
+		} else if err = os.Chdir(".."); err != nil {
+				return fmt.Errorf("Error changing directory: %s", err.Error())
 		}
 	}
 }
