@@ -81,6 +81,6 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	fmt.Printf("System '%s' has been initialized into directory %s\n", sysMeta.Name, strings.Replace(sysMeta.Name, " ", "_", -1))
+	fmt.Printf("System '%s' has been initialized.\n", sysMeta.Name)
 	return nil
 }
