@@ -40,6 +40,10 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	} else if c.mustNotBeInRepo {
 		return fmt.Errorf("You cannot run the '%s' command in an existing ClearBlade repository", c.name)
 	}
+
+	// This is the most important part of initialization
+	MetaInfo, _ = getDict(".cbmeta")
+
 	if MetaInfo != nil {
 		client = makeClientFromMetaInfo()
 	} else if c.needsAuth {

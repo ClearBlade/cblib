@@ -97,7 +97,7 @@ func reallyTarget(cli *cb.DevClient, sysKey string, oldSysMeta *System_meta) err
 		return err
 	}
 
-	fmt.Printf("System '%s' has been initialized into directory %s\n", sysMeta.Name, strings.Replace(sysMeta.Name, " ", "_", -1))
+	fmt.Printf("System '%s' has been initialized.\n", sysMeta.Name)
 	return nil
 }
 
