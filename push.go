@@ -1039,7 +1039,6 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 			return err
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
-				fmt.Printf("Calling CreateTimer: %#v\n", timer)
 				if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
 					return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 				} else {
