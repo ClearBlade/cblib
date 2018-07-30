@@ -284,15 +284,17 @@ func writeLibraryVersion(name string, data map[string]interface{}) error {
 	return writeEntity(myLibDir, name, data)
 }
 
-func removeNamespaceColumns(stuff interface{}) interface{} {
+func removeBogusColumns(stuff interface{}) interface{} {
 	switch stuff.(type) {
 	case map[string]interface{}:
 		delete(stuff.(map[string]interface{}), "namespace")
+		delete(stuff.(map[string]interface{}), "has_keys")
 	case []interface{}:
 		for _, val := range stuff.([]interface{}) {
 			switch val.(type) {
 			case map[string]interface{}:
 				delete(val.(map[string]interface{}), "namespace")
+				delete(stuff.(map[string]interface{}), "has_keys")
 			}
 		}
 	}
@@ -300,7 +302,7 @@ func removeNamespaceColumns(stuff interface{}) interface{} {
 }
 
 func writeEntity(dirName, fileName string, stuff interface{}) error {
-	stuff = removeNamespaceColumns(stuff)
+	stuff = removeBogusColumns(stuff)
 	marshalled, err := json.MarshalIndent(stuff, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall %s: %s", fileName, err.Error())
