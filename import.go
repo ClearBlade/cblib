@@ -71,12 +71,19 @@ func createRoles(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	}
 	for _, role := range roles {
 		name := role["Name"].(string)
-		fmt.Printf(" %s", name)
-		//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
-		if err := createRole(sysKey, role, client); err != nil {
-			return err
-		}
-		//}
+		// CBCOMM-776 - This is a potential fix so that we update, rather than try to create these roles
+		// This may be a potential race condition: system is created, but its default roles dont exist QUITE yet, and we try to update them
+		// Roles is first asset imported, consider moving roles to later in import cycle, checking if they exist, and reacting from there?
+		 if name == "Authenticated" || name == "Administrator" || name == "Anonymous" {
+			fmt.Printf("Updating default user acct: %s",name)
+			if err := updateRole(sysKey, role, client); err != nil {
+				return err
+			}
+		} else{
+			if err := createRole(sysKey, role, client); err != nil {
+				return err
+			}
+		 }
 	}
 	// ids were created on import for the new roles, grab those
 	rolesInfo, err = pullRoles(sysKey, client, false) // global :(
@@ -594,6 +601,13 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
 
 	// Common set of calls for a complete system import
+	// CBCOMM-766 moved Edges up in order as a triage step for exposing race condition
+	// for creating/updating default roles before theyre created
+	fmt.Printf(" Done.\nImporting edges...")
+	if err := createEdges(systemInfo, cli); err != nil {
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create edges: %s", err.Error())
+	}
 	fmt.Printf(" Done.\nImporting roles...")
 
 	err := createRoles(systemInfo, cli)
@@ -645,11 +659,6 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		fmt.Printf("Could not create timers: %s", err.Error())
 	}
 
-	fmt.Printf(" Done.\nImporting edges...")
-	if err := createEdges(systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create edges: %s", err.Error())
-	}
 	fmt.Printf(" Done.\nImporting devices...")
 	_, err = createDevices(systemInfo, cli)
 	if err != nil {
@@ -683,7 +692,6 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
-
 	fmt.Printf(" Done\n")
 	return nil
 }
