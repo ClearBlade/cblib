@@ -4,22 +4,36 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/clearblade/cblib/models"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/clearblade/cblib/models"
+
 	cb "github.com/clearblade/Go-SDK"
 )
 
 func init() {
+
+	usage :=
+		`
+	Push a ClearBlade asset from local filesystem to ClearBlade Platform
+	`
+
+	example :=
+		`
+	cb-cli push -service=Service1				# Push a code service up to Platform
+	cb-cli push -collection=Collection1			# Push a code service up to Platform
+	`
+
 	pushCommand := &SubCommand{
 		name:         "push",
-		usage:        "push a specified resource to a system",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doPush,
+		example:      example,
 	}
 
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
@@ -1032,7 +1046,7 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 			return err
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
-				if _, err := client.CreateEventHandler(systemKey, timerName, timer); err != nil {
+				if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
 					return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new timer %s\n", timerName)

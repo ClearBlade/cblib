@@ -15,6 +15,7 @@ type SubCommand struct {
 	mustNotBeInRepo bool
 	flags           flag.FlagSet
 	run             func(cmd *SubCommand, client *cb.DevClient, args ...string) error
+	example			string
 }
 
 var (
@@ -24,10 +25,8 @@ var (
 func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	var client *cb.DevClient
 	var err error
-	c.flags.Usage = func() {
-		helpFunc(c, c.name)
-	}
 	c.flags.Parse(args)
+
 	if URL != "" && MsgURL != "" {
 		setupAddrs(URL, MsgURL)
 	}
@@ -41,6 +40,10 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	} else if c.mustNotBeInRepo {
 		return fmt.Errorf("You cannot run the '%s' command in an existing ClearBlade repository", c.name)
 	}
+
+	// This is the most important part of initialization
+	MetaInfo, _ = getDict(".cbmeta")
+
 	if MetaInfo != nil {
 		client = makeClientFromMetaInfo()
 	} else if c.needsAuth {
@@ -53,8 +56,11 @@ func (c *SubCommand) Execute( /*client *cb.DevClient,*/ args []string) error {
 	return c.run(c, client, c.flags.Args()...)
 }
 
-func helpFunc(c *SubCommand, args ...string) {
+func PrintHelpFor(c *SubCommand, args ...string) {
 	fmt.Printf("Usage: %s\n", c.usage)
+	c.flags.PrintDefaults()
+	fmt.Println("\nExamples:")
+	fmt.Println(c.example)
 }
 
 func GetCommand(commandName string) (*SubCommand, error) {
@@ -72,4 +78,28 @@ func AddCommand(commandName string, stuff *SubCommand) {
 		return
 	}
 	subCommands[commandName] = stuff
+}
+
+func PrintRootHelp(){
+	var usage = `
+The cb-cli (ClearBlade CLI) provides methods for interacting with ClearBlade platform
+
+Usage: cb-cli <command>
+
+Commands:
+
+`
+	for cmd, _ := range subCommands {
+		usage += fmt.Sprintf("\t%v\n",cmd)
+	 }
+	 usage += `
+
+Examples:
+
+	cb-cli init 							# inits your local workspace
+	cb-cli export							# inits and exports your systems
+	cb-cli push -service=Service1			# pushs an individual service up to Platform
+	cb-cli pull -collection=Collection2	# pulls an individual collection to filesystem
+	 `
+	 fmt.Println(usage)
 }

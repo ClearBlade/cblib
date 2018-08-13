@@ -4,13 +4,14 @@ import (
 	"bytes"
 	//"encoding/json"
 	"fmt"
-	cb "github.com/clearblade/Go-SDK"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"reflect"
 	"runtime"
 	"strings"
+
+	cb "github.com/clearblade/Go-SDK"
 )
 
 type Stack struct {
@@ -28,6 +29,18 @@ var (
 )
 
 func init() {
+
+	usage :=
+		`
+	Perform a diff operation between your local assets and the remote assets in the ClearBlade Platform. For example, see what changes have been made in the platform since your last export, or pull.
+	`
+
+	example :=
+		`
+	cb-cli diff -all-services                           # Diffs all your local services against all the services in the platform
+	cb-cli diff -collection=someone_modified_coll       # Shows diff between remote and local versions of the collection 'someone_modified_coll'
+	`
+
 	printedDiffCount = 0
 	suppressErrors = []int{0}
 	names = NewStack("names")
@@ -56,10 +69,11 @@ func init() {
 	}
 	myDiffCommand := &SubCommand{
 		name:         "diff",
-		usage:        "what's the difference?",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doDiff,
+		example:      example,
 	}
 	myDiffCommand.flags.BoolVar(&UserSchema, "userschema", false, "diff user table schema")
 	myDiffCommand.flags.BoolVar(&AllServices, "all-services", false, "diff all of the services stored locally")
@@ -71,6 +85,7 @@ func init() {
 	myDiffCommand.flags.StringVar(&RoleName, "role", "", "Name of role to diff")
 	myDiffCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to diff")
 	myDiffCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to diff")
+	myDiffCommand.flags.StringVar(&TempDir, "temp-dir", "", "Temporary dir to place diff files")
 	AddCommand("diff", myDiffCommand)
 }
 
@@ -231,6 +246,10 @@ func diffCodeAndMeta(sys *System_meta, client *cb.DevClient, thangType, thangNam
 	myPid := os.Getpid()
 
 	tempDir := os.TempDir()
+	if TempDir != "" {
+		tempDir = TempDir
+	}
+	fmt.Println("Using Temp Dir: " + tempDir)
 
 	localFile := fmt.Sprintf("%s%d-local.js", tempDir, myPid)
 	remoteFile := fmt.Sprintf("%s%d-remote.js", tempDir, myPid)
@@ -340,7 +359,7 @@ func diffCollection(sys *System_meta, client *cb.DevClient, collectionName strin
 }
 
 func diffUser(sys *System_meta, client *cb.DevClient, userName string) error {
-	exportUsers = true
+	ExportUsers = true
 	allUsers, err := pullUsers(sys, client, false)
 	if err != nil {
 		return err

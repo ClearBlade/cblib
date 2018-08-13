@@ -6,12 +6,24 @@ import (
 )
 
 func init() {
+
+	usage := 
+	`
+	Pushes an update from local filesystem to the platform, synonymous to #push
+	`
+
+	example := 
+	`
+	cb-cli update -service=Service1					# Pushes a local service up to platform
+	`
+
 	updateCommand := &SubCommand{
 		name:         "update",
-		usage:        "update a specified resource from the remote system",
+		usage:        usage,
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doUpdate,
+		example:	  example,
 	}
 	updateCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to update")
 	updateCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to update")
