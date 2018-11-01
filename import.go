@@ -35,7 +35,6 @@ func init() {
 		run:          doImport,
 		example:      example,
 	}
-	// TODO CBCOMM-248 impl importrows
 	DEFAULT_IMPORT_ROWS := true
 	DEFAULT_IMPORT_USERS := true
 	myImportCommand.flags.BoolVar(&importRows, "importrows", DEFAULT_IMPORT_ROWS, "imports all data into all collections")
