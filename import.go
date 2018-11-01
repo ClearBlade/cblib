@@ -36,10 +36,10 @@ func init() {
 		example:      example,
 	}
 	// TODO CBCOMM-248 impl importrows
-	defaultImportRows := true
-	defaultImportUsers := true
-	myImportCommand.flags.BoolVar(&importRows, "importrows", defaultImportRows, "imports all data into all collections")
-	myImportCommand.flags.BoolVar(&importUsers, "importusers", defaultImportUsers, "imports all users into the system")
+	DEFAULT_IMPORT_ROWS := true
+	DEFAULT_IMPORT_USERS := true
+	myImportCommand.flags.BoolVar(&importRows, "importrows", DEFAULT_IMPORT_ROWS, "imports all data into all collections")
+	myImportCommand.flags.BoolVar(&importUsers, "importusers", DEFAULT_IMPORT_USERS, "imports all users into the system")
 	myImportCommand.flags.StringVar(&URL, "url", "https://platform.clearblade.com", "Clearblade Platform URL where system is hosted, ex https://platform.clearblade.com")
 	myImportCommand.flags.StringVar(&Email, "email", "", "Developer email for login to import destination")
 	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
