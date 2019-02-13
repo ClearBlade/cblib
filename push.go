@@ -776,7 +776,7 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func createRole(systemKey string, role map[string]interface{}, client *cb.DevClient) error {
+func createRole(systemKey string, role map[string]interface{}, shouldIncludeCollections bool, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
 	var roleID string
 	if roleName != "Authenticated" && roleName != "Anonymous" && roleName != "Administrator" {
@@ -799,7 +799,7 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 	if !ok {
 		return fmt.Errorf("Permissions for role do not exist or is not a map")
 	}
-	convertedPermissions := convertPermissionsStructure(permissions)
+	convertedPermissions := convertPermissionsStructure(permissions, shouldIncludeCollections)
 	convertedRole := map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}
 	if err := client.UpdateRole(systemKey, role["Name"].(string), convertedRole); err != nil {
 		return err
@@ -814,7 +814,7 @@ func createRole(systemKey string, role map[string]interface{}, client *cb.DevCli
 //
 //  THis is a gigantic cluster. We need to fix and learn from this. -swm
 //
-func convertPermissionsStructure(in map[string]interface{}) map[string]interface{} {
+func convertPermissionsStructure(in map[string]interface{}, shouldIncludeCollections bool) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -835,7 +835,7 @@ func convertPermissionsStructure(in map[string]interface{}) map[string]interface
 				out["services"] = svcs
 			}
 		case "Collections":
-			if valIF != nil {
+			if valIF != nil && shouldIncludeCollections {
 				collections, err := getASliceOfMaps(valIF)
 				if err != nil {
 					fmt.Printf("Bad format for collections permissions, not a slice of maps: %T\n", valIF)
