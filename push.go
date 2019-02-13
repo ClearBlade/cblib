@@ -1362,15 +1362,48 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 	return nil
 }
 
+func getServiceBody(service map[string]interface{}) map[string]interface{} {
+	ret := map[string]interface{}{
+		"logging_enabled":   false,
+		"execution_timeout": 60,
+		"parameters":        make([]interface{}, 0),
+		"auto_balance":      false,
+		"auto_restart":      false,
+		"concurrency":       1,
+		"dependencies":      "",
+	}
+	if loggingEnabled, ok := service["logging_enabled"]; ok {
+		ret["logging_enabled"] = loggingEnabled
+	}
+	if executionTimeout, ok := service["execution_timeout"].(float64); ok {
+		ret["execution_timeout"] = executionTimeout
+	}
+	if parameters, ok := service["parameters"].([]interface{}); ok {
+		ret["parameters"] = mkSvcParams(parameters)
+	}
+	if dependencies, ok := service["dependencies"].(string); ok {
+		ret["dependencies"] = dependencies
+	}
+	if autoBalance, ok := service["auto_balance"].(bool); ok {
+		ret["auto_balance"] = autoBalance
+	}
+	if autoRestart, ok := service["auto_restart"].(bool); ok {
+		ret["auto_restart"] = autoRestart
+	}
+	if concurrency, ok := service["concurrency"].(int); ok {
+		ret["concurrency"] = concurrency
+	}
+	return ret
+}
+
 func createService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
 	if ServiceName != "" {
 		svcName = ServiceName
 	}
-	svcParams := mkSvcParams(service["params"].([]interface{}))
-	svcDeps := service["dependencies"].(string)
 	svcCode := service["code"].(string)
-	if err := client.NewServiceWithLibraries(systemKey, svcName, svcCode, svcDeps, svcParams); err != nil {
+	extra := getServiceBody(service)
+	if err := client.NewServiceWithBody(systemKey, svcName, svcCode, extra); err != nil {
 		return err
 	}
 	if enableLogs(service) {
