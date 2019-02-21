@@ -378,6 +378,40 @@ func writeDeployment(name string, data map[string]interface{}) error {
 	return writeEntity(deploymentsDir, name, data)
 }
 
+func whitelistServicesPermissions(data []interface{}) []map[string]interface{} {
+	rtn := make([]map[string]interface{}, 0)
+	var mapped map[string]interface{}
+	ok := true
+	for i := 0; i < len(data); i++ {
+		if mapped, ok = data[i].(map[string]interface{}); !ok {
+			continue
+		}
+		rtn = append(rtn, map[string]interface{}{
+			"Level": mapped["Level"],
+			"Name":  mapped["Name"],
+		})
+	}
+	return rtn
+}
+
+func whitelistCollectionsPermissions(data []interface{}) []map[string]interface{} {
+	rtn := make([]map[string]interface{}, 0)
+	var mapped map[string]interface{}
+	ok := true
+	for i := 0; i < len(data); i++ {
+		if mapped, ok = data[i].(map[string]interface{}); !ok {
+			continue
+		}
+		rtn = append(rtn, map[string]interface{}{
+			"Level":   mapped["Level"],
+			"Name":    mapped["Name"],
+			"Columns": mapped["Columns"],
+			"Items":   mapped["Items"],
+		})
+	}
+	return rtn
+}
+
 func writeRole(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(rolesDir, 0777); err != nil {
 		return err
@@ -394,11 +428,15 @@ func writeRole(name string, data map[string]interface{}) error {
 	codeServices, castSuccess := permissions["CodeServices"].([]interface{})
 	if castSuccess {
 		sortByMapKey(&codeServices, SORT_KEY_CODE_SERVICE)
+		fmtServices := whitelistServicesPermissions(codeServices)
+		permissions["CodeServices"] = fmtServices
 	}
 	// Default value for a role with no collections is null
 	collections, castSuccess := permissions["Collections"].([]interface{})
 	if castSuccess {
 		sortByMapKey(&collections, SORT_KEY_COLLECTION)
+		fmtCollections := whitelistCollectionsPermissions(collections)
+		permissions["Collections"] = fmtCollections
 	}
 
 	return writeEntity(rolesDir, name, data)
