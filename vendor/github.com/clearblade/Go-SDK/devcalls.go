@@ -381,6 +381,7 @@ func (d *DevClient) UpdateRole(systemKey, roleName string, role map[string]inter
 	}
 	// Just to be safe, this is silly
 	data["changes"] = changes
+	fmt.Printf("send this: %+v\n", data)
 	creds, err := d.credentials()
 	if err != nil {
 		return err
