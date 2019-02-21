@@ -66,10 +66,11 @@ var (
 )
 
 var (
-	libCode   map[string]interface{}
-	svcCode   map[string]interface{}
-	rolesInfo []map[string]interface{}
-	MetaInfo  map[string]interface{}
+	systemDotJSON map[string]interface{}
+	libCode       map[string]interface{}
+	svcCode       map[string]interface{}
+	rolesInfo     []map[string]interface{}
+	MetaInfo      map[string]interface{}
 )
 
 var (
