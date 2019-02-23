@@ -18,19 +18,19 @@ func init() {
 
 	example :=
 		`
-	cb-cli compress -portalName=portal1		#
+	cb-cli uncompress -portalName=portal1		#
 	`
 
-	compressCommand := &SubCommand{
-		name:         "compress",
+	uncompressCommand := &SubCommand{
+		name:         "uncompress",
 		usage:        usage,
 		needsAuth:    false,
 		mustBeInRepo: true,
-		run:          doCompress,
+		run:          doUncompress,
 		example:      example,
 	}
-	compressCommand.flags.StringVar(&PortalName, "Portal", "", "Name of Portal to compress after editing")
-	AddCommand("compress", compressCommand)
+	uncompressCommand.flags.StringVar(&PortalName, "Portal", "", "Name of Portal to uncompress after editing")
+	AddCommand("uncompress", uncompressCommand)
 }
 
 func checkPortalCodeManagerArgsAndFlags(args []string) error {
@@ -40,8 +40,8 @@ func checkPortalCodeManagerArgsAndFlags(args []string) error {
 	return nil
 }
 
-func writeDatasource(portalName, dsName string, data map[string]interface{}) error {
-	currentFileName := dsName
+func writeDatasource(portalName, dataSourceName string, data map[string]interface{}) error {
+	currentFileName := dataSourceName
 	currDsDir := filepath.Join(portalsDir, portalName, "datasources")
 	if err := os.MkdirAll(currDsDir, 0777); err != nil {
 		return err
@@ -49,7 +49,7 @@ func writeDatasource(portalName, dsName string, data map[string]interface{}) err
 	return writeEntity(currDsDir, currentFileName, data)
 }
 
-func compressDatasources(portal map[string]interface{}) error {
+func uncompressDatasources(portal map[string]interface{}) error {
 	var (
 		portalName          string
 		config, datasources map[string]interface{}
@@ -68,8 +68,8 @@ func compressDatasources(portal map[string]interface{}) error {
 
 	for _, ds := range datasources {
 		dataSourceData := ds.(map[string]interface{})
-		dsName := dataSourceData["name"].(string)
-		if err := writeDatasource(portalName, dsName, dataSourceData); err != nil {
+		dataSourceName := dataSourceData["name"].(string)
+		if err := writeDatasource(portalName, dataSourceName, dataSourceData); err != nil {
 			return err
 		}
 	}
@@ -107,7 +107,7 @@ func writeWidget(portalName, widgetName string, data map[string]interface{}) err
 	return nil
 }
 
-func compressWidgets(portal map[string]interface{}) error {
+func uncompressWidgets(portal map[string]interface{}) error {
 	var (
 		portalName      string
 		config, widgets map[string]interface{}
@@ -134,7 +134,7 @@ func compressWidgets(portal map[string]interface{}) error {
 	return nil
 }
 
-func doCompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+func doUncompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkPortalCodeManagerArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -144,10 +144,10 @@ func doCompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 
-	if err = compressDatasources(portal); err != nil {
+	if err = uncompressDatasources(portal); err != nil {
 		return err
 	}
-	if err = compressWidgets(portal); err != nil {
+	if err = uncompressWidgets(portal); err != nil {
 		return err
 	}
 	return nil
