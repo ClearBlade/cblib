@@ -38,11 +38,11 @@ func TestBubbleSort_NilEntry(test *testing.T) {
 			continue
 		}
 		if (sortMe[i] == nil && truth[i] != nil) || (sortMe[i] != nil && truth[i] == nil) {
-			test.Errorf("Failed to sort input %i in %s", i, sortMe)
+			test.Errorf("Failed to sort input %d in %s", i, sortMe)
 			return
 		}
 		if sortMe[i].(string) != truth[i].(string) {
-			test.Errorf("Failed to sort input %i", i)
+			test.Errorf("Failed to sort input %d", i)
 			return
 		}
 	}
@@ -61,7 +61,7 @@ func TestIsString_Normal(t *testing.T) {
 	for input, truth := range rubric {
 		var output bool = isString(input)
 		if output != truth {
-			t.Errorf("Result: %s is a string:%s", input, output)
+			t.Errorf("Result: %s is a string: %t", input, output)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func executeBubbleSortTests(inputOutput [][][]string) error {
 
 		for i := 0; i < len(input); i++ {
 			if sortMe[i].(string) != output[i] {
-				return fmt.Errorf("Failed to sort input %i on test: %i", i, t)
+				return fmt.Errorf("Failed to sort input %d on test: %d", i, t)
 			}
 		}
 
