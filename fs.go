@@ -427,11 +427,22 @@ func writeTrigger(name string, data map[string]interface{}) error {
 	return writeEntity(triggersDir, name, data)
 }
 
+func whitelistTimer(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"description":  data["description"],
+		"frequency":    data["frequency"],
+		"name":         data["name"],
+		"repeats":      data["repeats"],
+		"service_name": data["service_name"],
+		"start_time":   data["start_time"],
+	}
+}
+
 func writeTimer(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(timersDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(timersDir, name, data)
+	return writeEntity(timersDir, name, whitelistTimer(data))
 }
 
 func writeDeployment(name string, data map[string]interface{}) error {
@@ -547,7 +558,27 @@ func writeLibrary(name string, data map[string]interface{}) error {
 	return writeEntity(myLibDir, name, data)
 }
 
+func blacklistEdge(data map[string]interface{}) {
+	delete(data, "edge_key")
+	delete(data, "isConnected")
+	delete(data, "novi_system_key")
+	delete(data, "broker_auth_port")
+	delete(data, "broker_port")
+	delete(data, "broker_tls_port")
+	delete(data, "broker_ws_auth_port")
+	delete(data, "broker_ws_port")
+	delete(data, "broker_wss_port")
+	delete(data, "communication_style")
+	delete(data, "first_talked")
+	delete(data, "last_talked")
+	delete(data, "local_addr")
+	delete(data, "local_port")
+	delete(data, "public_addr")
+	delete(data, "public_port")
+}
+
 func writeEdge(name string, data map[string]interface{}) error {
+	blacklistEdge(data)
 	if err := os.MkdirAll(edgesDir, 0777); err != nil {
 		return err
 	}

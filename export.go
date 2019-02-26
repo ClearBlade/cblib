@@ -308,12 +308,6 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 	timers := []map[string]interface{}{}
 	for _, timer := range theTimers {
 		thisTimer := timer.(map[string]interface{})
-		// lotsa system and user dependent stuff to get rid of...
-		delete(thisTimer, "system_key")
-		delete(thisTimer, "system_secret")
-		delete(thisTimer, "timer_key")
-		delete(thisTimer, "user_id")
-		delete(thisTimer, "user_token")
 		timers = append(timers, thisTimer)
 		err = writeTimer(thisTimer["name"].(string), thisTimer)
 		if err != nil {
@@ -418,22 +412,6 @@ func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	for i := 0; i < len(allEdges); i++ {
 		currentEdge := allEdges[i].(map[string]interface{})
 		fmt.Printf(" %s", currentEdge["name"].(string))
-		delete(currentEdge, "edge_key")
-		delete(currentEdge, "isConnected")
-		delete(currentEdge, "novi_system_key")
-		delete(currentEdge, "broker_auth_port")
-		delete(currentEdge, "broker_port")
-		delete(currentEdge, "broker_tls_port")
-		delete(currentEdge, "broker_ws_auth_port")
-		delete(currentEdge, "broker_ws_port")
-		delete(currentEdge, "broker_wss_port")
-		delete(currentEdge, "communication_style")
-		delete(currentEdge, "first_talked")
-		delete(currentEdge, "last_talked")
-		delete(currentEdge, "local_addr")
-		delete(currentEdge, "local_port")
-		delete(currentEdge, "public_addr")
-		delete(currentEdge, "public_port")
 		err = writeEdge(currentEdge["name"].(string), currentEdge)
 		if err != nil {
 			return nil, err
