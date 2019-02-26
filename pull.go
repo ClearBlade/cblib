@@ -59,6 +59,7 @@ func init() {
 	pullCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to pull")
 	pullCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to pull")
 	pullCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to pull")
+	pullCommand.flags.StringVar(&DeploymentName, "deployment", "", "Name of deployment to pull")
 
 	AddCommand("pull", pullCommand)
 }
@@ -293,6 +294,14 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		fmt.Printf("Pulling all deployments:")
 		if _, err = pullDeployments(systemInfo, client); err != nil {
 			fmt.Printf("Error - Failed to pull all deployments: %s", err.Error())
+		}
+	}
+
+	if DeploymentName != "" {
+		didSomething = true
+		fmt.Printf("Pulling deployment %+s\n", DeploymentName)
+		if _, err = pullAndWriteDeployment(systemInfo, client, DeploymentName); err != nil {
+			fmt.Printf("Error - Failed to pull deployment '%s': %s", DeploymentName, err.Error())
 		}
 	}
 

@@ -49,6 +49,7 @@ var (
 	PortalName                 string
 	PluginName                 string
 	AdaptorName                string
+	DeploymentName             string
 	Message                    bool
 	Topic                      string
 	Payload                    string

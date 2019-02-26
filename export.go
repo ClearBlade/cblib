@@ -307,6 +307,17 @@ func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface
 	return timers, nil
 }
 
+func pullAndWriteDeployment(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+	deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+	if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
+		return nil, err
+	}
+	return deploymentDetails, nil
+}
+
 func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theDeployments, err := cli.GetAllDeployments(sysMeta.Key)
 	if err != nil {
@@ -317,14 +328,11 @@ func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 
 		deploymentSummary := deploymentIF.(map[string]interface{})
 		deplName := deploymentSummary["name"].(string)
-		deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, deplName)
+		deploymentDetails, err := pullAndWriteDeployment(sysMeta, cli, deplName)
 		if err != nil {
 			return nil, err
 		}
 		deployments = append(deployments, deploymentDetails)
-		if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
-			return nil, err
-		}
 	}
 	return deployments, nil
 }
