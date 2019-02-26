@@ -638,7 +638,6 @@ func whitelistService(data map[string]interface{}) map[string]interface{} {
 		"auto_balance":      data["auto_balance"],
 		"auto_restart":      data["auto_restart"],
 		"concurrency":       data["concurrency"],
-		"current_version":   data["current_version"],
 		"dependencies":      data["dependencies"],
 		"execution_timeout": data["execution_timeout"],
 		"logging_enabled":   data["logging_enabled"],
