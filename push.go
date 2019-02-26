@@ -1025,6 +1025,12 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 		return "", fmt.Errorf("Could not create user %s: %s", email, err.Error())
 	}
 	userId := newUser["user_id"].(string)
+	if err := updateUserEmailToId(UserInfo{
+		UserID: userId,
+		Email:  email,
+	}); err != nil {
+		fmt.Printf("Error - Failed to update user email to ID map; subsequent operations may fail. %+v\n", err.Error())
+	}
 	niceRoles := mungeRoles(user["roles"].([]interface{}))
 	if len(niceRoles) > 0 {
 		if err := client.AddUserToRoles(systemKey, userId, niceRoles); err != nil {
@@ -1520,13 +1526,10 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 		} else {
 			if strings.Contains(strings.ToUpper(text), "Y") {
 				collection["name"] = collName
-				if info, err := CreateCollection(systemKey, collection, client); err != nil {
+				if _, err := CreateCollection(systemKey, collection, client); err != nil {
 					return fmt.Errorf("Could not create collection %s: %s", collName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new collection %s\n", collName)
-					if err := updateCollectionNameToId(info); err != nil {
-						fmt.Printf("Error - Failed to update %s - subsequent operations may fail", collectionNameToIdFileName)
-					}
 				}
 			} else {
 				fmt.Printf("Collection will not be created.\n")
@@ -1573,6 +1576,10 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 	}
 	if isConnect {
 		return myInfo, nil
+	}
+
+	if err := updateCollectionNameToId(myInfo); err != nil {
+		fmt.Printf("Error - Failed to update %s - subsequent operations may fail", collectionNameToIdFileName)
 	}
 
 	columns := collection["schema"].([]interface{})

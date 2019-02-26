@@ -310,7 +310,7 @@ func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (ma
 		"columns": columns,
 	}
 	if writeThem {
-		if err := writeUser("schema", schema); err != nil {
+		if err := writeUserSchema(schema); err != nil {
 			return nil, err
 		}
 	}

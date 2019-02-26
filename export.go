@@ -67,11 +67,6 @@ func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[strin
 			}
 		}
 	}
-	rMap := makeRoleNameToIdMap(rval)
-	err = writeRoleNameToId(rMap)
-	if err != nil {
-		fmt.Printf("Error - Failed to write collection name to ID map; subsequent operations may fail. %+v\n", err.Error())
-	}
 	return rval, nil
 }
 
@@ -111,11 +106,6 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 			writeCollection(r["name"].(string), data)
 			rval = append(rval, data)
 		}
-	}
-	collectionNameToId := makeCollectionNameToIdMap(rval)
-	err = writeCollectionNameToId(collectionNameToId)
-	if err != nil {
-		fmt.Printf("Error - Failed to write collection name to ID map; subsequent operations may fail. %+v\n", err.Error())
 	}
 
 	return rval, nil
