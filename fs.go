@@ -15,6 +15,7 @@ const SORT_KEY_CODE_SERVICE = "Name"
 const SORT_KEY_COLLECTION_ITEM = "item_id"
 const SORT_KEY_COLLECTION = "Name"
 const collectionNameToIdFileName = "collectionNameToId.json"
+const roleNameToIdFileName = "roleNameToId.json"
 
 var (
 	RootDirIsSet bool
@@ -324,14 +325,34 @@ func whitelistCollection(data map[string]interface{}, items []interface{}) map[s
 
 func writeCollectionNameToId(data map[string]interface{}) error {
 	fmt.Println("Storing collection name to ID map")
+	return writeIdMap(data, collectionNameToIdFileName)
+}
+
+func writeIdMap(data map[string]interface{}, fileName string) error {
 	marshalled, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
-		return fmt.Errorf("Could not marshall %s: %s", collectionNameToIdFileName, err.Error())
+		return fmt.Errorf("Could not marshall %s: %s", fileName, err.Error())
 	}
-	if err = ioutil.WriteFile(rootDir+"/"+collectionNameToIdFileName, marshalled, 0666); err != nil {
-		return fmt.Errorf("Could not write to %s: %s", collectionNameToIdFileName, err.Error())
+	if err = ioutil.WriteFile(rootDir+"/"+fileName, marshalled, 0666); err != nil {
+		return fmt.Errorf("Could not write to %s: %s", fileName, err.Error())
 	}
 	return nil
+}
+
+func writeRoleNameToId(data map[string]interface{}) error {
+	fmt.Println("Storing role name to ID map")
+	return writeIdMap(data, roleNameToIdFileName)
+}
+
+func updateRoleNameToId(info RoleInfo) error {
+	fmt.Printf("Updating %s\n", roleNameToIdFileName)
+	daMap, err := getCollectionNameToId()
+	if err != nil {
+		fmt.Printf("Failed to read %s - creating new file\n", roleNameToIdFileName)
+		daMap = make(map[string]interface{})
+	}
+	daMap[info.Name] = info.ID
+	return writeRoleNameToId(daMap)
 }
 
 func updateCollectionNameToId(info CollectionInfo) error {
@@ -533,7 +554,17 @@ func writeEdge(name string, data map[string]interface{}) error {
 	return writeEntity(edgesDir, name, data)
 }
 
+func blacklistDevice(data map[string]interface{}) {
+	delete(data, "device_key")
+	delete(data, "system_key")
+	delete(data, "last_active_date")
+	delete(data, "__HostId__")
+	delete(data, "created_date")
+	delete(data, "last_active_date")
+}
+
 func writeDevice(name string, data map[string]interface{}) error {
+	blacklistDevice(data)
 	if err := os.MkdirAll(devicesDir, 0777); err != nil {
 		return err
 	}

@@ -802,6 +802,9 @@ func createRole(systemKey string, role map[string]interface{}, collectionsInfo [
 	if err := client.UpdateRole(systemKey, role["Name"].(string), updateRoleBody); err != nil {
 		return err
 	}
+	if err := updateRoleNameToId(RoleInfo{ID: roleID, Name: roleName}); err != nil {
+		fmt.Printf("Error - Failed to update %s - subsequent operations may fail", roleNameToIdFileName)
+	}
 	return nil
 }
 
@@ -1534,6 +1537,11 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 }
 
 type CollectionInfo struct {
+	ID   string
+	Name string
+}
+
+type RoleInfo struct {
 	ID   string
 	Name string
 }
