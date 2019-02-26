@@ -573,11 +573,10 @@ func writeDevice(name string, data map[string]interface{}) error {
 
 func whitelistPortal(data map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
-		"config":       data["config"],
-		"description":  data["description"],
-		"name":         data["name"],
-		"type":         data["type"],
-		"last_updated": data["last_updated"],
+		"config":      data["config"],
+		"description": data["description"],
+		"name":        data["name"],
+		"type":        data["type"],
 	}
 }
 
