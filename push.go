@@ -1732,7 +1732,10 @@ func createAdaptor(adap *models.Adaptor) error {
 
 func updateRole(systemKey string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
-	roleID := role["ID"].(string)
+	roleID, err := getRoleIdByName(roleName)
+	if err != nil {
+		return fmt.Errorf("Error updating role: %s", err.Error())
+	}
 	updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo)
 	if err != nil {
 		return err
