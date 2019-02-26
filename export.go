@@ -719,8 +719,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	fmt.Printf(" Done.\nExporting Deployments...")
 	if deployments, err := pullDeployments(sysMeta, cli); err != nil {
-		fmt.Printf("Warning: Could not pull deployments. Might not yet be implemented on your version of the platform: %s ", err)
-		//return err
+		fmt.Printf("Warning: Could not pull deployments: %s", err.Error())
 	} else {
 		systemDotJSON["deployments"] = deployments
 	}

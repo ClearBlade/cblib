@@ -42,6 +42,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllPortals, "all-portals", false, "pull all portals from system")
 	pullCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "pull all plugins from system")
 	pullCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "pull all adapters from system")
+	pullCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "pull all deployments from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -284,6 +285,14 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		fmt.Printf("Pulling adaptor %+s\n", AdaptorName)
 		if err = PullAndWriteAdaptor(systemInfo.Key, AdaptorName, client); err != nil {
 			return err
+		}
+	}
+
+	if AllDeployments {
+		didSomething = true
+		fmt.Printf("Pulling all deployments:")
+		if _, err = pullDeployments(systemInfo, client); err != nil {
+			fmt.Printf("Error - Failed to pull all deployments: %s", err.Error())
 		}
 	}
 
