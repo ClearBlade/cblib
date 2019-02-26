@@ -575,6 +575,8 @@ func blacklistEdge(data map[string]interface{}) {
 	delete(data, "local_port")
 	delete(data, "public_addr")
 	delete(data, "public_port")
+	delete(data, "system_key")
+	delete(data, "system_secret")
 }
 
 func writeEdge(name string, data map[string]interface{}) error {
