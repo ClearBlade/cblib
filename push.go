@@ -46,13 +46,12 @@ func init() {
 	pushCommand.flags.BoolVar(&AllPortals, "all-portals", false, "push all of the local portals")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
 	pushCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "push all of the local adapters")
-	// TODO: all-collections
-	// TODO: all-deployments
-	// TODO: all-roles
-	// TODO: all-users
-	// TODO: all-triggers
-	// TODO: all-timers
-	// TODO: all
+	pushCommand.flags.BoolVar(&AllCollections, "all-collections", false, "push all of the local collections")
+	pushCommand.flags.BoolVar(&AllRoles, "all-roles", false, "push all of the local roles")
+	pushCommand.flags.BoolVar(&AllUsers, "all-users", false, "push all of the local users")
+	pushCommand.flags.BoolVar(&AllAssets, "all", false, "push all of the local assets")
+	pushCommand.flags.BoolVar(&AllTriggers, "all-triggers", false, "push all of the local triggers")
+	pushCommand.flags.BoolVar(&AllTimers, "all-timers", false, "push all of the local timers")
 
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
@@ -309,9 +308,23 @@ func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 
 }
 
-func pushOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
-	fmt.Printf("Pushing collection %s\n", CollectionName)
-	collection, err := getCollection(CollectionName)
+func pushAllCollections(systemInfo *System_meta, client *cb.DevClient) error {
+	allColls, err := getCollections()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allColls); i++ {
+		err := pushOneCollection(systemInfo, client, allColls[i]["name"].(string))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func pushOneCollection(systemInfo *System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing collection %s\n", name)
+	collection, err := getCollection(name)
 	if err != nil {
 		fmt.Printf("error is %+v\n", err)
 		return err
@@ -626,30 +639,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	// Adding code to update user schema when pushed to system
-	if UserSchema {
-		didSomething = true
-		if err := pushUserSchema(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if EdgeSchema {
-		didSomething = true
-		if err := pushEdgesSchema(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if DeviceSchema {
-		didSomething = true
-		if err := pushDevicesSchema(systemInfo, client); err != nil {
-			return err
-		}
-	} else {
-		DeviceSchemaPresent = false
-	}
-
 	if ServiceName != "" {
 		didSomething = true
 		if err := pushOneService(systemInfo, client); err != nil {
@@ -671,9 +660,16 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllCollections {
+		didSomething = true
+		if err := pushAllCollections(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if CollectionName != "" {
 		didSomething = true
-		if err := pushOneCollection(systemInfo, client); err != nil {
+		if err := pushOneCollection(systemInfo, client, CollectionName); err != nil {
 			return err
 		}
 	}
@@ -706,6 +702,15 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if DeviceSchema {
+		didSomething = true
+		if err := pushDevicesSchema(systemInfo, client); err != nil {
+			return err
+		}
+	} else {
+		DeviceSchemaPresent = false
+	}
+
 	if AllDevices {
 		didSomething = true
 		if err := pushAllDevices(systemInfo, client); err != nil {
@@ -730,6 +735,21 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if EdgeName != "" {
 		didSomething = true
 		if err := pushOneEdge(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	// Adding code to update user schema when pushed to system
+	if UserSchema {
+		didSomething = true
+		if err := pushUserSchema(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if EdgeSchema {
+		didSomething = true
+		if err := pushEdgesSchema(systemInfo, client); err != nil {
 			return err
 		}
 	}

@@ -80,7 +80,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := pushOneCollection(systemInfo, client); err != nil {
+		if err := pushOneCollection(systemInfo, client, CollectionName); err != nil {
 			return err
 		}
 	}
