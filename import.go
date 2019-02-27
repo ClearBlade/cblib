@@ -81,7 +81,7 @@ func createRoles(systemInfo map[string]interface{}, collectionsInfo []Collection
 		//}
 	}
 	// ids were created on import for the new roles, grab those
-	_, err = pullRoles(sysKey, client, true)
+	_, err = PullAndWriteRoles(sysKey, client, true)
 	if err != nil {
 		return err
 	}

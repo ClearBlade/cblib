@@ -52,24 +52,6 @@ func init() {
 	AddCommand("export", myExportCommand)
 }
 
-func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[string]interface{}, error) {
-	r, err := cli.GetAllRoles(systemKey)
-	if err != nil {
-		return nil, err
-	}
-	rval := make([]map[string]interface{}, 0)
-	for _, rIF := range r {
-		thisRole := rIF.(map[string]interface{})
-		rval = append(rval, thisRole)
-		if writeThem {
-			if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
-				return nil, err
-			}
-		}
-	}
-	return rval, nil
-}
-
 func makeCollectionNameToIdMap(collections []map[string]interface{}) map[string]interface{} {
 	rtn := make(map[string]interface{})
 	for i := 0; i < len(collections); i++ {
@@ -634,7 +616,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	storeMeta(sysMeta)
 	fmt.Printf(" Done.\nExporting Roles...")
 
-	_, err = pullRoles(sysKey, cli, true)
+	_, err = PullAndWriteRoles(sysKey, cli, true)
 	if err != nil {
 		return err
 	}

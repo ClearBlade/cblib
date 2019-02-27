@@ -44,6 +44,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "pull all adapters from system")
 	pullCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "pull all deployments from system")
 	pullCommand.flags.BoolVar(&AllCollections, "all-collections", false, "pull all collections from system")
+	pullCommand.flags.BoolVar(&AllRoles, "all-roles", false, "pull all roles from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -81,7 +82,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	}
 
 	// ??? we already have them locally
-	if _, err := pullRoles(systemInfo.Key, client, false); err != nil {
+	if _, err := PullAndWriteRoles(systemInfo.Key, client, false); err != nil {
 		return err
 	}
 
@@ -153,6 +154,14 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			return err
 		} else {
 			writeUserSchema(col)
+		}
+	}
+
+	if AllRoles {
+		didSomething = true
+		fmt.Println("Pulling all roles:")
+		if _, err := PullAndWriteRoles(systemInfo.Key, client, true); err != nil {
+			fmt.Printf("Error: Failed to pull all roles - %s", err.Error())
 		}
 	}
 
@@ -349,20 +358,22 @@ func pullRole(systemKey string, roleName string, client *cb.DevClient) (map[stri
 	return client.GetRole(systemKey, roleName)
 }
 
-func PullAndWriteRoles(systemKey string, client *cb.DevClient) error {
-	r, err := client.GetAllRoles(systemKey)
+func PullAndWriteRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[string]interface{}, error) {
+	r, err := cli.GetAllRoles(systemKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	var roleMap map[string]interface{}
-	for i := 0; i < len(r); i++ {
-		roleMap = r[i].(map[string]interface{})
-		err = writeRole(roleMap["Name"].(string), roleMap)
-		if err != nil {
-			return err
+	rval := make([]map[string]interface{}, 0)
+	for _, rIF := range r {
+		thisRole := rIF.(map[string]interface{})
+		rval = append(rval, thisRole)
+		if writeThem {
+			if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
+				return nil, err
+			}
 		}
 	}
-	return nil
+	return rval, nil
 }
 
 func PullAndWriteService(systemKey string, serviceName string, client *cb.DevClient) error {
