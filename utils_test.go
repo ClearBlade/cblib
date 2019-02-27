@@ -104,3 +104,110 @@ func compareString(slice *[]interface{}, i int, j int) bool {
 	}
 	return s1.(string) < s2.(string)
 }
+
+func TestFindDiff_NoDefaultColumns(test *testing.T) {
+	removeColName := "test2"
+	local := []map[string]interface{}{
+		{
+			"ColumnName": "test",
+			"ColumnType": "string",
+			"PK":         false,
+		},
+	}
+	backend := []map[string]interface{}{
+		{
+			"ColumnName": "test",
+			"ColumnType": "string",
+			"PK":         false,
+		},
+		{
+			"ColumnName": removeColName,
+			"ColumnType": "string",
+			"PK":         false,
+		},
+	}
+	removeDiff := findDiff(backend, local, []string{})
+	if len(removeDiff) != 1 {
+		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
+	}
+	if removeDiff[0]["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0]["ColumnName"].(string))
+	}
+	addDiff := findDiff(local, backend, []string{})
+	if len(addDiff) != 0 {
+		test.Errorf("Expected to add 0 elements but got %d elements", len(addDiff))
+	}
+}
+
+func TestFindDiff_WithDefaultColumns(test *testing.T) {
+	removeColName := "test2"
+	addColName := "test3"
+	local := []map[string]interface{}{
+		{
+			"ColumnName": "user_id",
+			"ColumnType": "string",
+			"PK":         true,
+		},
+		{
+			"ColumnName": "test",
+			"ColumnType": "string",
+			"PK":         false,
+		},
+		{
+			"ColumnName": addColName,
+			"ColumnType": "string",
+			"PK":         false,
+		},
+	}
+	backend := []map[string]interface{}{
+		{
+			"ColumnName": "user_id",
+			"ColumnType": "string",
+			"PK":         true,
+		},
+		{
+			"ColumnName": "creation_date",
+			"ColumnType": "string",
+			"PK":         false,
+		},
+		{
+			"ColumnName": "test",
+			"ColumnType": "string",
+			"PK":         false,
+		},
+		{
+			"ColumnName": removeColName,
+			"ColumnType": "string",
+			"PK":         false,
+		},
+	}
+	defaultColumns := []string{"user_id", "creation_date"}
+	removeDiff := findDiff(backend, local, defaultColumns)
+	if len(removeDiff) != 1 {
+		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
+	}
+	if removeDiff[0]["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0]["ColumnName"].(string))
+	}
+	addDiff := findDiff(local, backend, defaultColumns)
+	if len(addDiff) != 1 {
+		test.Errorf("Expected to add 1 element but got %d elements", len(addDiff))
+	}
+}
+
+func Test_IsDefaultColumn(t *testing.T) {
+	noDefaultColumns := isDefaultColumn([]string{}, "test")
+	if noDefaultColumns {
+		t.Errorf("Should return false when no default columns")
+	}
+
+	match := isDefaultColumn([]string{"one", "two"}, "two")
+	if !match {
+		t.Errorf("Should return as a match")
+	}
+
+	noMatch := isDefaultColumn([]string{"one", "two"}, "three")
+	if noMatch {
+		t.Errorf("Should not return as a match")
+	}
+}
