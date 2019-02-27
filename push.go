@@ -434,9 +434,22 @@ func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return updateTrigger(systemInfo.Key, trigger, client)
 }
 
-func pushOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
-	fmt.Printf("Pushing timer %+s\n", TimerName)
-	timer, err := getTimer(TimerName)
+func pushTimers(systemInfo *System_meta, client *cb.DevClient) error {
+	allTimers, err := getTimers()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allTimers); i++ {
+		if err := pushOneTimer(systemInfo, client, allTimers[i]["name"].(string)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func pushOneTimer(systemInfo *System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing timer %+s\n", name)
+	timer, err := getTimer(name)
 	if err != nil {
 		return err
 	}
@@ -756,9 +769,16 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllTimers {
+		didSomething = true
+		if err := pushTimers(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if TimerName != "" {
 		didSomething = true
-		if err := pushOneTimer(systemInfo, client); err != nil {
+		if err := pushOneTimer(systemInfo, client, TimerName); err != nil {
 			return err
 		}
 	}

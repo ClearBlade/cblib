@@ -122,7 +122,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if TimerName != "" {
 		didSomething = true
-		if err := pushOneTimer(systemInfo, client); err != nil {
+		if err := pushOneTimer(systemInfo, client, TimerName); err != nil {
 			return err
 		}
 	}
