@@ -94,7 +94,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if User != "" {
 		didSomething = true
-		if err := pushOneUser(systemInfo, client); err != nil {
+		if err := pushOneUser(systemInfo, client, User); err != nil {
 			return err
 		}
 	}

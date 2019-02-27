@@ -350,8 +350,22 @@ func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error 
 	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
 }
 
-func pushOneUser(systemInfo *System_meta, client *cb.DevClient) error {
-	user, err := getUser(User)
+func pushUsers(systemInfo *System_meta, client *cb.DevClient) error {
+	users, err := getUsers()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(users); i++ {
+		// todo: make getUser accept user object so that it doesn't refetch from the FS
+		if err := pushOneUser(systemInfo, client, users[i]["email"].(string)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func pushOneUser(systemInfo *System_meta, client *cb.DevClient, email string) error {
+	user, err := getFullUserObject(email)
 	if err != nil {
 		return err
 	}
@@ -687,9 +701,16 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllUsers {
+		didSomething = true
+		if err := pushUsers(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if User != "" {
 		didSomething = true
-		if err := pushOneUser(systemInfo, client); err != nil {
+		if err := pushOneUser(systemInfo, client, User); err != nil {
 			return err
 		}
 	}
@@ -1057,6 +1078,9 @@ func updateUser(systemKey string, user map[string]interface{}, client *cb.DevCli
 	if id, ok := user["user_id"].(string); !ok {
 		return fmt.Errorf("Missing user id %+v", user)
 	} else {
+		// todo: implement modifying user roles with CLI. need to send backend the correct format of -
+		// {roles: {add: ["roleName"], delete: ["roleName2"]}}
+		delete(user, "roles")
 		return client.UpdateUser(systemKey, id, user)
 	}
 }

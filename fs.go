@@ -966,6 +966,19 @@ func getRole(name string) (map[string]interface{}, error) {
 	return getObject(rolesDir, name+".json")
 }
 
+func getFullUserObject(email string) (map[string]interface{}, error) {
+	u, err := getObject(usersDir, email+".json")
+	if err != nil {
+		return nil, nil
+	}
+	id, err := getUserIdByEmail(email)
+	if err != nil {
+		return nil, nil
+	}
+	u["user_id"] = id
+	return u, nil
+}
+
 func getUser(email string) (map[string]interface{}, error) {
 	return getObject(usersDir, email+".json")
 }
