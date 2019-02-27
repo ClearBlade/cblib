@@ -412,9 +412,22 @@ func pushOneRole(systemInfo *System_meta, name string, client *cb.DevClient) err
 	return updateRole(systemInfo.Key, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
 }
 
-func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
-	fmt.Printf("Pushing trigger %+s\n", TriggerName)
-	trigger, err := getTrigger(TriggerName)
+func pushTriggers(systemInfo *System_meta, client *cb.DevClient) error {
+	allTriggers, err := getTriggers()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allTriggers); i++ {
+		if err := pushOneTrigger(systemInfo, client, allTriggers[i]["name"].(string)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing trigger %+s\n", name)
+	trigger, err := getTrigger(name)
 	if err != nil {
 		return err
 	}
@@ -729,9 +742,16 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllTriggers {
+		didSomething = true
+		if err := pushTriggers(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if TriggerName != "" {
 		didSomething = true
-		if err := pushOneTrigger(systemInfo, client); err != nil {
+		if err := pushOneTrigger(systemInfo, client, TriggerName); err != nil {
 			return err
 		}
 	}

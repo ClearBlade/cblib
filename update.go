@@ -115,7 +115,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := pushOneTrigger(systemInfo, client); err != nil {
+		if err := pushOneTrigger(systemInfo, client, TriggerName); err != nil {
 			return err
 		}
 	}
