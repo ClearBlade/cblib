@@ -68,6 +68,8 @@ var (
 	AllRoles                   bool
 	AllUsers                   bool
 	AllAssets                  bool
+	AllTriggers                bool
+	AllTimers                  bool
 	TempDir                    string
 )
 

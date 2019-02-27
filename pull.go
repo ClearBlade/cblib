@@ -48,8 +48,8 @@ func init() {
 	pullCommand.flags.BoolVar(&AllUsers, "all-users", false, "pull all users from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 	pullCommand.flags.BoolVar(&AllAssets, "all", false, "pull all assets from system")
-	// TODO: all-triggers
-	// TODO: all-timers
+	pullCommand.flags.BoolVar(&AllTriggers, "all-triggers", false, "pull all triggers from system")
+	pullCommand.flags.BoolVar(&AllTimers, "all-timers", false, "pull all timers from system")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
 	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
@@ -193,12 +193,28 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllTriggers || AllAssets {
+		didSomething = true
+		fmt.Println("Pulling all triggers:")
+		if _, err := PullAndWriteTriggers(systemInfo, client); err != nil {
+			fmt.Printf("Error: Failed to pull all triggers - %s\n", err.Error())
+		}
+	}
+
 	if TriggerName != "" {
 		didSomething = true
 		fmt.Printf("Pulling trigger %+s\n", TriggerName)
 		err := PullAndWriteTrigger(systemInfo.Key, TriggerName, client)
 		if err != nil {
 			return err
+		}
+	}
+
+	if AllTimers || AllAssets {
+		didSomething = true
+		fmt.Println("Pulling all timers:")
+		if _, err := PullAndWriteTimers(systemInfo, client); err != nil {
+			fmt.Printf("Error: Failed to pull all timers - %s\n", err.Error())
 		}
 	}
 
@@ -526,19 +542,23 @@ func PullAndWriteTrigger(systemKey, trigName string, client *cb.DevClient) error
 	return nil
 }
 
-func PullAndWriteTriggers(sysMeta *System_meta, client *cb.DevClient) error {
-	if trigs, err := pullTriggers(sysMeta, client); err != nil {
-		return err
-	} else {
-		for i := 0; i < len(trigs); i++ {
-			stripTriggerFields(trigs[i])
-			err = writeTrigger(trigs[i]["name"].(string), trigs[i])
-			if err != nil {
-				return err
-			}
+func PullAndWriteTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	trigs, err := cli.GetEventHandlers(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull triggers out of system %s: %s", sysMeta.Key, err.Error())
+	}
+	triggers := []map[string]interface{}{}
+	for _, trig := range trigs {
+		thisTrig := trig.(map[string]interface{})
+		delete(thisTrig, "system_key")
+		delete(thisTrig, "system_secret")
+		triggers = append(triggers, thisTrig)
+		err = writeTrigger(thisTrig["name"].(string), thisTrig)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return nil
+	return triggers, nil
 }
 
 func PullAndWriteTimer(systemKey, timerName string, client *cb.DevClient) error {
@@ -553,12 +573,21 @@ func PullAndWriteTimer(systemKey, timerName string, client *cb.DevClient) error 
 	return nil
 }
 
-func PullAndWriteTimers(sysMeta *System_meta, client *cb.DevClient) error {
-	_, err := pullTimers(sysMeta, client)
+func PullAndWriteTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	theTimers, err := cli.GetTimers(sysMeta.Key)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Could not pull timers out of system %s: %s", sysMeta.Key, err.Error())
 	}
-	return nil
+	timers := []map[string]interface{}{}
+	for _, timer := range theTimers {
+		thisTimer := timer.(map[string]interface{})
+		timers = append(timers, thisTimer)
+		err = writeTimer(thisTimer["name"].(string), thisTimer)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return timers, nil
 }
 
 func PullAndWritePortal(systemKey, name string, client *cb.DevClient) error {

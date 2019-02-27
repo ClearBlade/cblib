@@ -253,42 +253,6 @@ func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 	return libraries, nil
 }
 
-func pullTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
-	trigs, err := cli.GetEventHandlers(sysMeta.Key)
-	if err != nil {
-		return nil, fmt.Errorf("Could not pull triggers out of system %s: %s", sysMeta.Key, err.Error())
-	}
-	triggers := []map[string]interface{}{}
-	for _, trig := range trigs {
-		thisTrig := trig.(map[string]interface{})
-		delete(thisTrig, "system_key")
-		delete(thisTrig, "system_secret")
-		triggers = append(triggers, thisTrig)
-		err = writeTrigger(thisTrig["name"].(string), thisTrig)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return triggers, nil
-}
-
-func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
-	theTimers, err := cli.GetTimers(sysMeta.Key)
-	if err != nil {
-		return nil, fmt.Errorf("Could not pull timers out of system %s: %s", sysMeta.Key, err.Error())
-	}
-	timers := []map[string]interface{}{}
-	for _, timer := range theTimers {
-		thisTimer := timer.(map[string]interface{})
-		timers = append(timers, thisTimer)
-		err = writeTimer(thisTimer["name"].(string), thisTimer)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return timers, nil
-}
-
 func pullAndWriteDeployment(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, name)
 	if err != nil {
@@ -636,14 +600,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["libraries"] = libraries
 
 	fmt.Printf(" Done.\nExporting Triggers...")
-	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
+	if triggers, err := PullAndWriteTriggers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["triggers"] = triggers
 	}
 
 	fmt.Printf(" Done.\nExporting Timers...")
-	if timers, err := pullTimers(sysMeta, cli); err != nil {
+	if timers, err := PullAndWriteTimers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["timers"] = timers
