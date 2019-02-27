@@ -376,6 +376,19 @@ func pushOneUserById(systemInfo *System_meta, client *cb.DevClient) error {
 	return fmt.Errorf("User with user_id %+s not found.", UserId)
 }
 
+func pushRoles(systemInfo *System_meta, client *cb.DevClient) error {
+	allRoles, err := getRoles()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allRoles); i++ {
+		if err := pushOneRole(systemInfo, allRoles[i]["Name"].(string), client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func pushOneRole(systemInfo *System_meta, name string, client *cb.DevClient) error {
 	fmt.Printf("Pushing role %s\n", name)
 	role, err := getRole(name)
@@ -677,6 +690,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if User != "" {
 		didSomething = true
 		if err := pushOneUser(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if AllRoles {
+		didSomething = true
+		if err := pushRoles(systemInfo, client); err != nil {
 			return err
 		}
 	}
