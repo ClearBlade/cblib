@@ -64,6 +64,7 @@ var (
 	AllPlugins                 bool
 	AllAdaptors                bool
 	AllDeployments             bool
+	AllCollections             bool
 	TempDir                    string
 )
 

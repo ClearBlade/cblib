@@ -43,6 +43,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "pull all plugins from system")
 	pullCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "pull all adapters from system")
 	pullCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "pull all deployments from system")
+	pullCommand.flags.BoolVar(&AllCollections, "all-collections", false, "pull all collections from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -119,6 +120,15 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			return err
 		} else {
 			writeLibrary(lib["name"].(string), lib)
+		}
+	}
+
+	if AllCollections {
+		didSomething = true
+		ExportRows = true
+		fmt.Printf("Pulling all collections:")
+		if _, err := pullCollections(systemInfo, client); err != nil {
+			fmt.Printf("Error: Failed to pull all collections - %s", err.Error())
 		}
 	}
 
