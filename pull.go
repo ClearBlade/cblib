@@ -47,6 +47,9 @@ func init() {
 	pullCommand.flags.BoolVar(&AllRoles, "all-roles", false, "pull all roles from system")
 	pullCommand.flags.BoolVar(&AllUsers, "all-users", false, "pull all users from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
+	pullCommand.flags.BoolVar(&AllAssets, "all", false, "pull all assets from system")
+	// TODO: all-triggers
+	// TODO: all-timers
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
 	pullCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to pull")
@@ -89,7 +92,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	didSomething := false
 
-	if AllServices {
+	if AllServices || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all services:")
 		if _, err := PullServices(systemInfo.Key, client); err != nil {
@@ -106,7 +109,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllLibraries {
+	if AllLibraries || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all libraries:")
 		if _, err := PullLibraries(systemInfo, client); err != nil {
@@ -125,7 +128,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllCollections {
+	if AllCollections || AllAssets {
 		didSomething = true
 		ExportRows = true
 		fmt.Printf("Pulling all collections:")
@@ -144,7 +147,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllUsers {
+	if AllUsers || AllAssets {
 		didSomething = true
 		fmt.Println("Pulling all users:")
 		if err := PullAndWriteUsers(systemInfo.Key, PULL_ALL_USERS, client); err != nil {
@@ -167,7 +170,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllRoles {
+	if AllRoles || AllAssets {
 		didSomething = true
 		fmt.Println("Pulling all roles:")
 		if _, err := PullAndWriteRoles(systemInfo.Key, client, true); err != nil {
@@ -208,7 +211,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllDevices {
+	if AllDevices || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all devices:")
 		if _, err := PullDevices(systemInfo, client); err != nil {
@@ -233,7 +236,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllEdges {
+	if AllEdges || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all edges:")
 		if _, err := PullEdges(systemInfo, client); err != nil {
@@ -258,7 +261,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllPortals {
+	if AllPortals || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all portals:")
 		if _, err := PullPortals(systemInfo, client); err != nil {
@@ -275,7 +278,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllPlugins {
+	if AllPlugins || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all plugins:")
 		if _, err := PullPlugins(systemInfo, client); err != nil {
@@ -292,7 +295,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllAdaptors {
+	if AllAdaptors || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all adaptors:")
 		if err := backupAndCleanDirectory(adaptorsDir); err != nil {
@@ -318,7 +321,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllDeployments {
+	if AllDeployments || AllAssets {
 		didSomething = true
 		fmt.Printf("Pulling all deployments:")
 		if _, err = pullDeployments(systemInfo, client); err != nil {

@@ -46,6 +46,13 @@ func init() {
 	pushCommand.flags.BoolVar(&AllPortals, "all-portals", false, "push all of the local portals")
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
 	pushCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "push all of the local adapters")
+	// TODO: all-collections
+	// TODO: all-deployments
+	// TODO: all-roles
+	// TODO: all-users
+	// TODO: all-triggers
+	// TODO: all-timers
+	// TODO: all
 
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")

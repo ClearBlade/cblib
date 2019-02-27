@@ -67,6 +67,7 @@ var (
 	AllCollections             bool
 	AllRoles                   bool
 	AllUsers                   bool
+	AllAssets                  bool
 	TempDir                    string
 )
 
