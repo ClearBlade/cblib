@@ -45,6 +45,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "pull all deployments from system")
 	pullCommand.flags.BoolVar(&AllCollections, "all-collections", false, "pull all collections from system")
 	pullCommand.flags.BoolVar(&AllRoles, "all-roles", false, "pull all roles from system")
+	pullCommand.flags.BoolVar(&AllUsers, "all-users", false, "pull all users from system")
 	pullCommand.flags.BoolVar(&UserSchema, "userschema", false, "pull user table schema")
 
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -78,7 +79,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	// since we dont have an endpoint to determine this
 	client, err = checkIfTokenHasExpired(client, systemInfo.Key)
 	if err != nil {
-		return fmt.Errorf("Re-auth failed: %s", err)
+		return fmt.Errorf("Re-auth failed: %s\n", err)
 	}
 
 	// ??? we already have them locally
@@ -129,7 +130,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		ExportRows = true
 		fmt.Printf("Pulling all collections:")
 		if _, err := pullCollections(systemInfo, client); err != nil {
-			fmt.Printf("Error: Failed to pull all collections - %s", err.Error())
+			fmt.Printf("Error: Failed to pull all collections - %s\n", err.Error())
 		}
 	}
 
@@ -143,6 +144,17 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllUsers {
+		didSomething = true
+		fmt.Println("Pulling all users:")
+		if err := PullAndWriteUsers(systemInfo.Key, PULL_ALL_USERS, client); err != nil {
+			fmt.Printf("Error: Failed to pull all users - %s\n", err.Error())
+		}
+		if _, err := pullUserSchemaInfo(systemInfo.Key, client, true); err != nil {
+			fmt.Printf("Error: Failed to pull user schema - %s\n", err.Error())
+		}
+	}
+
 	if User != "" {
 		didSomething = true
 		fmt.Printf("Pulling user %+s\n", User)
@@ -150,10 +162,8 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if err != nil {
 			return err
 		}
-		if col, err := pullUserSchemaInfo(systemInfo.Key, client, true); err != nil {
+		if _, err := pullUserSchemaInfo(systemInfo.Key, client, true); err != nil {
 			return err
-		} else {
-			writeUserSchema(col)
 		}
 	}
 
@@ -161,7 +171,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		fmt.Println("Pulling all roles:")
 		if _, err := PullAndWriteRoles(systemInfo.Key, client, true); err != nil {
-			fmt.Printf("Error: Failed to pull all roles - %s", err.Error())
+			fmt.Printf("Error: Failed to pull all roles - %s\n", err.Error())
 		}
 	}
 
@@ -290,7 +300,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 		if err := PullAdaptors(systemInfo, client); err != nil {
 			if restoreErr := restoreBackupDirectory(adaptorsDir); restoreErr != nil {
-				fmt.Printf("Failed to restore backup directory; %s", restoreErr.Error())
+				fmt.Printf("Failed to restore backup directory; %s\n", restoreErr.Error())
 			}
 			return err
 		}
@@ -312,7 +322,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		fmt.Printf("Pulling all deployments:")
 		if _, err = pullDeployments(systemInfo, client); err != nil {
-			fmt.Printf("Error - Failed to pull all deployments: %s", err.Error())
+			fmt.Printf("Error - Failed to pull all deployments: %s\n", err.Error())
 		}
 	}
 
@@ -320,7 +330,7 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		fmt.Printf("Pulling deployment %+s\n", DeploymentName)
 		if _, err = pullAndWriteDeployment(systemInfo, client, DeploymentName); err != nil {
-			fmt.Printf("Error - Failed to pull deployment '%s': %s", DeploymentName, err.Error())
+			fmt.Printf("Error - Failed to pull deployment '%s': %s\n", DeploymentName, err.Error())
 		}
 	}
 

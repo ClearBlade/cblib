@@ -66,6 +66,7 @@ var (
 	AllDeployments             bool
 	AllCollections             bool
 	AllRoles                   bool
+	AllUsers                   bool
 	TempDir                    string
 )
 
