@@ -1590,7 +1590,6 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 }
 
 func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
-	var err error
 	collection_name, ok := collection["name"].(string)
 	if !ok {
 		return fmt.Errorf("No name in collection json file: %+v\n", collection)
@@ -1599,29 +1598,8 @@ func updateCollection(systemKey string, collection map[string]interface{}, clien
 	for _, row := range items {
 		query := cb.NewQuery()
 		query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
-		if err = client.UpdateDataByName(systemKey, collection_name, query, row.(map[string]interface{})); err != nil {
-			break
-		}
-	}
-	if err != nil {
-		collName := collection["name"].(string)
-		fmt.Printf("Error updating collection %s.\n", collName)
-		collName = collName + "2"
-		fmt.Printf("Would you like to create a new collection named %s? (Y/n)", collName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
-			return err
-		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
-				collection["name"] = collName
-				if _, err := CreateCollection(systemKey, collection, client); err != nil {
-					return fmt.Errorf("Could not create collection %s: %s", collName, err.Error())
-				} else {
-					fmt.Printf("Successfully created new collection %s\n", collName)
-				}
-			} else {
-				fmt.Printf("Collection will not be created.\n")
-			}
+		if err := client.UpdateDataByName(systemKey, collection_name, query, row.(map[string]interface{})); err != nil {
+			fmt.Printf("Error updating item '%s' - %s", row.(map[string]interface{})["item_id"], err.Error())
 		}
 	}
 	return nil
