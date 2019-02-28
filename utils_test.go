@@ -107,33 +107,33 @@ func compareString(slice *[]interface{}, i int, j int) bool {
 
 func TestFindDiff_NoDefaultColumns(test *testing.T) {
 	removeColName := "test2"
-	local := []map[string]interface{}{
-		{
+	local := []interface{}{
+		map[string]interface{}{
 			"ColumnName": "test",
 			"ColumnType": "string",
 			"PK":         false,
 		},
 	}
-	backend := []map[string]interface{}{
-		{
+	backend := []interface{}{
+		map[string]interface{}{
 			"ColumnName": "test",
 			"ColumnType": "string",
 			"PK":         false,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": removeColName,
 			"ColumnType": "string",
 			"PK":         false,
 		},
 	}
-	removeDiff := findDiff(backend, local, []string{})
+	removeDiff := findDiff(backend, local, columnExists([]string{}))
 	if len(removeDiff) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
 	}
-	if removeDiff[0]["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0]["ColumnName"].(string))
+	if removeDiff[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0].(map[string]interface{})["ColumnName"].(string))
 	}
-	addDiff := findDiff(local, backend, []string{})
+	addDiff := findDiff(local, backend, columnExists([]string{}))
 	if len(addDiff) != 0 {
 		test.Errorf("Expected to add 0 elements but got %d elements", len(addDiff))
 	}
@@ -142,54 +142,54 @@ func TestFindDiff_NoDefaultColumns(test *testing.T) {
 func TestFindDiff_WithDefaultColumns(test *testing.T) {
 	removeColName := "test2"
 	addColName := "test3"
-	local := []map[string]interface{}{
-		{
+	local := []interface{}{
+		map[string]interface{}{
 			"ColumnName": "user_id",
 			"ColumnType": "string",
 			"PK":         true,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": "test",
 			"ColumnType": "string",
 			"PK":         false,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": addColName,
 			"ColumnType": "string",
 			"PK":         false,
 		},
 	}
-	backend := []map[string]interface{}{
-		{
+	backend := []interface{}{
+		map[string]interface{}{
 			"ColumnName": "user_id",
 			"ColumnType": "string",
 			"PK":         true,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": "creation_date",
 			"ColumnType": "string",
 			"PK":         false,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": "test",
 			"ColumnType": "string",
 			"PK":         false,
 		},
-		{
+		map[string]interface{}{
 			"ColumnName": removeColName,
 			"ColumnType": "string",
 			"PK":         false,
 		},
 	}
 	defaultColumns := []string{"user_id", "creation_date"}
-	removeDiff := findDiff(backend, local, defaultColumns)
+	removeDiff := findDiff(backend, local, columnExists(defaultColumns))
 	if len(removeDiff) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
 	}
-	if removeDiff[0]["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0]["ColumnName"].(string))
+	if removeDiff[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0].(map[string]interface{})["ColumnName"].(string))
 	}
-	addDiff := findDiff(local, backend, defaultColumns)
+	addDiff := findDiff(local, backend, columnExists(defaultColumns))
 	if len(addDiff) != 1 {
 		test.Errorf("Expected to add 1 element but got %d elements", len(addDiff))
 	}

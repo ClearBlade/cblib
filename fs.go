@@ -922,6 +922,10 @@ func getDeployments() ([]map[string]interface{}, error) {
 	return getObjectList(deploymentsDir, []string{})
 }
 
+func getDeployment(name string) (map[string]interface{}, error) {
+	return getObject(deploymentsDir, name+".json")
+}
+
 func getEdges() ([]map[string]interface{}, error) {
 	return getObjectList(edgesDir, []string{"schema.json"})
 }
