@@ -271,14 +271,6 @@ func getAdaptors(sysKey string, client *cb.DevClient) ([]*models.Adaptor, error)
 	return rtn, nil
 }
 
-func writeServiceVersion(name string, data map[string]interface{}) error {
-	mySvcDir := svcDir + "/" + name
-	if err := os.MkdirAll(mySvcDir, 0777); err != nil {
-		return err
-	}
-	return writeEntity(mySvcDir, name, data)
-}
-
 func writeLibraryVersion(name string, data map[string]interface{}) error {
 	myLibDir := libDir + "/" + name
 	if err := os.MkdirAll(myLibDir, 0777); err != nil {
