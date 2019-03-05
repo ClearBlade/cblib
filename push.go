@@ -230,7 +230,7 @@ func pushOneCollection(systemInfo *System_meta, client *cb.DevClient, name strin
 		fmt.Printf("error is %+v\n", err)
 		return err
 	}
-	return updateCollection(systemInfo.Key, collection, client)
+	return updateCollection(systemInfo, collection, client)
 }
 
 func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error {
@@ -245,7 +245,7 @@ func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient) error 
 			continue
 		}
 		if id == CollectionId {
-			return updateCollection(systemInfo.Key, collection, client)
+			return updateCollection(systemInfo, collection, client)
 		}
 	}
 	return fmt.Errorf("Collection with collectionID %+s not found.", CollectionId)
@@ -1632,17 +1632,29 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 	return nil
 }
 
-func updateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) error {
+func updateCollection(meta *System_meta, collection map[string]interface{}, client *cb.DevClient) error {
 	collection_name, ok := collection["name"].(string)
 	if !ok {
 		return fmt.Errorf("No name in collection json file: %+v\n", collection)
 	}
+	// here's our workflow for updating a collection:
+	// 1) diff and update the collection schema
+	// 2) attempt to update all of our items
+	// 3) if update fails, we assume the item doesn't exist, so we create the item
+	if err := pushCollectionSchema(meta, client, collection_name); err != nil {
+		return err
+	}
+
 	items := collection["items"].([]interface{})
 	for _, row := range items {
 		query := cb.NewQuery()
 		query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
-		if err := client.UpdateDataByName(systemKey, collection_name, query, row.(map[string]interface{})); err != nil {
-			fmt.Printf("Error updating item '%s' - %s", row.(map[string]interface{})["item_id"], err.Error())
+		if resp, err := client.UpdateDataByName(meta.Key, collection_name, query, row.(map[string]interface{})); err != nil {
+			fmt.Printf("Error updating item '%s'. Skipping. Error is - %s\n", row.(map[string]interface{})["item_id"], err.Error())
+		} else if resp.Count == 0 {
+			if err := client.CreateDataByName(meta.Key, collection_name, row.(map[string]interface{})); err != nil {
+				return fmt.Errorf("Failed to create item. Error is - %s", err.Error())
+			}
 		}
 	}
 	return nil

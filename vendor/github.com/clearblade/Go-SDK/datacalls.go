@@ -262,20 +262,32 @@ func (d *DevClient) UpdateData(collection_id string, query *Query, changes map[s
 //UpdateDataByName mutates the values in extant rows, selecting them via a query. If the query is nil, it updates all rows
 //changes should be a map of the names of the columns, and the value you want them updated to
 
-func (u *UserClient) UpdateDataByName(system_key, collection_id string, query *Query, changes map[string]interface{}) error {
-	err := updatedataByName(u, system_key, collection_id, query, changes)
-	return err
+func (u *UserClient) UpdateDataByName(system_key, collection_name string, query *Query, changes map[string]interface{}) (UpdateResponse, error) {
+	return updatedataByName(u, system_key, collection_name, query, changes)
 }
 
-func (d *DeviceClient) UpdateDataByName(system_key, collection_id string, query *Query, changes map[string]interface{}) error {
-	err := updatedataByName(d, system_key, collection_id, query, changes)
-	return err
+func (d *DeviceClient) UpdateDataByName(system_key, collection_name string, query *Query, changes map[string]interface{}) (UpdateResponse, error) {
+	return updatedataByName(d, system_key, collection_name, query, changes)
 }
 
 //UpdateDataByName mutates the values in extant rows, selecting them via a query. If the query is nil, it updates all rows
 //changes should be a map of the names of the columns, and the value you want them updated to
-func (d *DevClient) UpdateDataByName(system_key, collection_id string, query *Query, changes map[string]interface{}) error {
-	err := updatedataByName(d, system_key, collection_id, query, changes)
+func (d *DevClient) UpdateDataByName(system_key, collection_name string, query *Query, changes map[string]interface{}) (UpdateResponse, error) {
+	return updatedataByName(d, system_key, collection_name, query, changes)
+}
+
+func (u *UserClient) CreateDataByName(system_key, collection_name string, item map[string]interface{}) error {
+	err := createDataByName(u, system_key, collection_name, item)
+	return err
+}
+
+func (d *DeviceClient) CreateDataByName(system_key, collection_name string, item map[string]interface{}) error {
+	err := createDataByName(d, system_key, collection_name, item)
+	return err
+}
+
+func (d *DevClient) CreateDataByName(system_key, collection_name string, item map[string]interface{}) error {
+	err := createDataByName(d, system_key, collection_name, item)
 	return err
 }
 
@@ -299,7 +311,11 @@ func updatedata(c cbClient, collection_id string, query *Query, changes map[stri
 	return nil
 }
 
-func updatedataByName(c cbClient, system_key, collection_name string, query *Query, changes map[string]interface{}) error {
+type UpdateResponse struct {
+	Count float64
+}
+
+func updatedataByName(c cbClient, system_key, collection_name string, query *Query, changes map[string]interface{}) (UpdateResponse, error) {
 	qry := query.serialize()
 	body := map[string]interface{}{
 		"query": qry,
@@ -307,9 +323,35 @@ func updatedataByName(c cbClient, system_key, collection_name string, query *Que
 	}
 	creds, err := c.credentials()
 	if err != nil {
-		return err
+		return UpdateResponse{}, err
 	}
 	resp, err := put(c, _DATA_NAME_PREAMBLE+system_key+"/"+collection_name, body, creds, nil)
+	if err != nil {
+		return UpdateResponse{}, fmt.Errorf("Error updating data: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return UpdateResponse{}, fmt.Errorf("Error updating data: %v", resp.Body)
+	}
+	fmtBody := make(map[string]interface{})
+	ok := true
+	if fmtBody, ok = resp.Body.(map[string]interface{}); !ok {
+		return UpdateResponse{}, fmt.Errorf("Unexpected response type from update. Body is - %+v\n", resp.Body)
+	}
+	if count, ok := fmtBody["count"].(float64); !ok {
+		return UpdateResponse{}, fmt.Errorf("No count key in response type from update. Body is - %+v\n", fmtBody)
+	} else {
+		return UpdateResponse{
+			Count: count,
+		}, nil
+	}
+}
+
+func createDataByName(c cbClient, system_key, collection_name string, item map[string]interface{}) error {
+	creds, err := c.credentials()
+	if err != nil {
+		return err
+	}
+	resp, err := post(c, _DATA_NAME_PREAMBLE+system_key+"/"+collection_name, item, creds, nil)
 	if err != nil {
 		return fmt.Errorf("Error updating data: %v", err)
 	}
