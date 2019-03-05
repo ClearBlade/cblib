@@ -34,6 +34,7 @@ var (
 	DataPageSize               int
 	Email                      string
 	Password                   string
+	CollectionSchema           string
 	ServiceName                string
 	LibraryName                string
 	CollectionName             string

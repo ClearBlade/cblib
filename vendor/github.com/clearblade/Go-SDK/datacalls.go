@@ -9,6 +9,7 @@ import (
 const (
 	_DATA_PREAMBLE      = "/api/v/1/data/"
 	_DATA_NAME_PREAMBLE = "/api/v/1/collection/"
+	_DATA_V2_PREAMBLE   = "/api/v/2"
 	_DATA_V3_PREAMBLE   = "/api/v/3"
 )
 
@@ -377,6 +378,28 @@ func (u *UserClient) GetColumns(collection_id, systemKey, systemSecret string) (
 //As map[string]interface{}{"ColumnName":"name","ColumnType":"typename in string", "PK":bool}
 func (d *DeviceClient) GetColumns(collection_id, systemKey, systemSecret string) ([]interface{}, error) {
 	return getColumns(d, collection_id, "", "")
+}
+
+//GetColumnsByCollectionName gets a slice of map[string]interface{} of the column names and values.
+//As map[string]interface{}{"ColumnName":"name","ColumnType":"typename in string", "PK":bool}
+func (d *DevClient) GetColumnsByCollectionName(systemKey, collectionName string) ([]interface{}, error) {
+	return getColumnsByCollectionName(d, systemKey, collectionName)
+}
+
+func getColumnsByCollectionName(c cbClient, systemKey, collectionName string) ([]interface{}, error) {
+	creds, err := c.credentials()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get(c, _DATA_V2_PREAMBLE+"/collection/"+systemKey+"/"+collectionName+"/columns", nil, creds, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting collection columns: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Error getting collection columns: %v", resp.Body)
+	}
+	return resp.Body.([]interface{}), nil
 }
 
 func getColumns(c cbClient, collection_id, systemKey, systemSecret string) ([]interface{}, error) {

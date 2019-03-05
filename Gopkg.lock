@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "extension-prep"
-  digest = "1:0bff5cec3adf0cbca646237f28d9a536a390cb6919918f52a76437ae171c3ad9"
+  digest = "1:0890a6471a108a560aa058fd4b5d554df31dca87ab3a28056d25b01b6cd55492"
   name = "github.com/clearblade/Go-SDK"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a996234ddeba5e4c6bcb2e3b4d2228e7a2dbc326"
+  revision = "d2ce3340ae3d2f01d49c90691ddc37f6f4782886"
   source = "github.com/clearblade/Go-SDK"
 
 [[projects]]
