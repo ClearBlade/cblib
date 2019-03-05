@@ -53,6 +53,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllTimers, "all-timers", false, "push all of the local timers")
 	pushCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "push all of the local deployments")
 
+	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
 	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to push")
@@ -620,6 +621,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if CollectionSchema != "" {
+		didSomething = true
+		if err := pushCollectionSchema(systemInfo, client, CollectionSchema); err != nil {
+			return err
+		}
+	}
+
 	if CollectionName != "" {
 		didSomething = true
 		if err := pushOneCollection(systemInfo, client, CollectionName); err != nil {
@@ -792,6 +800,45 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if !didSomething {
 		fmt.Printf("Nothing to push -- you must specify something to push (ie, -service=<svc_name>)\n")
+	}
+
+	return nil
+}
+
+func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name string) error {
+	fmt.Printf("Pushing collection schema for '%s'\n", name)
+	allCollectionsInfo, err := getCollectionNameToIdAsSlice()
+	if err != nil {
+		return err
+	}
+	collID, err := getCollectionIdByName(name, allCollectionsInfo)
+	if err != nil {
+		return err
+	}
+	localCollInfo, err := getCollection(name)
+	if err != nil {
+		return err
+	}
+
+	backendSchema, err := cli.GetColumnsByCollectionName(systemInfo.Key, name)
+	if err != nil {
+		return err
+	}
+	localSchema, ok := localCollInfo["schema"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
+	}
+
+	diff := getDiffForColumns(localSchema, backendSchema, DefaultCollectionColumns)
+	for i := 0; i < len(diff.remove); i++ {
+		if err := cli.DeleteColumn(collID, diff.remove[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.remove[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		}
+	}
+	for i := 0; i < len(diff.add); i++ {
+		if err := cli.AddColumn(collID, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		}
 	}
 
 	return nil
