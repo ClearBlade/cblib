@@ -211,3 +211,21 @@ func Test_IsDefaultColumn(t *testing.T) {
 		t.Errorf("Should not return as a match")
 	}
 }
+
+func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
+	backend := []interface{}{
+		map[string]interface{}{"ColumnName": "edge_key", "ColumnType": "string", "PK": true}, map[string]interface{}{"ColumnName": "novi_system_key", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "system_key", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "system_secret", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "token", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "name", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "description", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "location", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "mac_address", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "public_addr", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "public_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "local_addr", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "local_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_tls_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_ws_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_wss_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_auth_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_ws_auth_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "first_talked", "ColumnType": "bigint", "PK": false}, map[string]interface{}{"ColumnName": "last_talked", "ColumnType": "bigint", "PK": false}, map[string]interface{}{"ColumnName": "communication_style", "ColumnType": "int", "PK": false}, map[string]interface{}{"ColumnName": "last_seen_version", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "policy_name", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "resolver_func", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "sync_edge_tables", "ColumnType": "string", "PK": false},
+	}
+	local := []interface{}{}
+
+	removeDiff := findDiff(backend, local, columnExists(DefaultEdgeColumns))
+	if len(removeDiff) != 0 {
+		t.Errorf("Expected to remove 0 elements but got %d elements", len(removeDiff))
+	}
+
+	addDiff := findDiff(local, backend, columnExists(DefaultEdgeColumns))
+	if len(addDiff) != 0 {
+		t.Errorf("Expected to add 0 elements but got %d elements", len(addDiff))
+	}
+
+}
