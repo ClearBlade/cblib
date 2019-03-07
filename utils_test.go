@@ -126,16 +126,15 @@ func TestFindDiff_NoDefaultColumns(test *testing.T) {
 			"PK":         false,
 		},
 	}
-	removeDiff := findDiff(backend, local, columnExists([]string{}))
-	if len(removeDiff) != 1 {
-		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
+	diff := getDiffForColumns(local, backend, []string{})
+	if len(diff.remove) != 1 {
+		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.remove))
 	}
-	if removeDiff[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0].(map[string]interface{})["ColumnName"].(string))
+	if diff.remove[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.remove[0].(map[string]interface{})["ColumnName"].(string))
 	}
-	addDiff := findDiff(local, backend, columnExists([]string{}))
-	if len(addDiff) != 0 {
-		test.Errorf("Expected to add 0 elements but got %d elements", len(addDiff))
+	if len(diff.add) != 0 {
+		test.Errorf("Expected to add 0 elements but got %d elements", len(diff.add))
 	}
 }
 
@@ -182,16 +181,15 @@ func TestFindDiff_WithDefaultColumns(test *testing.T) {
 		},
 	}
 	defaultColumns := []string{"user_id", "creation_date"}
-	removeDiff := findDiff(backend, local, columnExists(defaultColumns))
-	if len(removeDiff) != 1 {
-		test.Errorf("Expected to remove 1 element but got %d elements", len(removeDiff))
+	diff := getDiffForColumns(local, backend, defaultColumns)
+	if len(diff.remove) != 1 {
+		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.remove))
 	}
-	if removeDiff[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, removeDiff[0].(map[string]interface{})["ColumnName"].(string))
+	if diff.remove[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.remove[0].(map[string]interface{})["ColumnName"].(string))
 	}
-	addDiff := findDiff(local, backend, columnExists(defaultColumns))
-	if len(addDiff) != 1 {
-		test.Errorf("Expected to add 1 element but got %d elements", len(addDiff))
+	if len(diff.add) != 1 {
+		test.Errorf("Expected to add 1 element but got %d elements", len(diff.add))
 	}
 }
 
@@ -218,14 +216,30 @@ func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
 	}
 	local := []interface{}{}
 
-	removeDiff := findDiff(backend, local, columnExists(DefaultEdgeColumns))
-	if len(removeDiff) != 0 {
-		t.Errorf("Expected to remove 0 elements but got %d elements", len(removeDiff))
+	diff := getDiffForColumns(local, backend, DefaultEdgeColumns)
+
+	if len(diff.remove) != 0 {
+		t.Errorf("Expected to remove 0 elements but got %d elements", len(diff.remove))
 	}
 
-	addDiff := findDiff(local, backend, columnExists(DefaultEdgeColumns))
-	if len(addDiff) != 0 {
-		t.Errorf("Expected to add 0 elements but got %d elements", len(addDiff))
+	if len(diff.add) != 0 {
+		t.Errorf("Expected to add 0 elements but got %d elements", len(diff.add))
+	}
+
+}
+
+func Test_DeletingAllUserRoles(t *testing.T) {
+	backend := []string{"Authenticated", "Administrator"}
+	local := []interface{}{}
+
+	roleDiff := diffRoles(local, convertStringSliceToInterfaceSlice(backend))
+
+	if len(roleDiff.remove) != 2 {
+		t.Errorf("Expected to remove 2 elements but got %d elements", len(roleDiff.remove))
+	}
+
+	if len(roleDiff.add) != 0 {
+		t.Errorf("Expected to add 0 elements but got %d elements", len(roleDiff.add))
 	}
 
 }
