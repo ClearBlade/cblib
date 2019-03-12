@@ -330,7 +330,7 @@ func FoundSystemDotJSON() bool {
 }
 
 func FoundCBMeta() bool {
-	if _, err := getDict(".cbmeta"); err == nil {
+	if _, err := getCbMeta(); err == nil {
 		return true
 	}
 	return false

@@ -584,11 +584,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 
 	metaStuff := map[string]interface{}{
-		"platform_url":        cb.CB_ADDR,
-		"messaging_url":       cb.CB_MSG_ADDR,
-		"developer_email":     Email,
-		"asset_refresh_dates": []interface{}{},
-		"token":               cli.DevToken,
+		"platform_url":    cb.CB_ADDR,
+		"messaging_url":   cb.CB_MSG_ADDR,
+		"developer_email": Email,
+		"token":           cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
