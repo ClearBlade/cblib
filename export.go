@@ -30,7 +30,6 @@ func init() {
 
 	systemDotJSON = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
-	rolesInfo = []map[string]interface{}{}
 	myExportCommand := &SubCommand{
 		name:         "export",
 		usage:        usage,
@@ -53,30 +52,20 @@ func init() {
 	AddCommand("export", myExportCommand)
 }
 
-func pullRoles(systemKey string, cli *cb.DevClient, writeThem bool) ([]map[string]interface{}, error) {
-	r, err := cli.GetAllRoles(systemKey)
-	if err != nil {
-		return nil, err
+func makeCollectionNameToIdMap(collections []map[string]interface{}) map[string]interface{} {
+	rtn := make(map[string]interface{})
+	for i := 0; i < len(collections); i++ {
+		rtn[collections[i]["name"].(string)] = collections[i]["collection_id"]
 	}
-	rval := make([]map[string]interface{}, len(r))
-	for idx, rIF := range r {
-		thisRole := rIF.(map[string]interface{})
-		rval[idx] = thisRole
-		if writeThem {
-			if err := writeRole(thisRole["Name"].(string), thisRole); err != nil {
-				return nil, err
-			}
-		}
-	}
-	return rval, nil
+	return rtn
 }
 
-func storeRoles(roles []map[string]interface{}) {
-	roleList := make([]string, len(roles))
-	for idx, role := range roles {
-		roleList[idx] = role["Name"].(string)
+func makeRoleNameToIdMap(roles []map[string]interface{}) map[string]interface{} {
+	rtn := make(map[string]interface{})
+	for i := 0; i < len(roles); i++ {
+		rtn[roles[i]["Name"].(string)] = roles[i]["ID"]
 	}
-	systemDotJSON["roles"] = roleList
+	return rtn
 }
 
 func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -84,8 +73,8 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	rval := make([]map[string]interface{}, len(colls))
-	for i, col := range colls {
+	rval := make([]map[string]interface{}, 0)
+	for _, col := range colls {
 		// Checking if collection is CB collection or different
 		// Exporting only CB collections
 		_, ok := col.(map[string]interface{})["dbtype"]
@@ -97,21 +86,38 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		} else {
 			data := makeCollectionJsonConsistent(r)
 			writeCollection(r["name"].(string), data)
-			rval[i] = data
+			rval = append(rval, data)
 		}
 	}
+
 	return rval, nil
 }
 
+func pullAndWriteCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
+	columnsResp, err := pullCollectionColumns(sysMeta, cli, name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateCollectionSchema(name, columnsResp)
+	if err != nil {
+		return nil, err
+	}
+	return columnsResp, nil
+}
+
+func pullCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
+	return cli.GetColumnsByCollectionName(sysMeta.Key, name)
+}
+
 func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
-	id := co["collectionID"].(string)
 	isConnect := isConnectCollection(co)
 	var columnsResp []interface{}
 	var err error
 	if isConnect {
 		columnsResp = []interface{}{}
 	} else {
-		columnsResp, err = cli.GetColumns(id, sysMeta.Key, sysMeta.Secret)
+		columnsResp, err = pullCollectionColumns(sysMeta, cli, co["name"].(string))
 		if err != nil {
 			return nil, err
 		}
@@ -130,9 +136,6 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 	}
 
 	co["schema"] = columnsResp
-	if err = getRolesForCollection(co); err != nil {
-		return nil, err
-	}
 	co["items"] = []interface{}{}
 	if !isConnect && ExportRows {
 		items, err := pullCollectionData(co, cli)
@@ -165,34 +168,6 @@ func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (
 		return nil, err
 	}
 	return PullCollection(sysMeta, colInfo, cli)
-}
-
-func getRolesForCollection(collection map[string]interface{}) error {
-	colName := collection["name"].(string)
-	perms := map[string]interface{}{}
-	for _, role := range rolesInfo {
-		roleName := role["Name"].(string)
-
-		if _, ok := role["Permissions"].(map[string]interface{}); !ok {
-			continue
-		}
-		rolePerms := role["Permissions"].(map[string]interface{})
-
-		if _, ok := rolePerms["Collections"].([]interface{}); !ok {
-			continue
-		}
-		colPerms := rolePerms["Collections"].([]interface{})
-
-		//colPerms := role["Permissions"].(map[string]interface{})["Collections"].([]interface{})
-		for _, colPermIF := range colPerms {
-			colPerm := colPermIF.(map[string]interface{})
-			if colPerm["Name"].(string) == colName {
-				perms[roleName] = colPerm["Level"]
-			}
-		}
-	}
-	collection["permissions"] = perms
-	return nil
 }
 
 func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {
@@ -252,32 +227,6 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	return allData, nil
 }
 
-func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
-	resp, err := cli.GetUserColumns(systemKey)
-	if err != nil {
-		return nil, err
-	}
-	columns := []map[string]interface{}{}
-	for _, colIF := range resp {
-		col := colIF.(map[string]interface{})
-		if col["ColumnName"] == "email" || col["ColumnName"] == "creation_date" {
-			continue
-		}
-		columns = append(columns, col)
-	}
-	tablePerms := getUserTablePermissions()
-	schema := map[string]interface{}{
-		"columns":     columns,
-		"permissions": tablePerms,
-	}
-	if writeThem {
-		if err := writeUser("schema", schema); err != nil {
-			return nil, err
-		}
-	}
-	return schema, nil
-}
-
 func PullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	svcs, err := cli.GetServiceNames(systemKey)
 	if err != nil {
@@ -310,9 +259,14 @@ func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 		if thisLib["visibility"] == "global" {
 			continue
 		}
-		fmt.Printf(" %s", thisLib["name"].(string))
-		libraries = append(libraries, thisLib)
-		err = writeLibrary(thisLib["name"].(string), thisLib)
+		// call the individual endpoint to retrieve the properly formatted code
+		realLib, err := cli.GetLibrary(sysMeta.Key, thisLib["name"].(string))
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf(" %s", realLib["name"].(string))
+		libraries = append(libraries, realLib)
+		err = writeLibrary(realLib["name"].(string), realLib)
 		if err != nil {
 			return nil, err
 		}
@@ -320,46 +274,15 @@ func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 	return libraries, nil
 }
 
-func pullTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
-	trigs, err := cli.GetEventHandlers(sysMeta.Key)
+func pullAndWriteDeployment(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+	deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, name)
 	if err != nil {
-		return nil, fmt.Errorf("Could not pull triggers out of system %s: %s", sysMeta.Key, err.Error())
+		return nil, err
 	}
-	triggers := []map[string]interface{}{}
-	for _, trig := range trigs {
-		thisTrig := trig.(map[string]interface{})
-		delete(thisTrig, "system_key")
-		delete(thisTrig, "system_secret")
-		triggers = append(triggers, thisTrig)
-		err = writeTrigger(thisTrig["name"].(string), thisTrig)
-		if err != nil {
-			return nil, err
-		}
+	if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
+		return nil, err
 	}
-	return triggers, nil
-}
-
-func pullTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
-	theTimers, err := cli.GetTimers(sysMeta.Key)
-	if err != nil {
-		return nil, fmt.Errorf("Could not pull timers out of system %s: %s", sysMeta.Key, err.Error())
-	}
-	timers := []map[string]interface{}{}
-	for _, timer := range theTimers {
-		thisTimer := timer.(map[string]interface{})
-		// lotsa system and user dependent stuff to get rid of...
-		delete(thisTimer, "system_key")
-		delete(thisTimer, "system_secret")
-		delete(thisTimer, "timer_key")
-		delete(thisTimer, "user_id")
-		delete(thisTimer, "user_token")
-		timers = append(timers, thisTimer)
-		err = writeTimer(thisTimer["name"].(string), thisTimer)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return timers, nil
+	return deploymentDetails, nil
 }
 
 func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -372,14 +295,11 @@ func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 
 		deploymentSummary := deploymentIF.(map[string]interface{})
 		deplName := deploymentSummary["name"].(string)
-		deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, deplName)
+		deploymentDetails, err := pullAndWriteDeployment(sysMeta, cli, deplName)
 		if err != nil {
 			return nil, err
 		}
 		deployments = append(deployments, deploymentDetails)
-		if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
-			return nil, err
-		}
 	}
 	return deployments, nil
 }
@@ -401,26 +321,7 @@ func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	return sysMeta, nil
 }
 
-func getRolesForThing(name, key string) map[string]interface{} {
-	rval := map[string]interface{}{}
-	for _, roleInfo := range rolesInfo {
-		roleName := roleInfo["Name"].(string)
-		perms := roleInfo["Permissions"].(map[string]interface{})
-		svcPerms := perms[key]
-
-		if roleSvcs, ok := svcPerms.([]interface{}); ok {
-			for _, roleEntIF := range roleSvcs {
-				roleEnt := roleEntIF.(map[string]interface{})
-				if roleEnt["Name"].(string) == name {
-					rval[roleName] = roleEnt["Level"]
-				}
-			}
-		}
-	}
-	return rval
-}
-
-func getUserTablePermissions() map[string]interface{} {
+func getUserTablePermissions(rolesInfo []map[string]interface{}) map[string]interface{} {
 	rval := map[string]interface{}{}
 	for _, roleInfo := range rolesInfo {
 		roleName := roleInfo["Name"].(string)
@@ -431,19 +332,6 @@ func getUserTablePermissions() map[string]interface{} {
 		}
 	}
 	return rval
-}
-
-func cleanService(service map[string]interface{}) {
-	service["source"] = service["name"].(string) + ".js"
-	service["permissions"] = getRolesForThing(service["name"].(string), "CodeServices")
-	delete(service, "code")
-}
-
-func cleanServices(services []map[string]interface{}) []map[string]interface{} {
-	for _, service := range services {
-		cleanService(service)
-	}
-	return services
 }
 
 func storeMeta(meta *System_meta) {
@@ -489,22 +377,6 @@ func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{
 	for i := 0; i < len(allEdges); i++ {
 		currentEdge := allEdges[i].(map[string]interface{})
 		fmt.Printf(" %s", currentEdge["name"].(string))
-		delete(currentEdge, "edge_key")
-		delete(currentEdge, "isConnected")
-		delete(currentEdge, "novi_system_key")
-		delete(currentEdge, "broker_auth_port")
-		delete(currentEdge, "broker_port")
-		delete(currentEdge, "broker_tls_port")
-		delete(currentEdge, "broker_ws_auth_port")
-		delete(currentEdge, "broker_ws_port")
-		delete(currentEdge, "broker_wss_port")
-		delete(currentEdge, "communication_style")
-		delete(currentEdge, "first_talked")
-		delete(currentEdge, "last_talked")
-		delete(currentEdge, "local_addr")
-		delete(currentEdge, "local_port")
-		delete(currentEdge, "public_addr")
-		delete(currentEdge, "public_port")
 		err = writeEdge(currentEdge["name"].(string), currentEdge)
 		if err != nil {
 			return nil, err
@@ -579,12 +451,6 @@ func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	for i := 0; i < len(allDevices); i++ {
 		currentDevice := allDevices[i].(map[string]interface{})
 		fmt.Printf(" %s", currentDevice["name"].(string))
-		delete(currentDevice, "device_key")
-		delete(currentDevice, "system_key")
-		delete(currentDevice, "last_active_date")
-		delete(currentDevice, "__HostId__")
-		delete(currentDevice, "created_date")
-		delete(currentDevice, "last_active_date")
 		err = writeDevice(currentDevice["name"].(string), currentDevice)
 		if err != nil {
 			return nil, err
@@ -735,12 +601,10 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	storeMeta(sysMeta)
 	fmt.Printf(" Done.\nExporting Roles...")
 
-	roles, err := pullRoles(sysKey, cli, true)
+	_, err = PullAndWriteRoles(sysKey, cli, true)
 	if err != nil {
 		return err
 	}
-	rolesInfo = roles
-	storeRoles(rolesInfo)
 
 	fmt.Printf(" Done.\nExporting Services...")
 	services, err := PullServices(sysKey, cli)
@@ -757,14 +621,14 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	systemDotJSON["libraries"] = libraries
 
 	fmt.Printf(" Done.\nExporting Triggers...")
-	if triggers, err := pullTriggers(sysMeta, cli); err != nil {
+	if triggers, err := PullAndWriteTriggers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["triggers"] = triggers
 	}
 
 	fmt.Printf(" Done.\nExporting Timers...")
-	if timers, err := pullTimers(sysMeta, cli); err != nil {
+	if timers, err := PullAndWriteTimers(sysMeta, cli); err != nil {
 		return err
 	} else {
 		systemDotJSON["timers"] = timers
@@ -783,11 +647,11 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
 	}
 
-	userSchema, err := pullUserSchemaInfo(sysKey, cli, true)
+	fmt.Printf(" Done.\nExporting User table schema...")
+	_, err = pullUserSchemaInfo(sysKey, cli, true)
 	if err != nil {
 		return err
 	}
-	systemDotJSON["users"] = userSchema
 
 	fmt.Printf(" Done.\nExporting Edges...")
 	edges, err := PullEdges(sysMeta, cli)
@@ -807,17 +671,6 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	systemDotJSON["devices"] = devices
-
-	fmt.Printf(" Done.\nExporting Edge Deploy Information...")
-	deployInfo, err := pullEdgeDeployInfo(sysMeta, cli)
-	if err == nil {
-		systemDotJSON["edge_deploy"] = deployInfo
-		//return err
-	} else {
-		fmt.Printf(" Warning: error pulling edge deploy info: endpoint probably shut off: %s", err)
-		systemDotJSON["edge_deploy"] = []map[string]interface{}{}
-		deployInfo = []map[string]interface{}{}
-	}
 
 	fmt.Printf(" Done.\nExporting Portals...")
 	portals, err := PullPortals(sysMeta, cli)
@@ -841,17 +694,12 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 
 	fmt.Printf(" Done.\nExporting Deployments...")
 	if deployments, err := pullDeployments(sysMeta, cli); err != nil {
-		fmt.Printf("Warning: Could not pull deployments. Might not yet be implemented on your version of the platform: %s ", err)
-		//return err
+		fmt.Printf("Warning: Could not pull deployments: %s", err.Error())
 	} else {
 		systemDotJSON["deployments"] = deployments
 	}
 
 	fmt.Printf(" Done.\n")
-
-	if err = storeDeployDotJSON(deployInfo); err != nil {
-		return err
-	}
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err

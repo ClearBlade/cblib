@@ -14,6 +14,9 @@ import (
 const SORT_KEY_CODE_SERVICE = "Name"
 const SORT_KEY_COLLECTION_ITEM = "item_id"
 const SORT_KEY_COLLECTION = "Name"
+const collectionNameToIdFileName = "collections.json"
+const roleNameToIdFileName = "roles.json"
+const userEmailToIdFileName = "users.json"
 
 var (
 	RootDirIsSet bool
@@ -32,7 +35,8 @@ var (
 	pluginsDir     string
 	adaptorsDir    string
 	deploymentsDir string
-	arrDir         [13]string //this is used to set up the directory structure for a system
+	mapNameToIdDir string
+	arrDir         [14]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -53,6 +57,7 @@ func SetRootDir(theRootDir string) {
 	pluginsDir = rootDir + "/plugins"
 	adaptorsDir = rootDir + "/adapters"
 	deploymentsDir = rootDir + "/deployments"
+	mapNameToIdDir = rootDir + "/map-name-to-id"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -66,6 +71,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[10] = pluginsDir
 	arrDir[11] = adaptorsDir
 	arrDir[12] = deploymentsDir
+	arrDir[13] = mapNameToIdDir
 }
 
 func setupDirectoryStructure(sys *System_meta) error {
@@ -79,6 +85,10 @@ func setupDirectoryStructure(sys *System_meta) error {
 		}
 	}
 	return nil
+}
+
+func getNameToIdFullFilePath(fileName string) string {
+	return mapNameToIdDir + "/" + fileName
 }
 
 func cleanUpDirectories(sys *System_meta) error {
@@ -103,20 +113,20 @@ func storeCBMeta(info map[string]interface{}) error {
 	return nil
 }
 
+func whitelistSystemDotJSON(jason map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"description":   jason["description"],
+		"messaging_url": jason["messaging_url"],
+		"name":          jason["name"],
+		"platform_url":  jason["platform_url"],
+		"system_key":    jason["system_key"],
+		"system_secret": jason["system_secret"],
+		"auth":          jason["auth"],
+	}
+}
+
 func storeSystemDotJSON(systemDotJSON map[string]interface{}) error {
-	delete(systemDotJSON, "services")
-	delete(systemDotJSON, "libraries")
-	delete(systemDotJSON, "timers")
-	delete(systemDotJSON, "triggers")
-	delete(systemDotJSON, "users")
-	delete(systemDotJSON, "data")
-	delete(systemDotJSON, "roles")
-	delete(systemDotJSON, "edges")
-	delete(systemDotJSON, "devices")
-	delete(systemDotJSON, "portals")
-	delete(systemDotJSON, "plugins")
-	delete(systemDotJSON, "edge_deploy")
-	marshalled, err := json.MarshalIndent(systemDotJSON, "", "    ")
+	marshalled, err := json.MarshalIndent(whitelistSystemDotJSON(systemDotJSON), "", "    ")
 	if err != nil {
 		return fmt.Errorf("Could not marshall system.json: %s", err.Error())
 	}
@@ -268,23 +278,6 @@ func getAdaptors(sysKey string, client *cb.DevClient) ([]*models.Adaptor, error)
 	return rtn, nil
 }
 
-func writeServiceVersion(name string, data map[string]interface{}) error {
-	mySvcDir := svcDir + "/" + name
-	if err := os.MkdirAll(mySvcDir, 0777); err != nil {
-		return err
-	}
-	cleanService(data)
-	return writeEntity(mySvcDir, name, data)
-}
-
-func writeLibraryVersion(name string, data map[string]interface{}) error {
-	myLibDir := libDir + "/" + name
-	if err := os.MkdirAll(myLibDir, 0777); err != nil {
-		return err
-	}
-	return writeEntity(myLibDir, name, data)
-}
-
 func removeBogusColumns(stuff interface{}) interface{} {
 	switch stuff.(type) {
 	case map[string]interface{}:
@@ -314,6 +307,139 @@ func writeEntity(dirName, fileName string, stuff interface{}) error {
 	return nil
 }
 
+func whitelistCollection(data map[string]interface{}, items []interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"items":  items,
+		"name":   data["name"],
+		"schema": data["schema"],
+	}
+}
+
+func writeCollectionNameToId(data map[string]interface{}) error {
+	return writeIdMap(data, getNameToIdFullFilePath(collectionNameToIdFileName))
+}
+
+func writeIdMap(data map[string]interface{}, fileName string) error {
+	marshalled, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return fmt.Errorf("Could not marshall %s: %s", fileName, err.Error())
+	}
+	if err = ioutil.WriteFile(fileName, marshalled, 0666); err != nil {
+		return fmt.Errorf("Could not write to %s: %s", fileName, err.Error())
+	}
+	return nil
+}
+
+func writeRoleNameToId(data map[string]interface{}) error {
+	return writeIdMap(data, getNameToIdFullFilePath(roleNameToIdFileName))
+}
+
+func updateRoleNameToId(info RoleInfo) error {
+	daMap, err := getRoleNameToId()
+	if err != nil {
+		daMap = make(map[string]interface{})
+	}
+	daMap[info.Name] = info.ID
+	return writeRoleNameToId(daMap)
+}
+
+func getRoleNameToId() (map[string]interface{}, error) {
+	return getDict(getNameToIdFullFilePath(roleNameToIdFileName))
+}
+
+func getRoleIdByName(name string) (string, error) {
+	m, err := getRoleNameToId()
+	if err != nil {
+		return "", err
+	}
+	if val, ok := m[name].(string); !ok {
+		return "", fmt.Errorf("No role with name '%s'", name)
+	} else {
+		return val, nil
+	}
+}
+
+func updateCollectionNameToId(info CollectionInfo) error {
+	daMap, err := getCollectionNameToId()
+	if err != nil {
+		daMap = make(map[string]interface{})
+	}
+	daMap[info.Name] = info.ID
+	return writeCollectionNameToId(daMap)
+}
+
+func getCollectionNameToId() (map[string]interface{}, error) {
+	return getDict(getNameToIdFullFilePath(collectionNameToIdFileName))
+}
+
+func getCollectionNameToIdAsSlice() ([]CollectionInfo, error) {
+	rtn := make([]CollectionInfo, 0)
+	data, err := getCollectionNameToId()
+	if err != nil {
+		return rtn, err
+	}
+
+	for name, id := range data {
+		rtn = append(rtn, CollectionInfo{
+			ID:   id.(string),
+			Name: name,
+		})
+	}
+	return rtn, nil
+}
+
+type UserInfo struct {
+	Email  string
+	UserID string
+}
+
+func getUserEmailToId() (map[string]interface{}, error) {
+	return getDict(getNameToIdFullFilePath(userEmailToIdFileName))
+}
+
+func updateUserEmailToId(info UserInfo) error {
+	daMap, err := getUserEmailToId()
+	if err != nil {
+		daMap = make(map[string]interface{})
+	}
+	daMap[info.Email] = info.UserID
+	return writeUserEmailToId(daMap)
+}
+
+func writeUserEmailToId(data map[string]interface{}) error {
+	return writeIdMap(data, getNameToIdFullFilePath(userEmailToIdFileName))
+}
+
+func getUserIdByEmail(email string) (string, error) {
+	m, err := getUserEmailToId()
+	if err != nil {
+		return "", err
+	}
+	if val, ok := m[email].(string); !ok {
+		return "", fmt.Errorf("No user with email '%s'", email)
+	} else {
+		return val, nil
+	}
+}
+
+func updateCollectionSchema(collectionName string, schema []interface{}) error {
+	collInfo, err := getCollection(collectionName)
+	if err != nil {
+		return err
+	}
+	collInfo["schema"] = schema
+	collsInfo, err := getCollectionNameToIdAsSlice()
+	if err != nil {
+		return err
+	}
+	id, err := getCollectionIdByName(collectionName, collsInfo)
+	if err != nil {
+		return err
+	}
+	collInfo["collection_id"] = id
+	return writeCollection(collectionName, collInfo)
+}
+
 func writeCollection(collectionName string, data map[string]interface{}) error {
 	if err := os.MkdirAll(dataDir, 0777); err != nil {
 		return err
@@ -333,14 +459,30 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 	} else {
 		fmt.Println("Note: Not sorting collections by item_id. Add sort-collection=true flag if desired.")
 	}
+	err := updateCollectionNameToId(CollectionInfo{
+		ID:   data["collection_id"].(string),
+		Name: data["name"].(string),
+	})
+	if err != nil {
+		fmt.Printf("Error - Failed to write collection name to ID map; subsequent operations may fail. %+v\n", err.Error())
+	}
 
-	return writeEntity(dataDir, collectionName, data)
+	return writeEntity(dataDir, collectionName, whitelistCollection(data, itemArray))
+}
+
+func blacklistUser(data map[string]interface{}) {
+	delete(data, "creation_date")
+	delete(data, "user_id")
 }
 
 func writeUser(email string, data map[string]interface{}) error {
 	if err := os.MkdirAll(usersDir, 0777); err != nil {
 		return err
 	}
+	if err := updateUserEmailToId(UserInfo{Email: email, UserID: data["user_id"].(string)}); err != nil {
+		fmt.Printf("Error - Failed to write user email to ID map; subsequent operations may fail. %+v\n", err.Error())
+	}
+	blacklistUser(data)
 	return writeEntity(usersDir, email, data)
 }
 
@@ -348,25 +490,112 @@ func writeUserSchema(data map[string]interface{}) error {
 	return writeEntity(usersDir, "schema", data)
 }
 
+func whitelistTrigger(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"event_definition": data["event_definition"],
+		"key_value_pairs":  data["key_value_pairs"],
+		"name":             data["name"],
+		"service_name":     data["service_name"],
+	}
+}
+
 func writeTrigger(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(triggersDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(triggersDir, name, data)
+	return writeEntity(triggersDir, name, whitelistTrigger(data))
+}
+
+func whitelistTimer(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"description":  data["description"],
+		"frequency":    data["frequency"],
+		"name":         data["name"],
+		"repeats":      data["repeats"],
+		"service_name": data["service_name"],
+		"start_time":   data["start_time"],
+	}
 }
 
 func writeTimer(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(timersDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(timersDir, name, data)
+	return writeEntity(timersDir, name, whitelistTimer(data))
+}
+
+func whitelistDeployment(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"assets":      data["assets"],
+		"description": data["description"],
+		"edges":       data["edges"],
+		"name":        data["name"],
+	}
 }
 
 func writeDeployment(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(deploymentsDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(deploymentsDir, name, data)
+	return writeEntity(deploymentsDir, name, whitelistDeployment(data))
+}
+
+func whitelistServicesPermissions(data []interface{}) []map[string]interface{} {
+	rtn := make([]map[string]interface{}, 0)
+	var mapped map[string]interface{}
+	ok := true
+	for i := 0; i < len(data); i++ {
+		if mapped, ok = data[i].(map[string]interface{}); !ok {
+			continue
+		}
+		rtn = append(rtn, map[string]interface{}{
+			"Level": mapped["Level"],
+			"Name":  mapped["Name"],
+		})
+	}
+	return rtn
+}
+
+func whitelistPortalsPermissions(data []interface{}) []map[string]interface{} {
+	rtn := make([]map[string]interface{}, 0)
+	var mapped map[string]interface{}
+	ok := true
+	for i := 0; i < len(data); i++ {
+		if mapped, ok = data[i].(map[string]interface{}); !ok {
+			continue
+		}
+		rtn = append(rtn, map[string]interface{}{
+			"Level": mapped["Level"],
+			"Name":  mapped["Name"],
+		})
+	}
+	return rtn
+}
+
+func whitelistCollectionsPermissions(data []interface{}) []map[string]interface{} {
+	rtn := make([]map[string]interface{}, 0)
+	var mapped map[string]interface{}
+	ok := true
+	for i := 0; i < len(data); i++ {
+		if mapped, ok = data[i].(map[string]interface{}); !ok {
+			continue
+		}
+		rtn = append(rtn, map[string]interface{}{
+			"Level":   mapped["Level"],
+			"Name":    mapped["Name"],
+			"Columns": mapped["Columns"],
+			"Items":   mapped["Items"],
+		})
+	}
+	return rtn
+}
+
+func whitelistRole(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":        data["Name"],
+		"Description": data["Description"],
+		"Permissions": data["Permissions"],
+	}
 }
 
 func writeRole(name string, data map[string]interface{}) error {
@@ -385,14 +614,43 @@ func writeRole(name string, data map[string]interface{}) error {
 	codeServices, castSuccess := permissions["CodeServices"].([]interface{})
 	if castSuccess {
 		sortByMapKey(&codeServices, SORT_KEY_CODE_SERVICE)
+		fmtServices := whitelistServicesPermissions(codeServices)
+		permissions["CodeServices"] = fmtServices
 	}
 	// Default value for a role with no collections is null
 	collections, castSuccess := permissions["Collections"].([]interface{})
 	if castSuccess {
 		sortByMapKey(&collections, SORT_KEY_COLLECTION)
+		fmtCollections := whitelistCollectionsPermissions(collections)
+		permissions["Collections"] = fmtCollections
 	}
+	portals, castSuccess := permissions["Portals"].([]interface{})
+	if castSuccess {
+		fmtPortals := whitelistPortalsPermissions(portals)
+		permissions["Portals"] = fmtPortals
+	}
+	err := updateRoleNameToId(RoleInfo{
+		ID:   data["ID"].(string),
+		Name: data["Name"].(string),
+	})
+	if err != nil {
+		fmt.Printf("Error - Failed to write role name to ID map; subsequent operations may fail. %+v\n", err.Error())
+	}
+	return writeEntity(rolesDir, name, whitelistRole(data))
+}
 
-	return writeEntity(rolesDir, name, data)
+func whitelistService(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"auto_balance":      data["auto_balance"],
+		"auto_restart":      data["auto_restart"],
+		"concurrency":       data["concurrency"],
+		"dependencies":      data["dependencies"],
+		"execution_timeout": data["execution_timeout"],
+		"logging_enabled":   data["logging_enabled"],
+		"name":              data["name"],
+		"params":            data["params"],
+		"run_user":          data["run_user"],
+	}
 }
 
 func writeService(name string, data map[string]interface{}) error {
@@ -405,8 +663,17 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
-	cleanService(data)
-	return writeEntity(mySvcDir, name, data)
+	return writeEntity(mySvcDir, name, whitelistService(data))
+}
+
+func whitelistLibrary(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"api":          data["api"],
+		"dependencies": data["dependencies"],
+		"description":  data["description"],
+		"name":         data["name"],
+		"visibility":   data["visibility"],
+	}
 }
 
 func writeLibrary(name string, data map[string]interface{}) error {
@@ -417,31 +684,69 @@ func writeLibrary(name string, data map[string]interface{}) error {
 	if err := ioutil.WriteFile(myLibDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
-	delete(data, "code")
-	delete(data, "library_key")
+	return writeEntity(myLibDir, name, whitelistLibrary(data))
+}
+
+func blacklistEdge(data map[string]interface{}) {
+	delete(data, "edge_key")
+	delete(data, "isConnected")
+	delete(data, "novi_system_key")
+	delete(data, "broker_auth_port")
+	delete(data, "broker_port")
+	delete(data, "broker_tls_port")
+	delete(data, "broker_ws_auth_port")
+	delete(data, "broker_ws_port")
+	delete(data, "broker_wss_port")
+	delete(data, "communication_style")
+	delete(data, "first_talked")
+	delete(data, "last_talked")
+	delete(data, "local_addr")
+	delete(data, "local_port")
+	delete(data, "public_addr")
+	delete(data, "public_port")
 	delete(data, "system_key")
-	return writeEntity(myLibDir, name, data)
+	delete(data, "system_secret")
 }
 
 func writeEdge(name string, data map[string]interface{}) error {
+	blacklistEdge(data)
 	if err := os.MkdirAll(edgesDir, 0777); err != nil {
 		return err
 	}
 	return writeEntity(edgesDir, name, data)
 }
 
+func blacklistDevice(data map[string]interface{}) {
+	delete(data, "device_key")
+	delete(data, "system_key")
+	delete(data, "last_active_date")
+	delete(data, "__HostId__")
+	delete(data, "created_date")
+	delete(data, "last_active_date")
+}
+
 func writeDevice(name string, data map[string]interface{}) error {
+	blacklistDevice(data)
 	if err := os.MkdirAll(devicesDir, 0777); err != nil {
 		return err
 	}
 	return writeEntity(devicesDir, name, data)
 }
 
+func whitelistPortal(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"config":      data["config"],
+		"description": data["description"],
+		"name":        data["name"],
+		"type":        data["type"],
+	}
+}
+
 func writePortal(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(portalsDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(portalsDir, name, data)
+	return writeEntity(portalsDir, name, whitelistPortal(data))
 }
 
 func writePlugin(name string, data map[string]interface{}) error {
@@ -451,13 +756,40 @@ func writePlugin(name string, data map[string]interface{}) error {
 	return writeEntity(pluginsDir, name, data)
 }
 
+func whitelistAdapterInfo(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"architecture":     data["architecture"],
+		"deploy_command":   data["deploy_command"],
+		"description":      data["description"],
+		"logs_command":     data["logs_command"],
+		"name":             data["name"],
+		"os":               data["os"],
+		"protocol":         data["protocol"],
+		"start_command":    data["start_command"],
+		"status_command":   data["status_command"],
+		"stop_command":     data["stop_command"],
+		"undeploy_command": data["undeploy_command"],
+	}
+}
+
+func whitelistAdapterFile(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"adaptor_name": data["adaptor_name"],
+		"group":        data["group"],
+		"name":         data["name"],
+		"owner":        data["owner"],
+		"path_name":    data["path_name"],
+		"permissions":  data["permissions"],
+	}
+}
+
 func writeAdaptor(a *models.Adaptor) error {
 	myAdaptorDir := createFilePath(adaptorsDir, a.Name)
 	if err := os.MkdirAll(myAdaptorDir, 0777); err != nil {
 		return err
 	}
 
-	err := writeEntity(myAdaptorDir, a.Name, a.Info)
+	err := writeEntity(myAdaptorDir, a.Name, whitelistAdapterInfo(a.Info))
 	if err != nil {
 		return err
 	}
@@ -474,7 +806,7 @@ func writeAdaptor(a *models.Adaptor) error {
 		if err := os.MkdirAll(currentAdaptorFileDir, 0777); err != nil {
 			return err
 		}
-		if err := writeEntity(currentAdaptorFileDir, currentFileName, currentInfoForFile); err != nil {
+		if err := writeEntity(currentAdaptorFileDir, currentFileName, whitelistAdapterFile(currentInfoForFile)); err != nil {
 			return err
 		}
 		fileContents, err := a.DecodeFileByName(currentFileName)
@@ -596,6 +928,10 @@ func getDeployments() ([]map[string]interface{}, error) {
 	return getObjectList(deploymentsDir, []string{})
 }
 
+func getDeployment(name string) (map[string]interface{}, error) {
+	return getObject(deploymentsDir, name+".json")
+}
+
 func getEdges() ([]map[string]interface{}, error) {
 	return getObjectList(edgesDir, []string{"schema.json"})
 }
@@ -638,6 +974,19 @@ func getUserSchema() (map[string]interface{}, error) {
 
 func getRole(name string) (map[string]interface{}, error) {
 	return getObject(rolesDir, name+".json")
+}
+
+func getFullUserObject(email string) (map[string]interface{}, error) {
+	u, err := getObject(usersDir, email+".json")
+	if err != nil {
+		return nil, nil
+	}
+	id, err := getUserIdByEmail(email)
+	if err != nil {
+		return nil, nil
+	}
+	u["user_id"] = id
+	return u, nil
 }
 
 func getUser(email string) (map[string]interface{}, error) {

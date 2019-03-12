@@ -2,18 +2,19 @@ package cblib
 
 import (
 	"fmt"
+
 	cb "github.com/clearblade/Go-SDK"
 )
 
 func init() {
 
-	usage := 
-	`
+	usage :=
+		`
 	Pushes an update from local filesystem to the platform, synonymous to #push
 	`
 
-	example := 
-	`
+	example :=
+		`
 	cb-cli update -service=Service1					# Pushes a local service up to platform
 	`
 
@@ -23,7 +24,7 @@ func init() {
 		needsAuth:    true,
 		mustBeInRepo: true,
 		run:          doUpdate,
-		example:	  example,
+		example:      example,
 	}
 	updateCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to update")
 	updateCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to update")
@@ -79,7 +80,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionName != "" {
 		didSomething = true
-		if err := pushOneCollection(systemInfo, client); err != nil {
+		if err := pushOneCollection(systemInfo, client, CollectionName); err != nil {
 			return err
 		}
 	}
@@ -93,7 +94,7 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if User != "" {
 		didSomething = true
-		if err := pushOneUser(systemInfo, client); err != nil {
+		if err := pushOneUser(systemInfo, client, User); err != nil {
 			return err
 		}
 	}
@@ -107,21 +108,21 @@ func doUpdate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if RoleName != "" {
 		didSomething = true
-		if err := pushOneRole(systemInfo, client); err != nil {
+		if err := pushOneRole(systemInfo, RoleName, client); err != nil {
 			return err
 		}
 	}
 
 	if TriggerName != "" {
 		didSomething = true
-		if err := pushOneTrigger(systemInfo, client); err != nil {
+		if err := pushOneTrigger(systemInfo, client, TriggerName); err != nil {
 			return err
 		}
 	}
 
 	if TimerName != "" {
 		didSomething = true
-		if err := pushOneTimer(systemInfo, client); err != nil {
+		if err := pushOneTimer(systemInfo, client, TimerName); err != nil {
 			return err
 		}
 	}

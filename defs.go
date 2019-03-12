@@ -34,6 +34,7 @@ var (
 	DataPageSize               int
 	Email                      string
 	Password                   string
+	CollectionSchema           string
 	ServiceName                string
 	LibraryName                string
 	CollectionName             string
@@ -49,6 +50,7 @@ var (
 	PortalName                 string
 	PluginName                 string
 	AdaptorName                string
+	DeploymentName             string
 	Message                    bool
 	Topic                      string
 	Payload                    string
@@ -62,20 +64,28 @@ var (
 	AllPortals                 bool
 	AllPlugins                 bool
 	AllAdaptors                bool
-	TempDir				   string
+	AllDeployments             bool
+	AllCollections             bool
+	AllRoles                   bool
+	AllUsers                   bool
+	AllAssets                  bool
+	AllTriggers                bool
+	AllTimers                  bool
+	TempDir                    string
 )
 
 var (
 	systemDotJSON map[string]interface{}
 	libCode       map[string]interface{}
 	svcCode       map[string]interface{}
-	rolesInfo     []map[string]interface{}
 	MetaInfo      map[string]interface{}
 )
 
 var (
-	DefaultEdgeColumns   = []string{"edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables"}
-	DefaultDeviceColumns = []string{"device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date"}
+	DefaultUserColumns       = []string{"user_id", "creation_date", "email"}
+	DefaultEdgeColumns       = []string{"edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables"}
+	DefaultDeviceColumns     = []string{"device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt"}
+	DefaultCollectionColumns = []string{"item_id"}
 )
 
 type Role_meta struct {
