@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/models"
 	"io/ioutil"
 	"os"
+
+	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/models"
 )
 
 const SORT_KEY_CODE_SERVICE = "Name"
