@@ -1,7 +1,6 @@
 package cblib
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -56,25 +55,18 @@ func processDataSourceDir(path string, info os.FileInfo, err error) error {
 	if info.IsDir() {
 		return nil
 	}
-	log.Println("Printing Path", path, info)
-
 	return nil
 }
 
 func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) error {
-
+	fmt.Println("Compressing Datasources...")
 	portalJSONString, _ := readFileAsString(portalDotJSONAbsPath)
 	portalData, _ := unstructured.ParseJSON(portalJSONString)
-	//log.Println(portalData)
 	myPayloadData, err := portalData.GetByPointer("/config/datasources")
 
 	if err != nil {
 		panic("Couldn't address into my own json")
 	}
-
-	marshaledValue, _ := json.Marshal(myPayloadData.RawValue())
-	log.Println(string(marshaledValue))
-
 	datasourcesDir := filepath.Join(portalUncompressedDir, "datasources")
 	filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -117,6 +109,7 @@ func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) err
 	if err != nil {
 		return err
 	}
+	fmt.Println("Successfully Compressed Datasources")
 	return nil
 }
 
@@ -137,7 +130,6 @@ func resursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysTo
 		switch v.(type) {
 		case map[string]interface{}:
 			if keysToIgnoreInData[k] != nil {
-				log.Println("key is", k)
 				continue
 			}
 			updatedKeyPath := keyPath + k + "/"
@@ -153,7 +145,7 @@ func resursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysTo
 }
 
 func updateObjUsingWebFiles(webData *unstructured.Data, currDir string) error {
-
+	//fmt.Println("-------CurrDir in Update Obj using web files: ", currDir)
 	htmlFile := filepath.Join(currDir, OUT_FILE+".html")
 	updateObjFromFile(webData, htmlFile, HTML_KEY)
 
@@ -168,18 +160,19 @@ func updateObjUsingWebFiles(webData *unstructured.Data, currDir string) error {
 func updateObjFromFile(data *unstructured.Data, currFile string, fieldToSet string) error {
 	s, err := readFileAsString(currFile)
 	if err != nil {
+		log.Println("Update obj from file error:", err)
 		return err
 	}
-	log.Println("IN UPdate Obj from File", s)
-
 	data.SetField(fieldToSet, s)
 	return nil
 }
 
 func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, parserType string) error {
 	pathTillParserParent := resursivelyFindKeyPath(parserType, widgetsDataObj.RawValue().(map[string]interface{}), map[string]interface{}{}, "/")
+	if pathTillParserParent == "" {
+		return nil
+	}
 	parserPath := filepath.Join("/", pathTillParserParent, parserType)
-	log.Println("Path to parser", parserPath)
 	parserData, err := widgetsDataObj.GetByPointer(parserPath)
 	if err != nil {
 		return err
@@ -204,34 +197,38 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 }
 
 func processCurrWidgetDir(path string, widgetsDataObj *unstructured.Data) error {
-	log.Println("Curr Widget Dir", path)
 	processParser(path, widgetsDataObj, INCOMING_PARSER_KEY)
 	processParser(path, widgetsDataObj, OUTGOING_PARSER_KEY)
 	keysToIgnoreInData := map[string]interface{}{"incoming_parser": true, "outgoing_parser": true}
-	processOtherValues(path, widgetsDataObj, keysToIgnoreInData)
+	if err := processOtherValues(path, widgetsDataObj, keysToIgnoreInData); err != nil {
+		return err
+	}
 	return nil
 }
 
 func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data, keysToIgnoreInData map[string]interface{}) error {
 	valueParent := resursivelyFindKeyPath("value", widgetsDataObj.RawValue().(map[string]interface{}), keysToIgnoreInData, "/")
-	log.Println("value parent", valueParent)
+	if valueParent == "" {
+		return nil
+	}
 	valuePath := filepath.Join("/", valueParent, VALUE_KEY)
+	valueParent = filepath.Join("/", valueParent)
 	valueParentData, err := widgetsDataObj.GetByPointer(valueParent)
 	if err != nil {
+		log.Println("Got Err:", err)
 		return err
 	}
 	valueData, err := widgetsDataObj.GetByPointer(valuePath)
 	if err != nil {
+		log.Println("Got Err:", err)
 		return err
 	}
 	switch valueData.RawValue().(type) {
 	case map[string]interface{}:
-		currDir := filepath.Join("/", currWidgetDir)
-		updateObjUsingWebFiles(&valueData, currDir)
+		updateObjUsingWebFiles(&valueData, currWidgetDir)
 	case string:
-		currFile := filepath.Join("/", currWidgetDir)
+		currFile := filepath.Join(currWidgetDir, OUT_FILE)
 		updateObjFromFile(&valueParentData, currFile, VALUE_KEY)
-		fmt.Println("valueParentData: ", valueParentData)
 	default:
 
 	}
@@ -242,13 +239,10 @@ func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
 	portalJSONString, _ := readFileAsString(portalDotJSONAbsPath)
 	portalData, _ := unstructured.ParseJSON(portalJSONString)
 	widgetsDataObj, err := portalData.GetByPointer("/config/widgets")
-	fmt.Println("Compressing Widgets")
+	fmt.Println("Compressing Widgets...")
 	if err != nil {
 		panic("Couldn't address into my own json")
 	}
-
-	// marshaledValue, _ := json.Marshal(widgetsDataObj.RawValue())
-	// log.Println(string(marshaledValue))
 
 	widgetsDir := filepath.Join(portalUncompressedDir, "widgets")
 	filepath.Walk(widgetsDir, func(path string, info os.FileInfo, err error) error {
@@ -276,6 +270,7 @@ func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Successfully Compressed Widgets")
 
 	return nil
 }
@@ -292,14 +287,12 @@ func docompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	portalUncompressedDir := getDecompressedPortalDir(PortalName)
 
-	// if err := compressDatasources(portalDotJSONAbsPath, portalUncompressedDir); err != nil {
-	// 	return err
-	// }
+	if err := compressDatasources(portalDotJSONAbsPath, portalUncompressedDir); err != nil {
+		return err
+	}
 	if err := compressWidgets(portalDotJSONAbsPath, portalUncompressedDir); err != nil {
 		return err
 	}
-	// if err := compressWidgets(portal); err != nil {
-	// 	return err
-	// }
+
 	return nil
 }
