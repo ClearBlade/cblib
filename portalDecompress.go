@@ -12,7 +12,7 @@ import (
 )
 
 // OUT_FILE Generated file name
-const OUT_FILE = "code"
+const OUT_FILE = "index"
 const HTML_KEY = "HTML"
 const JAVASCRIPT_KEY = "JavaScript"
 const CSS_KEY = "CSS"
@@ -26,22 +26,22 @@ func init() {
 
 	example :=
 		`
-	cb-cli uncompress -portalName=portal1		#
+	cb-cli decompress -portalName=portal1		#
 	`
 
-	uncompressCommand := &SubCommand{
-		name:         "uncompress",
+	decompressCommand := &SubCommand{
+		name:         "decompress",
 		usage:        usage,
 		needsAuth:    false,
 		mustBeInRepo: true,
-		run:          doUncompress,
+		run:          decompress,
 		example:      example,
 	}
-	uncompressCommand.flags.StringVar(&PortalName, "Portal", "", "Name of Portal to uncompress after editing")
-	AddCommand("uncompress", uncompressCommand)
+	decompressCommand.flags.StringVar(&PortalName, "portal", "", "Name of Portal to decompress after editing")
+	AddCommand("decompress", decompressCommand)
 }
 
-func doUncompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+func decompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkPortalCodeManagerArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -51,10 +51,12 @@ func doUncompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 
-	if err = uncompressDatasources(portal); err != nil {
+	// TODO: need to cleanup portal directory before decompressing
+
+	if err = decompressDatasources(portal); err != nil {
 		return err
 	}
-	if err = uncompressWidgets(portal); err != nil {
+	if err = decompressWidgets(portal); err != nil {
 		return err
 	}
 	return nil
@@ -67,7 +69,7 @@ func checkPortalCodeManagerArgsAndFlags(args []string) error {
 	return nil
 }
 
-func uncompressDatasources(portal map[string]interface{}) error {
+func decompressDatasources(portal map[string]interface{}) error {
 	var (
 		portalName          string
 		config, datasources map[string]interface{}
@@ -103,7 +105,7 @@ func writeDatasource(portalName, dataSourceName string, data map[string]interfac
 	return writeEntity(currDsDir, currentFileName, data)
 }
 
-func uncompressWidgets(portal map[string]interface{}) error {
+func decompressWidgets(portal map[string]interface{}) error {
 	var (
 		portalName      string
 		config, widgets map[string]interface{}
@@ -117,11 +119,11 @@ func uncompressWidgets(portal map[string]interface{}) error {
 		return fmt.Errorf("Portal 'config' key missing in <Portal>.json file")
 	}
 	if widgets, ok = config["widgets"].(map[string]interface{}); !ok {
-		return fmt.Errorf("No widgets defined in 'config' ")
+		logInfo("No widgets defined in 'config'")
 	}
 
-	for _, ds := range widgets {
-		widgetData := ds.(map[string]interface{})
+	for _, widgetConfig := range widgets {
+		widgetData := widgetConfig.(map[string]interface{})
 		widgetName := getOrGenerateWidgetName(widgetData)
 		if err := writeWidget(portalName, widgetName, widgetData); err != nil {
 			return err
@@ -137,22 +139,43 @@ func getOrGenerateWidgetName(widgetData map[string]interface{}) string {
 	return name
 }
 
+func writeParserBasedOnDataType(dataType string, setting map[string]interface{}, filePath string) error {
+	if dataType == "DYNAMIC_DATA_TYPE" {
+		if ip, ok := setting["incoming_parser"].(map[string]interface{}); ok {
+			if err := writeParserFiles("incoming_parser", filePath+"/incoming_parser", ip); err != nil {
+				return err
+			}
+		}
+
+		if op, ok := setting["outgoing_parser"].(map[string]interface{}); ok {
+			if err := writeParserFiles("outgoing_parser", filePath+"/outgoing_parser", op); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := writeParserFiles("value", filePath, setting); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func writeWidget(portalName, widgetName string, data map[string]interface{}) error {
 	currWidgetDir := filepath.Join(portalsDir, portalName, "widgets", widgetName)
 
-	//TODO see if widget name is passed, else write
-	absFilePath := filepath.Join(currWidgetDir, OUT_FILE)
-
-	keysToIgnoreInData := map[string]interface{}{"incoming_parser": true, "outgoing_parser": true}
-	if err := writeWebFiles(absFilePath, data, keysToIgnoreInData); err != nil {
-		return err
-	}
-
-	if err := writeParserFiles("incoming_parser", currWidgetDir, data); err != nil {
-		return err
-	}
-	if err := writeParserFiles("outgoing_parser", currWidgetDir, data); err != nil {
-		return err
+	widgetSettings := data["props"].(map[string]interface{})
+	for _, v := range widgetSettings {
+		switch v.(type) {
+		case map[string]interface{}:
+			// if there's a dataType property we know this setting is a parser
+			if dataType, ok := v.(map[string]interface{})["dataType"].(string); ok {
+				if err := writeParserBasedOnDataType(dataType, v.(map[string]interface{}), currWidgetDir); err != nil {
+					return err
+				}
+			}
+		default:
+			continue
+		}
 	}
 
 	return nil
@@ -160,22 +183,15 @@ func writeWidget(portalName, widgetName string, data map[string]interface{}) err
 
 func writeParserFiles(parserType, currWidgetDir string, data map[string]interface{}) error {
 	keysToIgnoreInData := map[string]interface{}{}
-	//log.Println("WriteParserFiles:: ", data)
-	val := resursivelyFindValueForKey(parserType, data, keysToIgnoreInData)
-	if val == nil {
-		log.Println("Parser ", parserType, " does not exist in this widget")
-		return nil
-	}
-	parserObj := val.(map[string]interface{})
-	absFilePath := filepath.Join(currWidgetDir, parserType, OUT_FILE)
+	absFilePath := filepath.Join(currWidgetDir, OUT_FILE)
 
-	switch parserObj["value"].(type) {
+	switch data["value"].(type) {
 	case string:
-		if err := writeFile(absFilePath, parserObj["value"].(string)); err != nil {
+		if err := writeFile(absFilePath+".js", data["value"].(string)); err != nil {
 			return err
 		}
 	case map[string]interface{}:
-		if err := writeWebFiles(absFilePath, parserObj["value"].(map[string]interface{}), keysToIgnoreInData); err != nil {
+		if err := writeWebFiles(absFilePath, data["value"].(map[string]interface{}), keysToIgnoreInData); err != nil {
 			return err
 		}
 	default:
