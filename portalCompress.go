@@ -146,14 +146,14 @@ func resursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysTo
 
 func updateObjUsingWebFiles(webData *unstructured.Data, currDir string) error {
 	//fmt.Println("-------CurrDir in Update Obj using web files: ", currDir)
-	htmlFile := filepath.Join(currDir, OUT_FILE+".html")
-	updateObjFromFile(webData, htmlFile, HTML_KEY)
+	htmlFile := filepath.Join(currDir, outFile+".html")
+	updateObjFromFile(webData, htmlFile, htmlKey)
 
-	javascriptFile := filepath.Join(currDir, OUT_FILE+".js")
-	updateObjFromFile(webData, javascriptFile, JAVASCRIPT_KEY)
+	javascriptFile := filepath.Join(currDir, outFile+".js")
+	updateObjFromFile(webData, javascriptFile, javascriptKey)
 
-	cssFile := filepath.Join(currDir, OUT_FILE+".css")
-	updateObjFromFile(webData, cssFile, CSS_KEY)
+	cssFile := filepath.Join(currDir, outFile+".css")
+	updateObjFromFile(webData, cssFile, cssKey)
 	return nil
 }
 
@@ -187,7 +187,7 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 		currDir := filepath.Join(currWidgetDir, parserType)
 		updateObjUsingWebFiles(&valueData, currDir)
 	case string:
-		currFile := filepath.Join(currWidgetDir, parserType, OUT_FILE)
+		currFile := filepath.Join(currWidgetDir, parserType, outFile)
 		updateObjFromFile(&parserData, currFile, "value")
 	default:
 
@@ -227,7 +227,7 @@ func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data,
 	case map[string]interface{}:
 		updateObjUsingWebFiles(&valueData, currWidgetDir)
 	case string:
-		currFile := filepath.Join(currWidgetDir, OUT_FILE)
+		currFile := filepath.Join(currWidgetDir, outFile)
 		updateObjFromFile(&valueParentData, currFile, VALUE_KEY)
 	default:
 

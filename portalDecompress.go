@@ -11,11 +11,10 @@ import (
 	cb "github.com/clearblade/Go-SDK"
 )
 
-// OUT_FILE Generated file name
-const OUT_FILE = "index"
-const HTML_KEY = "HTML"
-const JAVASCRIPT_KEY = "JavaScript"
-const CSS_KEY = "CSS"
+const outFile = "index"
+const htmlKey = "HTML"
+const javascriptKey = "JavaScript"
+const cssKey = "CSS"
 
 func init() {
 
@@ -64,7 +63,7 @@ func decompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 func checkPortalCodeManagerArgsAndFlags(args []string) error {
 	if len(args) != 0 {
-		return fmt.Errorf("There are no arguments to the update command, only command line options\n")
+		return fmt.Errorf("There are no arguments to the update command, only command line options")
 	}
 	return nil
 }
@@ -183,7 +182,7 @@ func writeWidget(portalName, widgetName string, data map[string]interface{}) err
 
 func writeParserFiles(parserType, currWidgetDir string, data map[string]interface{}) error {
 	keysToIgnoreInData := map[string]interface{}{}
-	absFilePath := filepath.Join(currWidgetDir, OUT_FILE)
+	absFilePath := filepath.Join(currWidgetDir, outFile)
 
 	switch data["value"].(type) {
 	case string:
@@ -202,9 +201,9 @@ func writeParserFiles(parserType, currWidgetDir string, data map[string]interfac
 
 func writeWebFiles(absFilePath string, data, keysToIgnoreInData map[string]interface{}) error {
 
-	outjs := resursivelyFindValueForKey(JAVASCRIPT_KEY, data, keysToIgnoreInData)
-	outhtml := resursivelyFindValueForKey(HTML_KEY, data, keysToIgnoreInData)
-	outcss := resursivelyFindValueForKey(CSS_KEY, data, keysToIgnoreInData)
+	outjs := recursivelyFindValueForKey(javascriptKey, data, keysToIgnoreInData)
+	outhtml := recursivelyFindValueForKey(htmlKey, data, keysToIgnoreInData)
+	outcss := recursivelyFindValueForKey(cssKey, data, keysToIgnoreInData)
 	if outhtml != nil {
 		if err := writeFile(absFilePath+".html", outhtml.(interface{})); err != nil {
 			return err
@@ -250,7 +249,7 @@ func writeFile(absFilePath string, data interface{}) error {
 	return nil
 }
 
-func resursivelyFindValueForKey(queryKey string, data map[string]interface{}, keysToIgnoreInData map[string]interface{}) interface{} {
+func recursivelyFindValueForKey(queryKey string, data map[string]interface{}, keysToIgnoreInData map[string]interface{}) interface{} {
 	for k, v := range data {
 		if k == queryKey {
 			return v
@@ -258,10 +257,9 @@ func resursivelyFindValueForKey(queryKey string, data map[string]interface{}, ke
 		switch v.(type) {
 		case map[string]interface{}:
 			if keysToIgnoreInData[k] != nil {
-				log.Println("key is", k)
 				continue
 			}
-			val := resursivelyFindValueForKey(queryKey, v.(map[string]interface{}), keysToIgnoreInData)
+			val := recursivelyFindValueForKey(queryKey, v.(map[string]interface{}), keysToIgnoreInData)
 			if val != nil {
 				return val
 			}
