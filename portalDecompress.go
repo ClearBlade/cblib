@@ -45,12 +45,20 @@ func decompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 	SetRootDir(".")
-	portal, err := getPortal(PortalName)
+
+	return cleanUpAndDecompress(PortalName)
+
+}
+
+func cleanUpAndDecompress(name string) error {
+	portal, err := getPortal(name)
 	if err != nil {
 		return err
 	}
-
 	// TODO: need to cleanup portal directory before decompressing
+	if err = os.RemoveAll(filepath.Join(portalsDir, name)); err != nil {
+		return err
+	}
 
 	if err = decompressDatasources(portal); err != nil {
 		return err
