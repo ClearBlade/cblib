@@ -12,9 +12,9 @@ import (
 	"github.com/totherme/unstructured"
 )
 
-const OUTGOING_PARSER_KEY = "outgoing_parser"
-const INCOMING_PARSER_KEY = "incoming_parser"
-const VALUE_KEY = "value"
+const outgoingParserKey = "outgoing_parser"
+const incomingParserKey = "incoming_parser"
+const valueKey = "value"
 
 func init() {
 
@@ -36,7 +36,7 @@ func init() {
 		run:          docompress,
 		example:      example,
 	}
-	compressCommand.flags.StringVar(&PortalName, "Portal", "", "Name of Portal to compress after editing")
+	compressCommand.flags.StringVar(&PortalName, "portal", "", "Name of Portal to compress after editing")
 	AddCommand("compress", compressCommand)
 }
 
@@ -65,7 +65,7 @@ func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) err
 	myPayloadData, err := portalData.GetByPointer("/config/datasources")
 
 	if err != nil {
-		panic("Couldn't address into my own json")
+		return fmt.Errorf("Couldn't address into my own json")
 	}
 	datasourcesDir := filepath.Join(portalUncompressedDir, "datasources")
 	filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
@@ -197,8 +197,10 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 }
 
 func processCurrWidgetDir(path string, widgetsDataObj *unstructured.Data) error {
-	processParser(path, widgetsDataObj, INCOMING_PARSER_KEY)
-	processParser(path, widgetsDataObj, OUTGOING_PARSER_KEY)
+	fmt.Printf("process me: %+v\n")
+	return nil
+	processParser(path, widgetsDataObj, incomingParserKey)
+	processParser(path, widgetsDataObj, outgoingParserKey)
 	keysToIgnoreInData := map[string]interface{}{"incoming_parser": true, "outgoing_parser": true}
 	if err := processOtherValues(path, widgetsDataObj, keysToIgnoreInData); err != nil {
 		return err
@@ -211,7 +213,7 @@ func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data,
 	if valueParent == "" {
 		return nil
 	}
-	valuePath := filepath.Join("/", valueParent, VALUE_KEY)
+	valuePath := filepath.Join("/", valueParent, valueKey)
 	valueParent = filepath.Join("/", valueParent)
 	valueParentData, err := widgetsDataObj.GetByPointer(valueParent)
 	if err != nil {
@@ -228,7 +230,7 @@ func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data,
 		updateObjUsingWebFiles(&valueData, currWidgetDir)
 	case string:
 		currFile := filepath.Join(currWidgetDir, outFile)
-		updateObjFromFile(&valueParentData, currFile, VALUE_KEY)
+		updateObjFromFile(&valueParentData, currFile, valueKey)
 	default:
 
 	}
@@ -239,9 +241,8 @@ func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
 	portalJSONString, _ := readFileAsString(portalDotJSONAbsPath)
 	portalData, _ := unstructured.ParseJSON(portalJSONString)
 	widgetsDataObj, err := portalData.GetByPointer("/config/widgets")
-	fmt.Println("Compressing Widgets...")
 	if err != nil {
-		panic("Couldn't address into my own json")
+		return fmt.Errorf("Couldn't address into my own json")
 	}
 
 	widgetsDir := filepath.Join(portalUncompressedDir, "widgets")

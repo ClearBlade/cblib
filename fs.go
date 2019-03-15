@@ -764,7 +764,10 @@ func writePortal(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(portalsDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(portalsDir, name, whitelistPortal(data))
+	if err := writeEntity(portalsDir, name, whitelistPortal(data)); err != nil {
+		return err
+	}
+	return cleanUpAndDecompress(name)
 }
 
 func writePlugin(name string, data map[string]interface{}) error {

@@ -55,7 +55,7 @@ func cleanUpAndDecompress(name string) error {
 	if err != nil {
 		return err
 	}
-	// TODO: need to cleanup portal directory before decompressing
+
 	if err = os.RemoveAll(filepath.Join(portalsDir, name)); err != nil {
 		return err
 	}
