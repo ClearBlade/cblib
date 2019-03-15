@@ -58,8 +58,7 @@ func processDataSourceDir(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) error {
-	fmt.Println("Compressing Datasources...")
+func compressDatasources(portalDotJSONAbsPath, decompressedPortalDir string) error {
 	portalJSONString, _ := readFileAsString(portalDotJSONAbsPath)
 	portalData, _ := unstructured.ParseJSON(portalJSONString)
 	myPayloadData, err := portalData.GetByPointer("/config/datasources")
@@ -67,7 +66,7 @@ func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) err
 	if err != nil {
 		return fmt.Errorf("Couldn't address into my own json")
 	}
-	datasourcesDir := filepath.Join(portalUncompressedDir, "datasources")
+	datasourcesDir := filepath.Join(decompressedPortalDir, "datasources")
 	filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -109,7 +108,6 @@ func compressDatasources(portalDotJSONAbsPath, portalUncompressedDir string) err
 	if err != nil {
 		return err
 	}
-	fmt.Println("Successfully Compressed Datasources")
 	return nil
 }
 
@@ -145,7 +143,6 @@ func recursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysTo
 }
 
 func updateObjUsingWebFiles(webData *unstructured.Data, currDir string) error {
-	//fmt.Println("-------CurrDir in Update Obj using web files: ", currDir)
 	htmlFile := filepath.Join(currDir, outFile+".html")
 	updateObjFromFile(webData, htmlFile, htmlKey)
 
@@ -167,17 +164,8 @@ func updateObjFromFile(data *unstructured.Data, currFile string, fieldToSet stri
 	return nil
 }
 
-func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, parserType string) error {
-	pathTillParserParent := recursivelyFindKeyPath(parserType, widgetsDataObj.RawValue().(map[string]interface{}), map[string]interface{}{}, "/")
-	if pathTillParserParent == "" {
-		return nil
-	}
-	parserPath := filepath.Join("/", pathTillParserParent, parserType)
-	parserData, err := widgetsDataObj.GetByPointer(parserPath)
-	if err != nil {
-		return err
-	}
-	valueData, err := parserData.GetByPointer("/value")
+func processParser(currWidgetDir string, parserObj *unstructured.Data, parserType string) error {
+	valueData, err := parserObj.GetByPointer("/value")
 	if err != nil {
 		return err
 	}
@@ -187,8 +175,8 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 		currDir := filepath.Join(currWidgetDir, parserType)
 		updateObjUsingWebFiles(&valueData, currDir)
 	case string:
-		currFile := filepath.Join(currWidgetDir, parserType, outFile)
-		updateObjFromFile(&parserData, currFile, "value")
+		currFile := filepath.Join(currWidgetDir, parserType, outFile+".js")
+		updateObjFromFile(parserObj, currFile, "value")
 	default:
 
 	}
@@ -196,16 +184,40 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 
 }
 
-func processCurrWidgetDir(path string, widgetsDataObj *unstructured.Data) error {
-	fmt.Printf("process me: %+v\n", widgetsDataObj)
-	return nil
-	processParser(path, widgetsDataObj, incomingParserKey)
-	processParser(path, widgetsDataObj, outgoingParserKey)
-	keysToIgnoreInData := map[string]interface{}{"incoming_parser": true, "outgoing_parser": true}
-	if err := processOtherValues(path, widgetsDataObj, keysToIgnoreInData); err != nil {
+func processCurrWidgetDir(path string, data *unstructured.Data) error {
+
+	widgetSettings, err := data.ObValue()
+	if err != nil {
 		return err
 	}
-	return nil
+
+	return actOnParserSettings(widgetSettings, func(settingName, dataType string, parserSetting map[string]interface{}) error {
+		settingDir := path + "/" + settingName
+
+		if setting, err := data.GetByPointer("/props/" + settingName); err == nil {
+			if incoming, err := setting.GetByPointer("/" + incomingParserKey); err == nil {
+				if dataType != dynamicDataType {
+					incoming = setting
+				}
+				if err := processParser(settingDir, &incoming, incomingParserKey); err != nil {
+					return err
+				}
+			}
+
+			if outgoing, err := setting.GetByPointer("/" + outgoingParserKey); err == nil {
+				if dataType != dynamicDataType {
+					outgoing = setting
+				}
+				if err := processParser(settingDir, &outgoing, outgoingParserKey); err != nil {
+					return err
+				}
+			}
+		} else {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data, keysToIgnoreInData map[string]interface{}) error {
@@ -237,7 +249,7 @@ func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data,
 	return nil
 }
 
-func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
+func compressWidgets(portalDotJSONAbsPath, decompressedPortalDir string) error {
 	portalJSONString, _ := readFileAsString(portalDotJSONAbsPath)
 	portalData, _ := unstructured.ParseJSON(portalJSONString)
 	widgetsDataObj, err := portalData.GetByPointer("/config/widgets")
@@ -245,7 +257,7 @@ func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
 		return fmt.Errorf("Couldn't address into my own json")
 	}
 
-	widgetsDir := filepath.Join(portalUncompressedDir, "widgets")
+	widgetsDir := filepath.Join(decompressedPortalDir, "widgets")
 	filepath.Walk(widgetsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -271,7 +283,6 @@ func compressWidgets(portalDotJSONAbsPath, portalUncompressedDir string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Successfully Compressed Widgets")
 
 	return nil
 }
@@ -286,12 +297,12 @@ func docompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	SetRootDir(".")
 	portalDotJSONAbsPath := filepath.Join(portalsDir, PortalName+".json")
 
-	portalUncompressedDir := getDecompressedPortalDir(PortalName)
+	decompressedPortalDir := getDecompressedPortalDir(PortalName)
 
-	if err := compressDatasources(portalDotJSONAbsPath, portalUncompressedDir); err != nil {
+	if err := compressDatasources(portalDotJSONAbsPath, decompressedPortalDir); err != nil {
 		return err
 	}
-	if err := compressWidgets(portalDotJSONAbsPath, portalUncompressedDir); err != nil {
+	if err := compressWidgets(portalDotJSONAbsPath, decompressedPortalDir); err != nil {
 		return err
 	}
 
