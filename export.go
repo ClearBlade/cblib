@@ -68,7 +68,7 @@ func makeRoleNameToIdMap(roles []map[string]interface{}) map[string]interface{} 
 	return rtn
 }
 
-func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullAndWriteCollections(sysMeta *System_meta, cli *cb.DevClient, saveThem, shouldExportRows, shouldExportItemID bool) ([]map[string]interface{}, error) {
 	colls, err := cli.GetAllCollections(sysMeta.Key)
 	if err != nil {
 		return nil, err
@@ -81,12 +81,14 @@ func pullCollections(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 		if ok {
 			continue
 		}
-		if r, err := PullCollection(sysMeta, col.(map[string]interface{}), cli); err != nil {
+		if r, err := PullCollection(sysMeta, cli, col.(map[string]interface{}), shouldExportRows, shouldExportItemID); err != nil {
 			return nil, err
 		} else {
 			data := makeCollectionJsonConsistent(r)
-			writeCollection(r["name"].(string), data)
 			rval = append(rval, data)
+			if saveThem {
+				writeCollection(r["name"].(string), data)
+			}
 		}
 	}
 
@@ -110,7 +112,8 @@ func pullCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string)
 	return cli.GetColumnsByCollectionName(sysMeta.Key, name)
 }
 
-func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.DevClient) (map[string]interface{}, error) {
+func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
+	fmt.Printf(" %s", co["name"].(string))
 	isConnect := isConnectCollection(co)
 	var columnsResp []interface{}
 	var err error
@@ -124,7 +127,7 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 	}
 
 	//remove the item_id column if it is not supposed to be exported
-	if !ExportItemId {
+	if !shouldExportItemId {
 		//Loop through the array of maps and find the one where ColumnName = item_id
 		//Remove it from the slice
 		for ndx, columnMap := range columnsResp {
@@ -137,7 +140,7 @@ func PullCollection(sysMeta *System_meta, co map[string]interface{}, cli *cb.Dev
 
 	co["schema"] = columnsResp
 	co["items"] = []interface{}{}
-	if !isConnect && ExportRows {
+	if !isConnect && shouldExportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
 			return nil, err
@@ -159,15 +162,6 @@ func isConnectCollection(co map[string]interface{}) bool {
 		}
 	}
 	return false
-}
-
-func pullCollectionAndInfo(sysMeta *System_meta, id string, cli *cb.DevClient) (map[string]interface{}, error) {
-
-	colInfo, err := cli.GetCollectionInfo(id)
-	if err != nil {
-		return nil, err
-	}
-	return PullCollection(sysMeta, colInfo, cli)
 }
 
 func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {
@@ -295,6 +289,7 @@ func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 
 		deploymentSummary := deploymentIF.(map[string]interface{})
 		deplName := deploymentSummary["name"].(string)
+		fmt.Printf(" %s", deplName)
 		deploymentDetails, err := pullAndWriteDeployment(sysMeta, cli, deplName)
 		if err != nil {
 			return nil, err
@@ -342,29 +337,6 @@ func storeMeta(meta *System_meta) {
 	systemDotJSON["name"] = meta.Name
 	systemDotJSON["description"] = meta.Description
 	systemDotJSON["auth"] = true
-}
-
-func pullUsers(sysMeta *System_meta, cli *cb.DevClient, saveThem bool) ([]map[string]interface{}, error) {
-	sysKey := sysMeta.Key
-	if !ExportUsers {
-		return []map[string]interface{}{}, nil
-	}
-	allUsers, err := cli.GetAllUsers(sysKey)
-	if err != nil {
-		return nil, fmt.Errorf("Could not get all users: %s", err.Error())
-	}
-	for _, aUser := range allUsers {
-		userId := aUser["user_id"].(string)
-		roles, err := cli.GetUserRoles(sysKey, userId)
-		if err != nil {
-			return nil, fmt.Errorf("Could not get roles for %s: %s", userId, err.Error())
-		}
-		aUser["roles"] = roles
-		if saveThem {
-			writeUser(aUser["email"].(string), aUser)
-		}
-	}
-	return allUsers, nil
 }
 
 func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
@@ -573,7 +545,7 @@ func exportOptionsExist() bool {
 }
 
 func ExportSystem(cli *cb.DevClient, sysKey string) error {
-	fmt.Printf("Exporting System Info...")
+	fmt.Printf("\nExporting System Info...\n")
 	var sysMeta *System_meta
 	var err error
 	if inARepo {
@@ -587,9 +559,9 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 	// This was overwriting the rootdir set by cb_console
 	// Only set if it has not already been set
-	if !RootDirIsSet {
-		SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
-	}
+	// if !RootDirIsSet {
+	SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+	// }
 
 	if CleanUp {
 		cleanUpDirectories(sysMeta)
@@ -599,118 +571,25 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 	storeMeta(sysMeta)
-	fmt.Printf(" Done.\nExporting Roles...")
 
-	_, err = PullAndWriteRoles(sysKey, cli, true)
+	assetsToExport := createAffectedAssets()
+	assetsToExport.AllAssets = true
+	_, err = pullAssets(sysMeta, cli, assetsToExport)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf(" Done.\nExporting Services...")
-	services, err := PullServices(sysKey, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["services"] = services
-
-	fmt.Printf(" Done.\nExporting Libraries...")
-	libraries, err := PullLibraries(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["libraries"] = libraries
-
-	fmt.Printf(" Done.\nExporting Triggers...")
-	if triggers, err := PullAndWriteTriggers(sysMeta, cli); err != nil {
-		return err
-	} else {
-		systemDotJSON["triggers"] = triggers
-	}
-
-	fmt.Printf(" Done.\nExporting Timers...")
-	if timers, err := PullAndWriteTimers(sysMeta, cli); err != nil {
-		return err
-	} else {
-		systemDotJSON["timers"] = timers
-	}
-
-	fmt.Printf(" Done.\nExporting Collections...")
-	colls, err := pullCollections(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["data"] = colls
-
-	fmt.Printf(" Done.\nExporting Users...")
-	_, err = pullUsers(sysMeta, cli, true)
-	if err != nil {
-		return fmt.Errorf("GetAllUsers FAILED: %s", err.Error())
-	}
-
-	fmt.Printf(" Done.\nExporting User table schema...")
-	_, err = pullUserSchemaInfo(sysKey, cli, true)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" Done.\nExporting Edges...")
-	edges, err := PullEdges(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	if _, err := pullEdgesSchema(sysKey, cli, true); err != nil {
-		fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
-	}
-	systemDotJSON["edges"] = edges
-	fmt.Printf(" Done.\nExporting Devices...")
-	if _, err := pullDevicesSchema(sysKey, cli, true); err != nil {
-		fmt.Printf("\nNo custom columns to pull and create schema.json from... Continuing...\n")
-	}
-	devices, err := PullDevices(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["devices"] = devices
-
-	fmt.Printf(" Done.\nExporting Portals...")
-	portals, err := PullPortals(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["portals"] = portals
-
-	fmt.Printf(" Done.\nExporting Plugins...")
-	plugins, err := PullPlugins(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-	systemDotJSON["plugins"] = plugins
-
-	fmt.Printf(" Done.\nExporting Adaptors...")
-	err = PullAdaptors(sysMeta, cli)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" Done.\nExporting Deployments...")
-	if deployments, err := pullDeployments(sysMeta, cli); err != nil {
-		fmt.Printf("Warning: Could not pull deployments: %s", err.Error())
-	} else {
-		systemDotJSON["deployments"] = deployments
-	}
-
-	fmt.Printf(" Done.\n")
+	fmt.Printf("\nDone.\n")
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
 	}
 
 	metaStuff := map[string]interface{}{
-		"platform_url":        cb.CB_ADDR,
-		"messaging_url":       cb.CB_MSG_ADDR,
-		"developer_email":     Email,
-		"asset_refresh_dates": []interface{}{},
-		"token":               cli.DevToken,
+		"platform_url":    cb.CB_ADDR,
+		"messaging_url":   cb.CB_MSG_ADDR,
+		"developer_email": Email,
+		"token":           cli.DevToken,
 	}
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
