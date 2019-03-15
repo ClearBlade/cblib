@@ -122,7 +122,7 @@ func extractUUiD(dirName string) string {
 	return string(uuidFromDir)
 }
 
-func resursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysToIgnoreInData map[string]interface{}, keyPath string) string {
+func recursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysToIgnoreInData map[string]interface{}, keyPath string) string {
 	for k, v := range data {
 		if k == queryKey {
 			return keyPath
@@ -133,7 +133,7 @@ func resursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysTo
 				continue
 			}
 			updatedKeyPath := keyPath + k + "/"
-			val := resursivelyFindKeyPath(queryKey, v.(map[string]interface{}), keysToIgnoreInData, updatedKeyPath)
+			val := recursivelyFindKeyPath(queryKey, v.(map[string]interface{}), keysToIgnoreInData, updatedKeyPath)
 			if val != "" {
 				return val
 			}
@@ -168,7 +168,7 @@ func updateObjFromFile(data *unstructured.Data, currFile string, fieldToSet stri
 }
 
 func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, parserType string) error {
-	pathTillParserParent := resursivelyFindKeyPath(parserType, widgetsDataObj.RawValue().(map[string]interface{}), map[string]interface{}{}, "/")
+	pathTillParserParent := recursivelyFindKeyPath(parserType, widgetsDataObj.RawValue().(map[string]interface{}), map[string]interface{}{}, "/")
 	if pathTillParserParent == "" {
 		return nil
 	}
@@ -197,7 +197,7 @@ func processParser(currWidgetDir string, widgetsDataObj *unstructured.Data, pars
 }
 
 func processCurrWidgetDir(path string, widgetsDataObj *unstructured.Data) error {
-	fmt.Printf("process me: %+v\n")
+	fmt.Printf("process me: %+v\n", widgetsDataObj)
 	return nil
 	processParser(path, widgetsDataObj, incomingParserKey)
 	processParser(path, widgetsDataObj, outgoingParserKey)
@@ -209,7 +209,7 @@ func processCurrWidgetDir(path string, widgetsDataObj *unstructured.Data) error 
 }
 
 func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data, keysToIgnoreInData map[string]interface{}) error {
-	valueParent := resursivelyFindKeyPath("value", widgetsDataObj.RawValue().(map[string]interface{}), keysToIgnoreInData, "/")
+	valueParent := recursivelyFindKeyPath("value", widgetsDataObj.RawValue().(map[string]interface{}), keysToIgnoreInData, "/")
 	if valueParent == "" {
 		return nil
 	}

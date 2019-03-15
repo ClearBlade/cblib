@@ -15,6 +15,7 @@ const outFile = "index"
 const htmlKey = "HTML"
 const javascriptKey = "JavaScript"
 const cssKey = "CSS"
+const dynamicDataType = "DYNAMIC_DATA_TYPE"
 
 func init() {
 
@@ -147,20 +148,21 @@ func getOrGenerateWidgetName(widgetData map[string]interface{}) string {
 }
 
 func writeParserBasedOnDataType(dataType string, setting map[string]interface{}, filePath string) error {
-	if dataType == "DYNAMIC_DATA_TYPE" {
-		if ip, ok := setting["incoming_parser"].(map[string]interface{}); ok {
-			if err := writeParserFiles("incoming_parser", filePath+"/incoming_parser", ip); err != nil {
-				return err
-			}
-		}
 
-		if op, ok := setting["outgoing_parser"].(map[string]interface{}); ok {
-			if err := writeParserFiles("outgoing_parser", filePath+"/outgoing_parser", op); err != nil {
-				return err
-			}
+	if ip, ok := setting["incoming_parser"].(map[string]interface{}); ok {
+		if dataType != dynamicDataType {
+			ip = setting
 		}
-	} else {
-		if err := writeParserFiles("value", filePath, setting); err != nil {
+		if err := writeParserFiles(filePath+"/incoming_parser", ip); err != nil {
+			return err
+		}
+	}
+
+	if op, ok := setting["outgoing_parser"].(map[string]interface{}); ok {
+		if dataType != dynamicDataType {
+			op = setting
+		}
+		if err := writeParserFiles(filePath+"/outgoing_parser", op); err != nil {
 			return err
 		}
 	}
@@ -170,25 +172,15 @@ func writeParserBasedOnDataType(dataType string, setting map[string]interface{},
 func writeWidget(portalName, widgetName string, data map[string]interface{}) error {
 	currWidgetDir := filepath.Join(portalsDir, portalName, "widgets", widgetName)
 
-	widgetSettings := data["props"].(map[string]interface{})
-	for _, v := range widgetSettings {
-		switch v.(type) {
-		case map[string]interface{}:
-			// if there's a dataType property we know this setting is a parser
-			if dataType, ok := v.(map[string]interface{})["dataType"].(string); ok {
-				if err := writeParserBasedOnDataType(dataType, v.(map[string]interface{}), currWidgetDir); err != nil {
-					return err
-				}
-			}
-		default:
-			continue
+	return actOnParserSettings(data, func(settingName, dataType string, parserSetting map[string]interface{}) error {
+		if err := writeParserBasedOnDataType(dataType, parserSetting, currWidgetDir+"/"+settingName); err != nil {
+			return err
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
-func writeParserFiles(parserType, currWidgetDir string, data map[string]interface{}) error {
+func writeParserFiles(currWidgetDir string, data map[string]interface{}) error {
 	keysToIgnoreInData := map[string]interface{}{}
 	absFilePath := filepath.Join(currWidgetDir, outFile)
 
