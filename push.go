@@ -457,11 +457,11 @@ func pushAllEdges(systemInfo *System_meta, client *cb.DevClient) error {
 
 func pushOnePortal(systemInfo *System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing portal %+s\n", name)
-	portal, err := getPortal(name)
+	compressedPortal, err := compressPortal(name)
 	if err != nil {
 		return err
 	}
-	return updatePortal(systemInfo.Key, portal, client)
+	return updatePortal(systemInfo.Key, compressedPortal, client)
 }
 
 func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
@@ -470,9 +470,14 @@ func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
 		return err
 	}
 	for _, portal := range portals {
-		fmt.Printf("Pushing portal %+s\n", portal["name"].(string))
-		if err := updatePortal(systemInfo.Key, portal, client); err != nil {
-			return fmt.Errorf("Error updating portal '%s': %s\n", portal["name"].(string), err.Error())
+		name := portal["name"].(string)
+		fmt.Printf("Pushing portal %+s\n", name)
+		compressedPortal, err := compressPortal(name)
+		if err != nil {
+			return fmt.Errorf("Error compressing portal '%s': %s\n", name, err.Error())
+		}
+		if err := updatePortal(systemInfo.Key, compressedPortal, client); err != nil {
+			return fmt.Errorf("Error updating portal '%s': %s\n", name, err.Error())
 		}
 	}
 	return nil
@@ -1843,7 +1848,6 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 }
 
 func createPortal(systemKey string, port map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
-	// Export stores config as dict, but import wants it as a string
 	delete(port, "system_key")
 	if port["description"] == nil {
 		port["description"] = ""
@@ -1851,6 +1855,7 @@ func createPortal(systemKey string, port map[string]interface{}, client *cb.DevC
 	if port["last_updated"] == nil {
 		port["last_updated"] = ""
 	}
+	// Export stores config as dict, but import wants it as a string
 	config, ok := port["config"]
 	if ok {
 		configStr := ""

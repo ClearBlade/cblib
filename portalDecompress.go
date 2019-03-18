@@ -16,6 +16,9 @@ const htmlKey = "HTML"
 const javascriptKey = "JavaScript"
 const cssKey = "CSS"
 const dynamicDataType = "DYNAMIC_DATA_TYPE"
+const portalConfigDirectory = "config"
+const datasourceDirectory = "datasources"
+const widgetsDirectory = "widgets"
 
 func init() {
 
@@ -57,7 +60,7 @@ func cleanUpAndDecompress(name string) error {
 		return err
 	}
 
-	if err = os.RemoveAll(filepath.Join(portalsDir, name)); err != nil {
+	if err = os.RemoveAll(filepath.Join(portalsDir, name, portalConfigDirectory)); err != nil {
 		return err
 	}
 
@@ -106,7 +109,7 @@ func decompressDatasources(portal map[string]interface{}) error {
 
 func writeDatasource(portalName, dataSourceName string, data map[string]interface{}) error {
 	currentFileName := dataSourceName
-	currDsDir := filepath.Join(portalsDir, portalName, "datasources")
+	currDsDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, datasourceDirectory)
 	if err := os.MkdirAll(currDsDir, 0777); err != nil {
 		return err
 	}
@@ -170,7 +173,7 @@ func writeParserBasedOnDataType(dataType string, setting map[string]interface{},
 }
 
 func writeWidget(portalName, widgetName string, data map[string]interface{}) error {
-	currWidgetDir := filepath.Join(portalsDir, portalName, "widgets", widgetName)
+	currWidgetDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, widgetsDirectory, widgetName)
 
 	return actOnParserSettings(data, func(settingName, dataType string, parserSetting map[string]interface{}) error {
 		if err := writeParserBasedOnDataType(dataType, parserSetting, currWidgetDir+"/"+settingName); err != nil {

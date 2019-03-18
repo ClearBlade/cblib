@@ -288,23 +288,29 @@ func compressWidgets(portalDotJSONAbsPath, decompressedPortalDir string) error {
 }
 
 func getDecompressedPortalDir(portalName string) string {
-	return filepath.Join(portalsDir, portalName)
+	return filepath.Join(portalsDir, portalName, portalConfigDirectory)
 }
 func docompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err := checkPortalCodeManagerArgsAndFlags(args); err != nil {
 		return err
 	}
 	SetRootDir(".")
-	portalDotJSONAbsPath := filepath.Join(portalsDir, PortalName+".json")
 
-	decompressedPortalDir := getDecompressedPortalDir(PortalName)
+	_, err := compressPortal(PortalName)
+	return err
+}
+
+func compressPortal(name string) (map[string]interface{}, error) {
+	portalDotJSONAbsPath := filepath.Join(portalsDir, name, name+".json")
+
+	decompressedPortalDir := getDecompressedPortalDir(name)
 
 	if err := compressDatasources(portalDotJSONAbsPath, decompressedPortalDir); err != nil {
-		return err
+		return nil, err
 	}
 	if err := compressWidgets(portalDotJSONAbsPath, decompressedPortalDir); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return getPortal(name)
 }
