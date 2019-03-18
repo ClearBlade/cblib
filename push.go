@@ -465,18 +465,14 @@ func pushOnePortal(systemInfo *System_meta, client *cb.DevClient, name string) e
 }
 
 func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
-	portals, err := getPortals()
+	portals, err := getCompressedPortals()
 	if err != nil {
 		return err
 	}
 	for _, portal := range portals {
 		name := portal["name"].(string)
 		fmt.Printf("Pushing portal %+s\n", name)
-		compressedPortal, err := compressPortal(name)
-		if err != nil {
-			return fmt.Errorf("Error compressing portal '%s': %s\n", name, err.Error())
-		}
-		if err := updatePortal(systemInfo.Key, compressedPortal, client); err != nil {
+		if err := updatePortal(systemInfo.Key, portal, client); err != nil {
 			return fmt.Errorf("Error updating portal '%s': %s\n", name, err.Error())
 		}
 	}

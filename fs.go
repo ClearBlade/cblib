@@ -989,6 +989,23 @@ func getPortals() ([]map[string]interface{}, error) {
 	return rval, nil
 }
 
+func getCompressedPortals() ([]map[string]interface{}, error) {
+	portals, err := getPortals()
+	if err != nil {
+		return nil, err
+	}
+	rtn := make([]map[string]interface{}, 0)
+	for _, p := range portals {
+		name := p["name"].(string)
+		compressedPortal, err := compressPortal(name)
+		if err != nil {
+			return nil, fmt.Errorf("Error compressing portal '%s': %s\n", name, err.Error())
+		}
+		rtn = append(rtn, compressedPortal)
+	}
+	return rtn, nil
+}
+
 func getPlugins() ([]map[string]interface{}, error) {
 	return getObjectList(pluginsDir, []string{})
 }
