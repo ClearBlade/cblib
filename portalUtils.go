@@ -1,6 +1,11 @@
 package cblib
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/totherme/unstructured"
+)
 
 func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, string, map[string]interface{}) error) error {
 	widgetSettings := make(map[string]interface{})
@@ -22,4 +27,17 @@ func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, st
 		}
 	}
 	return nil
+}
+
+func convertPortalMapToUnstructured(p map[string]interface{}) (*unstructured.Data, error) {
+	jason, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	portalConfig, err := unstructured.ParseJSON(string(jason))
+	if err != nil {
+		return nil, err
+	}
+	return &portalConfig, nil
 }

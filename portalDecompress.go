@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	cb "github.com/clearblade/Go-SDK"
+	"github.com/totherme/unstructured"
 )
 
 const outFile = "index"
@@ -19,58 +19,28 @@ const dynamicDataType = "DYNAMIC_DATA_TYPE"
 const portalConfigDirectory = "config"
 const datasourceDirectory = "datasources"
 const widgetsDirectory = "widgets"
+const portalWidgetsPath = "/config/widgets"
 
-func init() {
-
-	usage :=
-		`
-	Compresses or decompresses Portal code
-	`
-
-	example :=
-		`
-	cb-cli decompress -portalName=portal1		#
-	`
-
-	decompressCommand := &SubCommand{
-		name:         "decompress",
-		usage:        usage,
-		needsAuth:    false,
-		mustBeInRepo: true,
-		run:          decompress,
-		example:      example,
+func cleanUpAndDecompress(name string, portal map[string]interface{}) (map[string]interface{}, error) {
+	if err := os.RemoveAll(filepath.Join(portalsDir, name, portalConfigDirectory)); err != nil {
+		return nil, err
 	}
-	decompressCommand.flags.StringVar(&PortalName, "portal", "", "Name of Portal to decompress after editing")
-	AddCommand("decompress", decompressCommand)
-}
 
-func decompress(cmd *SubCommand, client *cb.DevClient, args ...string) error {
-	if err := checkPortalCodeManagerArgsAndFlags(args); err != nil {
-		return err
-	}
-	SetRootDir(".")
-
-	return cleanUpAndDecompress(PortalName)
-
-}
-
-func cleanUpAndDecompress(name string) error {
-	portal, err := getPortal(name)
+	portalConfig, err := convertPortalMapToUnstructured(portal)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = os.RemoveAll(filepath.Join(portalsDir, name, portalConfigDirectory)); err != nil {
-		return err
+	if err = decompressDatasources(portalConfig); err != nil {
+		return nil, err
+	}
+	if err = decompressWidgets(portalConfig); err != nil {
+		return nil, err
 	}
 
-	if err = decompressDatasources(portal); err != nil {
-		return err
-	}
-	if err = decompressWidgets(portal); err != nil {
-		return err
-	}
-	return nil
+	// todo: decompress internal resources
+
+	return portalConfig.ObValue()
 }
 
 func checkPortalCodeManagerArgsAndFlags(args []string) error {
@@ -80,21 +50,20 @@ func checkPortalCodeManagerArgsAndFlags(args []string) error {
 	return nil
 }
 
-func decompressDatasources(portal map[string]interface{}) error {
-	var (
-		portalName          string
-		config, datasources map[string]interface{}
-		ok                  bool
-	)
+func decompressDatasources(portal *unstructured.Data) error {
 
-	if portalName, ok = portal["name"].(string); !ok {
-		return fmt.Errorf("Portal 'name' key missing in <Portal>.json file")
+	portalName, err := portal.UnsafeGetField("name").StringValue()
+	if err != nil {
+		return err
 	}
-	if config, ok = portal["config"].(map[string]interface{}); !ok {
-		return fmt.Errorf("Portal 'config' key missing in <Portal>.json file")
+
+	d, err := portal.GetByPointer("/config/datasources")
+	if err != nil {
+		return err
 	}
-	if datasources, ok = config["datasources"].(map[string]interface{}); !ok {
-		return fmt.Errorf("No Datasources defined in 'config' ")
+	datasources, err := d.ObValue()
+	if err != nil {
+		return err
 	}
 
 	for _, ds := range datasources {
@@ -116,65 +85,71 @@ func writeDatasource(portalName, dataSourceName string, data map[string]interfac
 	return writeEntity(currDsDir, currentFileName, data)
 }
 
-func decompressWidgets(portal map[string]interface{}) error {
-	var (
-		portalName      string
-		config, widgets map[string]interface{}
-		ok              bool
-	)
+func decompressWidgets(portal *unstructured.Data) error {
 
-	if portalName, ok = portal["name"].(string); !ok {
-		return fmt.Errorf("Portal 'name' key missing in <Portal>.json file")
-	}
-	if config, ok = portal["config"].(map[string]interface{}); !ok {
-		return fmt.Errorf("Portal 'config' key missing in <Portal>.json file")
-	}
-	if widgets, ok = config["widgets"].(map[string]interface{}); !ok {
-		logInfo("No widgets defined in 'config'")
+	portalName, err := portal.UnsafeGetField("name").StringValue()
+	if err != nil {
+		return err
 	}
 
-	for _, widgetConfig := range widgets {
-		widgetData := widgetConfig.(map[string]interface{})
+	w, err := portal.GetByPointer(portalWidgetsPath)
+	if err != nil {
+		return err
+	}
+	widgets, err := w.ObValue()
+	if err != nil {
+		return err
+	}
+
+	for id := range widgets {
+		widgetData, err := portal.GetByPointer(portalWidgetsPath + "/" + id)
+		if err != nil {
+			return err
+		}
 		widgetName := getOrGenerateWidgetName(widgetData)
-		if err := writeWidget(portalName, widgetName, widgetData); err != nil {
+		if err := writeWidget(portalName, widgetName, &widgetData); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func getOrGenerateWidgetName(widgetData map[string]interface{}) string {
-	widgetID := widgetData["id"].(string)
-	widgetType := widgetData["type"].(string)
+func getOrGenerateWidgetName(widgetData unstructured.Data) string {
+	widgetID, _ := widgetData.UnsafeGetField("id").StringValue()
+	widgetType, _ := widgetData.UnsafeGetField("type").StringValue()
 	name := fmt.Sprintf("%s"+"_"+"%v", widgetType, widgetID)
 	return name
 }
 
-func writeParserBasedOnDataType(dataType string, setting map[string]interface{}, filePath string) error {
+func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, filePath string) error {
 	found := false
-	if ip, ok := setting[incomingParserKey].(map[string]interface{}); ok {
+	if setting.HasKey(incomingParserKey) {
+		raw, _ := setting.GetByPointer("/" + incomingParserKey)
+		ip := &raw
 		found = true
 		if dataType != dynamicDataType {
 			ip = setting
 		}
-		if err := writeParserFiles(filePath+"/"+incomingParserKey, ip); err != nil {
+		if err := writeParserFiles(ip, filePath+"/"+incomingParserKey); err != nil {
 			return err
 		}
 	}
 
-	if op, ok := setting[outgoingParserKey].(map[string]interface{}); ok {
+	if setting.HasKey(outgoingParserKey) {
 		found = true
+		raw, _ := setting.GetByPointer("/" + outgoingParserKey)
+		op := &raw
 		if dataType != dynamicDataType {
 			op = setting
 		}
-		if err := writeParserFiles(filePath+"/"+outgoingParserKey, op); err != nil {
+		if err := writeParserFiles(op, filePath+"/"+outgoingParserKey); err != nil {
 			return err
 		}
 	}
 
 	if !found {
-		if _, okMap := setting["value"]; okMap {
-			if err := writeParserFiles(filePath+"/"+incomingParserKey, setting); err != nil {
+		if setting.HasKey("value") {
+			if err := writeParserFiles(setting, filePath+"/"+incomingParserKey); err != nil {
 				return err
 			}
 		}
@@ -182,33 +157,52 @@ func writeParserBasedOnDataType(dataType string, setting map[string]interface{},
 	return nil
 }
 
-func writeWidget(portalName, widgetName string, data map[string]interface{}) error {
+func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) error {
 	currWidgetDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, widgetsDirectory, widgetName)
 
-	return actOnParserSettings(data, func(settingName, dataType string, parserSetting map[string]interface{}) error {
-		if err := writeParserBasedOnDataType(dataType, parserSetting, currWidgetDir+"/"+settingName); err != nil {
+	widgetDataMap, err := widgetData.ObValue()
+	if err != nil {
+		return err
+	}
+	return actOnParserSettings(widgetDataMap, func(settingName, dataType string, _ map[string]interface{}) error {
+		parserSetting, err := widgetData.GetByPointer("/props/" + settingName)
+		if err != nil {
+			return err
+		}
+		if err := writeParserBasedOnDataType(dataType, &parserSetting, currWidgetDir+"/"+settingName); err != nil {
 			return err
 		}
 		return nil
 	})
 }
 
-func writeParserFiles(currWidgetDir string, data map[string]interface{}) error {
+func writeParserFiles(parserData *unstructured.Data, currWidgetDir string) error {
 	keysToIgnoreInData := map[string]interface{}{}
 	absFilePath := filepath.Join(currWidgetDir, outFile)
 
-	switch data["value"].(type) {
+	value := parserData.UnsafeGetField("value")
+
+	switch value.RawValue().(type) {
 	case string:
-		if err := writeFile(absFilePath+".js", data["value"].(string)); err != nil {
+		str, _ := value.StringValue()
+		if err := writeFile(absFilePath+".js", str); err != nil {
+			return err
+		}
+		if err := parserData.SetField("value", "___placeholder___"); err != nil {
 			return err
 		}
 	case map[string]interface{}:
-		if err := writeWebFiles(absFilePath, data["value"].(map[string]interface{}), keysToIgnoreInData); err != nil {
+		mapp, _ := value.ObValue()
+		if err := writeWebFiles(absFilePath, mapp, keysToIgnoreInData); err != nil {
+			return err
+		}
+		if err := parserData.SetField("value", map[string]interface{}{"placeholder": map[string]interface{}{}}); err != nil {
 			return err
 		}
 	default:
 		return nil
 	}
+
 	return nil
 }
 
