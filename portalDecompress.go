@@ -158,6 +158,25 @@ func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, fil
 	return nil
 }
 
+func writeWidgetMeta(widgetDir string, widgetConfig *unstructured.Data) error {
+	keys, err := widgetConfig.Keys()
+	if err != nil {
+		return err
+	}
+	meta := make(map[string]interface{})
+	// grab all the keys except for "props" aka settings
+	for _, k := range keys {
+		if k != "props" {
+			meta[k] = widgetConfig.UnsafeGetField(k).RawValue()
+		}
+	}
+	return writeFile(filepath.Join(widgetDir, "meta.json"), meta)
+}
+
+func writeWidgetSettings(widgetDir string, widgetConfig *unstructured.Data) error {
+	return writeFile(filepath.Join(widgetDir, "settings.json"), widgetConfig.UnsafeGetField("props").RawValue())
+}
+
 func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) error {
 	currWidgetDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, widgetsDirectory, widgetName)
 
@@ -165,7 +184,7 @@ func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) e
 	if err != nil {
 		return err
 	}
-	return actOnParserSettings(widgetDataMap, func(settingName, dataType string) error {
+	if err := actOnParserSettings(widgetDataMap, func(settingName, dataType string) error {
 		parserSetting, err := widgetData.GetByPointer("/props/" + settingName)
 		if err != nil {
 			return err
@@ -174,7 +193,17 @@ func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) e
 			return err
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	if err := writeWidgetMeta(currWidgetDir, widgetData); err != nil {
+		return err
+	}
+
+	if err := writeWidgetSettings(currWidgetDir, widgetData); err != nil {
+		return err
+	}
+	return nil
 }
 
 func writeParserFiles(parserData *unstructured.Data, currWidgetDir string) error {
