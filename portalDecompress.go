@@ -27,8 +27,9 @@ func cleanUpAndDecompress(name string, portal map[string]interface{}) (map[strin
 	if err = decompressWidgets(portalConfig); err != nil {
 		return nil, err
 	}
-
-	// todo: decompress internal resources
+	if err = decompressInternalResources(portalConfig); err != nil {
+		return nil, err
+	}
 
 	return portalConfig.ObValue()
 }
@@ -37,6 +38,47 @@ func checkPortalCodeManagerArgsAndFlags(args []string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("There are no arguments to the update command, only command line options")
 	}
+	return nil
+}
+
+func decompressInternalResources(portal *unstructured.Data) error {
+	portalName, err := portal.UnsafeGetField("name").StringValue()
+	if err != nil {
+		return err
+	}
+
+	resources, err := portal.GetByPointer(portalInternalResourcesPath)
+	if err != nil {
+		return err
+	}
+
+	keys, err := resources.Keys()
+	if err != nil {
+		return err
+	}
+	for _, id := range keys {
+		resourceData, err := resources.GetByPointer("/" + id)
+		if err != nil {
+			return err
+		}
+		resourceName, err := resourceData.UnsafeGetField("name").StringValue()
+		if err != nil {
+			return err
+		}
+		if err := writeInternalResource(portalName, resourceName, &resourceData); err != nil {
+			return err
+		}
+
+	}
+
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
+	if err != nil {
+		return err
+	}
+	if err = portalConfig.SetField("internalResources", "___placeholder___"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -178,6 +220,48 @@ func writeWidgetMeta(widgetDir string, widgetConfig *unstructured.Data) error {
 
 func writeWidgetSettings(widgetDir string, widgetConfig *unstructured.Data) error {
 	return writeFile(filepath.Join(widgetDir, portalWidgetSettingsFile), widgetConfig.UnsafeGetField("props").RawValue())
+}
+
+func createInternalResourceMeta(resourceData *unstructured.Data) (map[string]interface{}, error) {
+	keys, err := resourceData.Keys()
+	if err != nil {
+		return nil, err
+	}
+	rtn := make(map[string]interface{})
+	for _, k := range keys {
+		if k == "file" {
+			rtn[k] = "___placeholder___"
+		} else {
+			rtn[k] = resourceData.UnsafeGetField(k).RawValue()
+		}
+	}
+	return rtn, nil
+}
+
+func writeInternalResource(portalName, resourceName string, resourceData *unstructured.Data) error {
+	// write the parser file
+	currResourceDir := filepath.Join(portalsDir, portalName, portalInternalResourcesPath, resourceName)
+
+	file := resourceData.UnsafeGetField("file")
+	fileStr, err := file.StringValue()
+	if err != nil {
+		return err
+	}
+
+	if err := writeFile(currResourceDir+"/"+resourceName, fileStr); err != nil {
+		return err
+	}
+
+	meta, err := createInternalResourceMeta(resourceData)
+	if err != nil {
+		return err
+	}
+
+	if err := writeFile(currResourceDir+"/meta.json", meta); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) error {
