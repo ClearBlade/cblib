@@ -183,7 +183,7 @@ func writeWidgetSettings(widgetDir string, widgetConfig *unstructured.Data) erro
 func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) error {
 	currWidgetDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, widgetsDirectory, widgetName)
 
-	widgetDataMap, err := widgetData.ObValue()
+	widgetDataMap, err := widgetData.UnsafeGetField("props").ObValue()
 	if err != nil {
 		return err
 	}
