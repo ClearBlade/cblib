@@ -11,10 +11,6 @@ import (
 	"github.com/totherme/unstructured"
 )
 
-const outgoingParserKey = "outgoing_parser"
-const incomingParserKey = "incoming_parser"
-const valueKey = "value"
-
 func processDataSourceDir(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err

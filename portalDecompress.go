@@ -11,17 +11,6 @@ import (
 	"github.com/totherme/unstructured"
 )
 
-const outFile = "index"
-const htmlKey = "HTML"
-const javascriptKey = "JavaScript"
-const cssKey = "CSS"
-const dynamicDataType = "DYNAMIC_DATA_TYPE"
-const portalConfigDirectory = "config"
-const datasourceDirectory = "datasources"
-const widgetsDirectory = "widgets"
-const portalWidgetsPath = "/config/widgets"
-const parsersDirectory = "parsers"
-
 func cleanUpAndDecompress(name string, portal map[string]interface{}) (map[string]interface{}, error) {
 	if err := os.RemoveAll(filepath.Join(portalsDir, name, portalConfigDirectory)); err != nil {
 		return nil, err
@@ -74,6 +63,14 @@ func decompressDatasources(portal *unstructured.Data) error {
 			return err
 		}
 	}
+
+	portalConfig, err := portal.GetByPointer("/config")
+	if err != nil {
+		return err
+	}
+	if err = portalConfig.SetField("datasources", "___placeholder___"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -112,6 +109,12 @@ func decompressWidgets(portal *unstructured.Data) error {
 			return err
 		}
 	}
+
+	portalConfig, err := portal.GetByPointer("/config")
+	if err != nil {
+		return err
+	}
+	portalConfig.SetField("widgets", "___placeholder___")
 	return nil
 }
 

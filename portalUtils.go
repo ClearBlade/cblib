@@ -7,6 +7,20 @@ import (
 	"github.com/totherme/unstructured"
 )
 
+const outFile = "index"
+const htmlKey = "HTML"
+const javascriptKey = "JavaScript"
+const cssKey = "CSS"
+const dynamicDataType = "DYNAMIC_DATA_TYPE"
+const portalConfigDirectory = "config"
+const datasourceDirectory = "datasources"
+const widgetsDirectory = "widgets"
+const portalWidgetsPath = "/config/widgets"
+const parsersDirectory = "parsers"
+const outgoingParserKey = "outgoing_parser"
+const incomingParserKey = "incoming_parser"
+const valueKey = "value"
+
 func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, string) error) error {
 	widgetSettings := make(map[string]interface{})
 	ok := true
