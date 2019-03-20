@@ -257,7 +257,7 @@ func writeInternalResource(portalName, resourceName string, resourceData *unstru
 		return err
 	}
 
-	if err := writeFile(currResourceDir+"/meta.json", meta); err != nil {
+	if err := writeFile(currResourceDir+"/"+portalInternalResourceMetaFile, meta); err != nil {
 		return err
 	}
 

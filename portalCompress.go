@@ -144,6 +144,31 @@ func mergeMaps(a map[string]interface{}, b map[string]interface{}) {
 	}
 }
 
+func processCurrInternalResourceDir(path string, allInternalResources *unstructured.Data) error {
+	meta, err := getPortalInternalResourceMetaFile(path)
+	if err != nil {
+		return err
+	}
+
+	resourceID := meta["id"].(string)
+	if err := allInternalResources.SetField(resourceID, meta); err != nil {
+		return err
+	}
+
+	myResource, err := allInternalResources.GetByPointer("/" + resourceID)
+	if err != nil {
+		return err
+	}
+
+	resourceName := meta["name"].(string)
+	file, err := getPortalInternalResourceCode(path, resourceName)
+	if err != nil {
+		return err
+	}
+
+	return myResource.SetField("file", file)
+}
+
 func processCurrWidgetDir(path string, allWidgets *unstructured.Data) error {
 
 	widgetMeta, err := getPortalWidgetMetaFile(path)
@@ -232,12 +257,38 @@ func compressWidgets(portal *unstructured.Data, decompressedPortalDir string) er
 
 		return processCurrWidgetDir(path, &widgets)
 	})
-
-	return nil
 }
 
 func getDecompressedPortalDir(portalName string) string {
 	return filepath.Join(portalsDir, portalName, portalConfigDirectory)
+}
+
+func compressInternalResources(portal *unstructured.Data, decompressedPortalDir string) error {
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
+	if err != nil {
+		return err
+	}
+	portalConfig.SetField("internalResources", map[string]interface{}{})
+	resources, err := portal.GetByPointer(portalInternalResourcesPath)
+	if err != nil {
+		return fmt.Errorf("Couldn't address internal resources into my own json")
+	}
+
+	internalResourcesDir := filepath.Join(decompressedPortalDir, "internalResources")
+	return filepath.Walk(internalResourcesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			return nil
+		}
+		split := strings.Split(path, "/")
+		if split[len(split)-2] != internalResourcesDirectory {
+			return nil
+		}
+
+		return processCurrInternalResourceDir(path, &resources)
+	})
 }
 
 func compressPortal(name string) (map[string]interface{}, error) {
@@ -257,6 +308,9 @@ func compressPortal(name string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if err := compressWidgets(portalConfig, decompressedPortalDir); err != nil {
+		return nil, err
+	}
+	if err := compressInternalResources(portalConfig, decompressedPortalDir); err != nil {
 		return nil, err
 	}
 

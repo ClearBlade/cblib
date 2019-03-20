@@ -14,6 +14,7 @@ const dynamicDataType = "DYNAMIC_DATA_TYPE"
 const portalConfigDirectory = "config"
 const datasourceDirectory = "datasources"
 const widgetsDirectory = "widgets"
+const internalResourcesDirectory = "internalResources"
 const portalConfigPath = "/config"
 const portalWidgetsPath = portalConfigPath + "/widgets"
 const portalDatasourcesPath = portalConfigPath + "/datasources"
@@ -24,6 +25,7 @@ const incomingParserKey = "incoming_parser"
 const valueKey = "value"
 const portalWidgetSettingsFile = "settings.json"
 const portalWidgetMetaFile = "meta.json"
+const portalInternalResourceMetaFile = "meta.json"
 
 func actOnParserSettings(widgetSettings map[string]interface{}, cb func(string, string) error) error {
 	for settingName, v := range widgetSettings {
@@ -61,4 +63,12 @@ func getPortalWidgetSettingsFile(widgetDir string) (map[string]interface{}, erro
 
 func getPortalWidgetMetaFile(widgetDir string) (map[string]interface{}, error) {
 	return getDict(widgetDir + "/" + portalWidgetMetaFile)
+}
+
+func getPortalInternalResourceMetaFile(internalResourceDir string) (map[string]interface{}, error) {
+	return getDict(internalResourceDir + "/" + portalInternalResourceMetaFile)
+}
+
+func getPortalInternalResourceCode(internalResourceDir, fileName string) (string, error) {
+	return readFileAsString(internalResourceDir + "/" + fileName)
 }
