@@ -20,6 +20,7 @@ const portalConfigDirectory = "config"
 const datasourceDirectory = "datasources"
 const widgetsDirectory = "widgets"
 const portalWidgetsPath = "/config/widgets"
+const parsersDirectory = "parsers"
 
 func cleanUpAndDecompress(name string, portal map[string]interface{}) (map[string]interface{}, error) {
 	if err := os.RemoveAll(filepath.Join(portalsDir, name, portalConfigDirectory)); err != nil {
@@ -164,12 +165,12 @@ func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) e
 	if err != nil {
 		return err
 	}
-	return actOnParserSettings(widgetDataMap, func(settingName, dataType string, _ map[string]interface{}) error {
+	return actOnParserSettings(widgetDataMap, func(settingName, dataType string) error {
 		parserSetting, err := widgetData.GetByPointer("/props/" + settingName)
 		if err != nil {
 			return err
 		}
-		if err := writeParserBasedOnDataType(dataType, &parserSetting, currWidgetDir+"/"+settingName); err != nil {
+		if err := writeParserBasedOnDataType(dataType, &parserSetting, currWidgetDir+"/"+parsersDirectory+"/"+settingName); err != nil {
 			return err
 		}
 		return nil

@@ -158,8 +158,8 @@ func processCurrWidgetDir(path string, data *unstructured.Data) error {
 		return err
 	}
 
-	return actOnParserSettings(widgetSettings, func(settingName, dataType string, parserSetting map[string]interface{}) error {
-		settingDir := path + "/" + settingName
+	return actOnParserSettings(widgetSettings, func(settingName, dataType string) error {
+		settingDir := path + "/" + parsersDirectory + "/" + settingName
 
 		if setting, err := data.GetByPointer("/props/" + settingName); err == nil {
 			found := false

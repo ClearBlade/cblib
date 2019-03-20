@@ -7,7 +7,7 @@ import (
 	"github.com/totherme/unstructured"
 )
 
-func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, string, map[string]interface{}) error) error {
+func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, string) error) error {
 	widgetSettings := make(map[string]interface{})
 	ok := true
 	if widgetSettings, ok = widgetConfig["props"].(map[string]interface{}); !ok {
@@ -18,7 +18,7 @@ func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, st
 		case map[string]interface{}:
 			// if there's a dataType property we know this setting is a parser
 			if dataType, ok := v.(map[string]interface{})["dataType"].(string); ok {
-				if err := cb(settingName, dataType, v.(map[string]interface{})); err != nil {
+				if err := cb(settingName, dataType); err != nil {
 					return err
 				}
 			}
