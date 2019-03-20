@@ -34,7 +34,11 @@ func compressDatasources(portal *unstructured.Data, decompressedPortalDir string
 	}
 
 	datasourcesDir := filepath.Join(decompressedPortalDir, "datasources")
-	filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
+	if ok, err := dirExists(datasourcesDir); !ok || err != nil {
+		// portal doesn't have any datasources, just return
+		return nil
+	}
+	return filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -259,6 +263,10 @@ func compressWidgets(portal *unstructured.Data, decompressedPortalDir string) er
 	}
 
 	widgetsDir := filepath.Join(decompressedPortalDir, "widgets")
+	if ok, err := dirExists(widgetsDir); !ok || err != nil {
+		// portal doesn't have any widgets, just return
+		return nil
+	}
 	return filepath.Walk(widgetsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -290,6 +298,10 @@ func compressInternalResources(portal *unstructured.Data, decompressedPortalDir 
 	}
 
 	internalResourcesDir := filepath.Join(decompressedPortalDir, "internalResources")
+	if ok, err := dirExists(internalResourcesDir); !ok || err != nil {
+		// portal doesn't have any internal resources, just return
+		return nil
+	}
 	return filepath.Walk(internalResourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

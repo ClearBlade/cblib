@@ -49,7 +49,8 @@ func decompressInternalResources(portal *unstructured.Data) error {
 
 	resources, err := portal.GetByPointer(portalInternalResourcesPath)
 	if err != nil {
-		return err
+		// this will happen if the portal doesn't have internal resources. just return
+		return nil
 	}
 
 	keys, err := resources.Keys()
@@ -75,7 +76,7 @@ func decompressInternalResources(portal *unstructured.Data) error {
 	if err != nil {
 		return err
 	}
-	if err = portalConfig.SetField("internalResources", "___placeholder___"); err != nil {
+	if err = portalConfig.SetField("internalResources", "./"+portalConfigDirectory+"/"+internalResourcesDirectory); err != nil {
 		return err
 	}
 
@@ -91,7 +92,8 @@ func decompressDatasources(portal *unstructured.Data) error {
 
 	d, err := portal.GetByPointer(portalDatasourcesPath)
 	if err != nil {
-		return err
+		// this will happen if the portal doesn't have datasources. just return
+		return nil
 	}
 	datasources, err := d.ObValue()
 	if err != nil {
@@ -110,7 +112,7 @@ func decompressDatasources(portal *unstructured.Data) error {
 	if err != nil {
 		return err
 	}
-	if err = portalConfig.SetField("datasources", "___placeholder___"); err != nil {
+	if err = portalConfig.SetField("datasources", "./"+portalConfigDirectory+"/"+datasourceDirectory); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +149,8 @@ func decompressWidgets(portal *unstructured.Data) error {
 
 	w, err := portal.GetByPointer(portalWidgetsPath)
 	if err != nil {
-		return err
+		// this will happen if the portal doesn't have widgets. just return
+		return nil
 	}
 	widgets, err := w.ObValue()
 	if err != nil {
@@ -169,7 +172,7 @@ func decompressWidgets(portal *unstructured.Data) error {
 	if err != nil {
 		return err
 	}
-	portalConfig.SetField("widgets", "___placeholder___")
+	portalConfig.SetField("widgets", "./"+portalConfigDirectory+"/"+widgetsDirectory)
 	return nil
 }
 
@@ -180,7 +183,9 @@ func getOrGenerateWidgetName(widgetData unstructured.Data) string {
 	return name
 }
 
-func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, filePath string) error {
+// currentWidgetRelativePath = portals/empty/config/widgets/HTML_WIDGET_COMPONENT_brand
+// parserSettingRelativePath = parsers/html
+func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, currentWidgetRelativePath, parserSettingRelativePath string) error {
 	found := false
 	if setting.HasKey(incomingParserKey) {
 		raw, _ := setting.GetByPointer("/" + incomingParserKey)
@@ -189,7 +194,7 @@ func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, fil
 		if dataType != dynamicDataType {
 			ip = setting
 		}
-		if err := writeParserFiles(ip, filePath+"/"+incomingParserKey); err != nil {
+		if err := writeParserFiles(ip, currentWidgetRelativePath, filepath.Join(parserSettingRelativePath, incomingParserKey)); err != nil {
 			return err
 		}
 	}
@@ -201,14 +206,14 @@ func writeParserBasedOnDataType(dataType string, setting *unstructured.Data, fil
 		if dataType != dynamicDataType {
 			op = setting
 		}
-		if err := writeParserFiles(op, filePath+"/"+outgoingParserKey); err != nil {
+		if err := writeParserFiles(op, currentWidgetRelativePath, filepath.Join(parserSettingRelativePath, outgoingParserKey)); err != nil {
 			return err
 		}
 	}
 
 	if !found {
 		if setting.HasKey("value") {
-			if err := writeParserFiles(setting, filePath+"/"+incomingParserKey); err != nil {
+			if err := writeParserFiles(setting, currentWidgetRelativePath, filepath.Join(parserSettingRelativePath, incomingParserKey)); err != nil {
 				return err
 			}
 		}
@@ -243,7 +248,11 @@ func createInternalResourceMeta(resourceData *unstructured.Data) (map[string]int
 	rtn := make(map[string]interface{})
 	for _, k := range keys {
 		if k == "file" {
-			rtn[k] = "___placeholder___"
+			fileName, err := resourceData.UnsafeGetField("name").StringValue()
+			if err != nil {
+				return nil, err
+			}
+			rtn[k] = "./" + fileName
 		} else {
 			rtn[k] = resourceData.UnsafeGetField(k).RawValue()
 		}
@@ -289,7 +298,7 @@ func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) e
 		if err != nil {
 			return err
 		}
-		if err := writeParserBasedOnDataType(dataType, &parserSetting, currWidgetDir+"/"+parsersDirectory+"/"+settingName); err != nil {
+		if err := writeParserBasedOnDataType(dataType, &parserSetting, currWidgetDir, filepath.Join(parsersDirectory, settingName)); err != nil {
 			return err
 		}
 		return nil
@@ -306,27 +315,26 @@ func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) e
 	return nil
 }
 
-func writeParserFiles(parserData *unstructured.Data, currWidgetDir string) error {
+func writeParserFiles(parserData *unstructured.Data, currWidgetDir, parserDir string) error {
 	keysToIgnoreInData := map[string]interface{}{}
-	absFilePath := filepath.Join(currWidgetDir, outFile)
+	path := filepath.Join(currWidgetDir, parserDir, outFile)
 
 	value := parserData.UnsafeGetField("value")
-
 	switch value.RawValue().(type) {
 	case string:
 		str, _ := value.StringValue()
-		if err := writeFile(absFilePath+".js", str); err != nil {
+		if err := writeFile(path+jsFileSuffix, str); err != nil {
 			return err
 		}
-		if err := parserData.SetField("value", "___placeholder___"); err != nil {
+		if err := parserData.SetField("value", "./"+filepath.Join(parserDir, outFile)+jsFileSuffix); err != nil {
 			return err
 		}
 	case map[string]interface{}:
 		mapp, _ := value.ObValue()
-		if err := writeWebFiles(absFilePath, mapp, keysToIgnoreInData); err != nil {
+		if err := writeHTMLFiles(path, mapp, keysToIgnoreInData); err != nil {
 			return err
 		}
-		if err := parserData.SetField("value", map[string]interface{}{"placeholder": map[string]interface{}{}}); err != nil {
+		if err := parserData.SetField("value", map[string]interface{}{"CSS": "./" + filepath.Join(parserDir, outFile) + ".css", "HTML": "./" + filepath.Join(parserDir, outFile) + ".html", "JavaScript": "./" + filepath.Join(parserDir, outFile) + ".js"}); err != nil {
 			return err
 		}
 	default:
@@ -336,7 +344,7 @@ func writeParserFiles(parserData *unstructured.Data, currWidgetDir string) error
 	return nil
 }
 
-func writeWebFiles(absFilePath string, data, keysToIgnoreInData map[string]interface{}) error {
+func writeHTMLFiles(absFilePath string, data, keysToIgnoreInData map[string]interface{}) error {
 
 	outjs := recursivelyFindValueForKey(javascriptKey, data, keysToIgnoreInData)
 	outhtml := recursivelyFindValueForKey(htmlKey, data, keysToIgnoreInData)

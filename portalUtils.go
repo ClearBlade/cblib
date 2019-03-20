@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/totherme/unstructured"
@@ -31,6 +32,7 @@ const portalDatasourceMetaFile = "meta.json"
 const datasourceUseParserKey = "USE_PARSER"
 const datasourceParserKey = "DATASOURCE_PARSER"
 const datasourceParserFileName = "parser.js"
+const jsFileSuffix = ".js"
 
 func actOnParserSettings(widgetSettings map[string]interface{}, cb func(string, string) error) error {
 	for settingName, v := range widgetSettings {
@@ -93,4 +95,15 @@ func getDatasourceParser(settings map[string]interface{}) string {
 		return settings[datasourceParserKey].(string)
 	}
 	return ""
+}
+
+func dirExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
