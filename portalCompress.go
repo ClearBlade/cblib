@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/totherme/unstructured"
@@ -22,11 +21,19 @@ func processDataSourceDir(path string, info os.FileInfo, err error) error {
 }
 
 func compressDatasources(portal *unstructured.Data, decompressedPortalDir string) error {
-	myPayloadData, err := portal.GetByPointer("/config/datasources")
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
+	if err != nil {
+		return err
+	}
+	if err := portalConfig.SetField("datasources", map[string]interface{}{}); err != nil {
+		return err
+	}
+	myPayloadData, err := portal.GetByPointer(portalDatasourcesPath)
 
 	if err != nil {
-		return fmt.Errorf("Couldn't address into my own json")
+		return fmt.Errorf("Couldn't address datasources into my own json")
 	}
+
 	datasourcesDir := filepath.Join(decompressedPortalDir, "datasources")
 	filepath.Walk(datasourcesDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -65,22 +72,6 @@ func compressDatasources(portal *unstructured.Data, decompressedPortalDir string
 	})
 
 	return nil
-}
-
-func extractUUiD(dirName string) string {
-	re := regexp.MustCompile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
-	uuidFromDir := re.Find([]byte(dirName))
-	if uuidFromDir == nil {
-		if strings.Contains(dirName, "TEXT_WIDGET_COMPONENT_title") {
-			return "title"
-		} else if strings.Contains(dirName, "TEXT_WIDGET_COMPONENT_flyoutTitle") {
-			return "flyoutTitle"
-		} else if strings.Contains(dirName, "HTML_WIDGET_COMPONENT_brand") {
-			return "brand"
-		}
-		return ""
-	}
-	return string(uuidFromDir)
 }
 
 func recursivelyFindKeyPath(queryKey string, data map[string]interface{}, keysToIgnoreInData map[string]interface{}, keyPath string) string {
@@ -147,17 +138,38 @@ func processParser(currWidgetDir string, parserObj *unstructured.Data, parserTyp
 
 }
 
-func processCurrWidgetDir(path string, data *unstructured.Data) error {
+func mergeMaps(a map[string]interface{}, b map[string]interface{}) {
+	for k, v := range b {
+		a[k] = v
+	}
+}
 
-	widgetSettings, err := data.ObValue()
+func processCurrWidgetDir(path string, allWidgets *unstructured.Data) error {
+
+	widgetMeta, err := getPortalWidgetMetaFile(path)
 	if err != nil {
 		return err
 	}
 
+	widgetSettings, err := getPortalWidgetSettingsFile(path)
+	if err != nil {
+		return err
+	}
+
+	mergeMaps(widgetMeta, map[string]interface{}{"props": widgetSettings})
+	widgetID := widgetMeta["id"].(string)
+	if err := allWidgets.SetField(widgetID, widgetMeta); err != nil {
+		return err
+	}
+
+	myWidget, err := allWidgets.GetByPointer("/" + widgetID)
+	if err != nil {
+		return err
+	}
 	return actOnParserSettings(widgetSettings, func(settingName, dataType string) error {
 		settingDir := path + "/" + parsersDirectory + "/" + settingName
 
-		if setting, err := data.GetByPointer("/props/" + settingName); err == nil {
+		if setting, err := myWidget.GetByPointer("/props/" + settingName); err == nil {
 			found := false
 			if incoming, err := setting.GetByPointer("/" + incomingParserKey); err == nil {
 				found = true
@@ -194,43 +206,19 @@ func processCurrWidgetDir(path string, data *unstructured.Data) error {
 	})
 }
 
-func processOtherValues(currWidgetDir string, widgetsDataObj *unstructured.Data, keysToIgnoreInData map[string]interface{}) error {
-	valueParent := recursivelyFindKeyPath("value", widgetsDataObj.RawValue().(map[string]interface{}), keysToIgnoreInData, "/")
-	if valueParent == "" {
-		return nil
-	}
-	valuePath := filepath.Join("/", valueParent, valueKey)
-	valueParent = filepath.Join("/", valueParent)
-	valueParentData, err := widgetsDataObj.GetByPointer(valueParent)
-	if err != nil {
-		log.Println("Got Err:", err)
-		return err
-	}
-	valueData, err := widgetsDataObj.GetByPointer(valuePath)
-	if err != nil {
-		log.Println("Got Err:", err)
-		return err
-	}
-	switch valueData.RawValue().(type) {
-	case map[string]interface{}:
-		updateObjUsingWebFiles(&valueData, currWidgetDir)
-	case string:
-		currFile := filepath.Join(currWidgetDir, outFile)
-		updateObjFromFile(&valueParentData, currFile, valueKey)
-	default:
-
-	}
-	return nil
-}
-
 func compressWidgets(portal *unstructured.Data, decompressedPortalDir string) error {
-	widgetsDataObj, err := portal.GetByPointer("/config/widgets")
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
 	if err != nil {
-		return fmt.Errorf("Couldn't address into my own json")
+		return err
+	}
+	portalConfig.SetField("widgets", map[string]interface{}{})
+	widgets, err := portal.GetByPointer(portalWidgetsPath)
+	if err != nil {
+		return fmt.Errorf("Couldn't address widgets into my own json")
 	}
 
 	widgetsDir := filepath.Join(decompressedPortalDir, "widgets")
-	filepath.Walk(widgetsDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(widgetsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -242,16 +230,7 @@ func compressWidgets(portal *unstructured.Data, decompressedPortalDir string) er
 			return nil
 		}
 
-		currUUID := extractUUiD(path)
-		if currUUID == "" {
-			return nil
-		}
-		currWidgetData, err := widgetsDataObj.GetByPointer("/" + currUUID)
-		if err != nil {
-			return err
-		}
-
-		return processCurrWidgetDir(path, &currWidgetData)
+		return processCurrWidgetDir(path, &widgets)
 	})
 
 	return nil

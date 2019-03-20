@@ -47,7 +47,7 @@ func decompressDatasources(portal *unstructured.Data) error {
 		return err
 	}
 
-	d, err := portal.GetByPointer("/config/datasources")
+	d, err := portal.GetByPointer(portalDatasourcesPath)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func decompressDatasources(portal *unstructured.Data) error {
 		}
 	}
 
-	portalConfig, err := portal.GetByPointer("/config")
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func decompressWidgets(portal *unstructured.Data) error {
 		}
 	}
 
-	portalConfig, err := portal.GetByPointer("/config")
+	portalConfig, err := portal.GetByPointer(portalConfigPath)
 	if err != nil {
 		return err
 	}
@@ -173,11 +173,11 @@ func writeWidgetMeta(widgetDir string, widgetConfig *unstructured.Data) error {
 			meta[k] = widgetConfig.UnsafeGetField(k).RawValue()
 		}
 	}
-	return writeFile(filepath.Join(widgetDir, "meta.json"), meta)
+	return writeFile(filepath.Join(widgetDir, portalWidgetMetaFile), meta)
 }
 
 func writeWidgetSettings(widgetDir string, widgetConfig *unstructured.Data) error {
-	return writeFile(filepath.Join(widgetDir, "settings.json"), widgetConfig.UnsafeGetField("props").RawValue())
+	return writeFile(filepath.Join(widgetDir, portalWidgetSettingsFile), widgetConfig.UnsafeGetField("props").RawValue())
 }
 
 func writeWidget(portalName, widgetName string, widgetData *unstructured.Data) error {

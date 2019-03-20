@@ -2,7 +2,6 @@ package cblib
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/totherme/unstructured"
 )
@@ -15,18 +14,17 @@ const dynamicDataType = "DYNAMIC_DATA_TYPE"
 const portalConfigDirectory = "config"
 const datasourceDirectory = "datasources"
 const widgetsDirectory = "widgets"
-const portalWidgetsPath = "/config/widgets"
+const portalConfigPath = "/config"
+const portalWidgetsPath = portalConfigPath + "/widgets"
+const portalDatasourcesPath = portalConfigPath + "/datasources"
 const parsersDirectory = "parsers"
 const outgoingParserKey = "outgoing_parser"
 const incomingParserKey = "incoming_parser"
 const valueKey = "value"
+const portalWidgetSettingsFile = "settings.json"
+const portalWidgetMetaFile = "meta.json"
 
-func actOnParserSettings(widgetConfig map[string]interface{}, cb func(string, string) error) error {
-	widgetSettings := make(map[string]interface{})
-	ok := true
-	if widgetSettings, ok = widgetConfig["props"].(map[string]interface{}); !ok {
-		return fmt.Errorf("No props key for widget config")
-	}
+func actOnParserSettings(widgetSettings map[string]interface{}, cb func(string, string) error) error {
 	for settingName, v := range widgetSettings {
 		switch v.(type) {
 		case map[string]interface{}:
@@ -54,4 +52,12 @@ func convertPortalMapToUnstructured(p map[string]interface{}) (*unstructured.Dat
 		return nil, err
 	}
 	return &portalConfig, nil
+}
+
+func getPortalWidgetSettingsFile(widgetDir string) (map[string]interface{}, error) {
+	return getDict(widgetDir + "/" + portalWidgetSettingsFile)
+}
+
+func getPortalWidgetMetaFile(widgetDir string) (map[string]interface{}, error) {
+	return getDict(widgetDir + "/" + portalWidgetMetaFile)
 }
