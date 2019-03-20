@@ -116,14 +116,6 @@ func decompressDatasources(portal *unstructured.Data) error {
 	return nil
 }
 
-func getDatasourceParser(settings map[string]interface{}) string {
-	useParser, ok := settings[datasourceUseParserKey].(bool)
-	if ok && useParser == true {
-		return settings[datasourceParserKey].(string)
-	}
-	return ""
-}
-
 func writeDatasource(portalName, dataSourceName string, data map[string]interface{}) error {
 	myDatasourceDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, datasourceDirectory, dataSourceName)
 	if err := os.MkdirAll(myDatasourceDir, 0777); err != nil {

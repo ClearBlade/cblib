@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/totherme/unstructured"
 )
@@ -39,11 +38,11 @@ func compressDatasources(portal *unstructured.Data, decompressedPortalDir string
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if !isInsideDirectory(datasourceDirectory, path) {
 			return nil
 		}
 
-		currDS, err := readFileAsString(path)
+		currDS, err := readFileAsString(path + "/" + portalDatasourceMetaFile)
 		if err != nil {
 			return err
 		}
@@ -51,6 +50,23 @@ func compressDatasources(portal *unstructured.Data, decompressedPortalDir string
 		if err != nil {
 			return err
 		}
+		dsSettings, err := currDSObj.GetByPointer("/settings")
+		if err != nil {
+			return err
+		}
+
+		dsSettingsMap, err := dsSettings.ObValue()
+		if err != nil {
+			return err
+		}
+		if hasDatasourceParser(dsSettingsMap) {
+			parserFile, err := readFileAsString(path + "/" + datasourceParserFileName)
+			if err != nil {
+				return err
+			}
+			dsSettings.SetField(datasourceParserKey, parserFile)
+		}
+
 		dsID, err := currDSObj.GetByPointer("/id")
 		if err != nil {
 			return err
@@ -250,8 +266,7 @@ func compressWidgets(portal *unstructured.Data, decompressedPortalDir string) er
 		if !info.IsDir() {
 			return nil
 		}
-		split := strings.Split(path, "/")
-		if split[len(split)-2] != widgetsDirectory {
+		if !isInsideDirectory(widgetsDirectory, path) {
 			return nil
 		}
 
@@ -282,8 +297,7 @@ func compressInternalResources(portal *unstructured.Data, decompressedPortalDir 
 		if !info.IsDir() {
 			return nil
 		}
-		split := strings.Split(path, "/")
-		if split[len(split)-2] != internalResourcesDirectory {
+		if !isInsideDirectory(internalResourcesDirectory, path) {
 			return nil
 		}
 

@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/totherme/unstructured"
 )
@@ -26,6 +27,7 @@ const valueKey = "value"
 const portalWidgetSettingsFile = "settings.json"
 const portalWidgetMetaFile = "meta.json"
 const portalInternalResourceMetaFile = "meta.json"
+const portalDatasourceMetaFile = "meta.json"
 const datasourceUseParserKey = "USE_PARSER"
 const datasourceParserKey = "DATASOURCE_PARSER"
 const datasourceParserFileName = "parser.js"
@@ -74,4 +76,21 @@ func getPortalInternalResourceMetaFile(internalResourceDir string) (map[string]i
 
 func getPortalInternalResourceCode(internalResourceDir, fileName string) (string, error) {
 	return readFileAsString(internalResourceDir + "/" + fileName)
+}
+
+func isInsideDirectory(dir, currentPath string) bool {
+	split := strings.Split(currentPath, "/")
+	return split[len(split)-2] == dir
+}
+
+func hasDatasourceParser(settings map[string]interface{}) bool {
+	useParser, ok := settings[datasourceUseParserKey].(bool)
+	return ok && useParser
+}
+
+func getDatasourceParser(settings map[string]interface{}) string {
+	if hasDatasourceParser(settings) {
+		return settings[datasourceParserKey].(string)
+	}
+	return ""
 }
