@@ -116,13 +116,34 @@ func decompressDatasources(portal *unstructured.Data) error {
 	return nil
 }
 
+func getDatasourceParser(settings map[string]interface{}) string {
+	useParser, ok := settings[datasourceUseParserKey].(bool)
+	if ok && useParser == true {
+		return settings[datasourceParserKey].(string)
+	}
+	return ""
+}
+
 func writeDatasource(portalName, dataSourceName string, data map[string]interface{}) error {
-	currentFileName := dataSourceName
-	currDsDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, datasourceDirectory)
-	if err := os.MkdirAll(currDsDir, 0777); err != nil {
+	myDatasourceDir := filepath.Join(portalsDir, portalName, portalConfigDirectory, datasourceDirectory, dataSourceName)
+	if err := os.MkdirAll(myDatasourceDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(currDsDir, currentFileName, data)
+
+	settings, ok := data["settings"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("No datasource settings for '%s'", dataSourceName)
+	}
+
+	dsParser := getDatasourceParser(settings)
+	if dsParser != "" {
+		settings[datasourceParserKey] = "./" + datasourceParserFileName
+		if err := writeFile(myDatasourceDir+"/"+datasourceParserFileName, dsParser); err != nil {
+			return err
+		}
+	}
+
+	return writeEntity(myDatasourceDir, "meta", data)
 }
 
 func decompressWidgets(portal *unstructured.Data) error {

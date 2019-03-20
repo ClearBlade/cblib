@@ -26,6 +26,9 @@ const valueKey = "value"
 const portalWidgetSettingsFile = "settings.json"
 const portalWidgetMetaFile = "meta.json"
 const portalInternalResourceMetaFile = "meta.json"
+const datasourceUseParserKey = "USE_PARSER"
+const datasourceParserKey = "DATASOURCE_PARSER"
+const datasourceParserFileName = "parser.js"
 
 func actOnParserSettings(widgetSettings map[string]interface{}, cb func(string, string) error) error {
 	for settingName, v := range widgetSettings {
