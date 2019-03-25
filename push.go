@@ -1920,7 +1920,21 @@ func updateRole(systemKey string, role map[string]interface{}, collectionsInfo [
 		return err
 	}
 	if err := client.UpdateRole(systemKey, roleName, updateRoleBody); err != nil {
-		return fmt.Errorf("Role %s not updated; Error - %s\n", roleName, err.Error())
+		fmt.Printf("Could not update role '%s'. Error is - %s\n", roleName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new role named %s?", roleName))
+		if err != nil {
+			return err
+		} else {
+			if c {
+				if err := createRole(systemKey, role, collectionsInfo, client); err != nil {
+					return fmt.Errorf("Could not create role %s: %s", roleName, err.Error())
+				} else {
+					fmt.Printf("Successfully created new role %s\n", roleName)
+				}
+			} else {
+				fmt.Printf("Role will not be created.\n")
+			}
+		}
 	}
 	return nil
 }
