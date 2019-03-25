@@ -880,16 +880,35 @@ func pushDeployment(systemInfo *System_meta, cli *cb.DevClient, name string) err
 }
 
 func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, dep map[string]interface{}) error {
+	skipCreation := false
 	// fetch deployment
 	backendDep, err := cli.GetDeploymentByName(systemInfo.Key, name)
 	if err != nil {
-		return err
+		fmt.Printf("Could not update deployment '%s'. Failed to get deployment by name. Error is - %s\n", name, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new deployment named %s?", name))
+		if err != nil {
+			return err
+		} else {
+			if c {
+				var createErr error
+				if backendDep, createErr = createDeployment(systemInfo.Key, dep, cli); createErr != nil {
+					return fmt.Errorf("Could not create deployment %s: %s", name, err.Error())
+				} else {
+					fmt.Printf("Successfully created new deployment %s\n", name)
+				}
+			} else {
+				fmt.Printf("Deployment will not be created.\n")
+				skipCreation = true
+			}
+		}
 	}
 
-	// diff backend deployment and local deployment
-	theDiff := diffDeployments(dep, backendDep)
-	if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
-		return err
+	if !skipCreation {
+		// diff backend deployment and local deployment
+		theDiff := diffDeployments(dep, backendDep)
+		if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
+			return err
+		}
 	}
 
 	return nil
