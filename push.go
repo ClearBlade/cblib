@@ -51,6 +51,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllTriggers, "all-triggers", false, "push all of the local triggers")
 	pushCommand.flags.BoolVar(&AllTimers, "all-timers", false, "push all of the local timers")
 	pushCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "push all of the local deployments")
+	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")

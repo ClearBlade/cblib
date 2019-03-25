@@ -424,6 +424,10 @@ func logWarning(info string) {
 }
 
 func confirmPrompt(question string) (bool, error) {
+	if AutoApprove {
+		fmt.Println("-auto-approve is true. Creating entity...")
+		return true, nil
+	}
 	fmt.Printf("%s (Y/n)", question)
 	reader := bufio.NewReader(os.Stdin)
 	if text, err := reader.ReadString('\n'); err != nil {
