@@ -94,7 +94,7 @@ func pushOneService(systemInfo *System_meta, client *cb.DevClient, name string) 
 	if err != nil {
 		return err
 	}
-	return updateService(systemInfo.Key, service, client)
+	return updateService(systemInfo.Key, name, service, client)
 }
 
 func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
@@ -534,8 +534,9 @@ func pushAllServices(systemInfo *System_meta, client *cb.DevClient) error {
 		return err
 	}
 	for _, service := range services {
-		fmt.Printf("Pushing service %+s\n", service["name"].(string))
-		if err := updateService(systemInfo.Key, service, client); err != nil {
+		name := service["name"].(string)
+		fmt.Printf("Pushing service %+s\n", name)
+		if err := updateService(systemInfo.Key, name, service, client); err != nil {
 			return fmt.Errorf("Error updating service '%s': %s\n", service["name"].(string), err.Error())
 		}
 	}
@@ -1187,6 +1188,7 @@ func updateUser(meta *System_meta, user map[string]interface{}, client *cb.DevCl
 						if err != nil {
 							return fmt.Errorf("Could not create user %s: %s", email, err.Error())
 						} else {
+							// tack the new user id onto the user object so it can be used in subsequent requests
 							user["user_id"] = id
 							fmt.Printf("Successfully created new user %s\n", email)
 						}
@@ -1566,26 +1568,22 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 	return nil, fmt.Errorf(NotExistErrorString)
 }
 
-func updateService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
-	svcName := service["name"].(string)
-	if ServiceName != "" {
-		svcName = ServiceName
-	}
+func updateService(systemKey, name string, service map[string]interface{}, client *cb.DevClient) error {
 	svcCode := service["code"].(string)
 
 	extra := getServiceBody(service)
-	_, err := client.UpdateServiceWithBody(systemKey, svcName, svcCode, extra)
+	_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
 	if err != nil {
-		fmt.Printf("Could not update service '%s'. Error is - %s\n", svcName, err.Error())
-		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new service named %s?", svcName))
+		fmt.Printf("Could not update service '%s'. Error is - %s\n", name, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new service named %s?", name))
 		if err != nil {
 			return err
 		} else {
 			if c {
 				if err := createService(systemKey, service, client); err != nil {
-					return fmt.Errorf("Could not create service %s: %s", svcName, err.Error())
+					return fmt.Errorf("Could not create service %s: %s", name, err.Error())
 				} else {
-					fmt.Printf("Successfully created new service %s\n", svcName)
+					fmt.Printf("Successfully created new service %s\n", name)
 				}
 			} else {
 				fmt.Printf("Service will not be created.\n")
