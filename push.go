@@ -268,7 +268,7 @@ func pushOneUser(systemInfo *System_meta, client *cb.DevClient, email string) er
 	if err != nil {
 		return err
 	}
-	return updateUser(systemInfo.Key, user, client)
+	return updateUser(systemInfo, user, client)
 }
 
 func pushOneUserById(systemInfo *System_meta, client *cb.DevClient, wantedId string) error {
@@ -283,7 +283,7 @@ func pushOneUserById(systemInfo *System_meta, client *cb.DevClient, wantedId str
 			continue
 		}
 		if id == wantedId {
-			return updateUser(systemInfo.Key, user, client)
+			return updateUser(systemInfo, user, client)
 		}
 	}
 	return fmt.Errorf("User with user_id %+s not found.", wantedId)
@@ -1166,12 +1166,40 @@ func getMap(val interface{}) map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-func updateUser(systemKey string, user map[string]interface{}, client *cb.DevClient) error {
-	if id, ok := user["user_id"].(string); !ok {
+func updateUser(meta *System_meta, user map[string]interface{}, client *cb.DevClient) error {
+	var id string
+	var ok bool
+	if id, ok = user["user_id"].(string); !ok {
 		return fmt.Errorf("Missing user id %+v", user)
 	} else {
+		if email, ok := user["email"].(string); !ok {
+			return fmt.Errorf("Missing user email %+v", user)
+		} else {
+			_, err := client.GetUserInfo(meta.Key, email)
+			if err != nil {
+				fmt.Printf("Could not update user '%s'. Error is - %s\n", email, err.Error())
+				c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new user with email %s?", email))
+				if err != nil {
+					return err
+				} else {
+					if c {
+						id, err = createUser(meta.Key, meta.Secret, user, client)
+						if err != nil {
+							return fmt.Errorf("Could not create user %s: %s", email, err.Error())
+						} else {
+							user["user_id"] = id
+							fmt.Printf("Successfully created new user %s\n", email)
+						}
+					} else {
+						fmt.Printf("User will not be created.\n")
+						return nil
+					}
+				}
+			}
+		}
+
 		localRoles := user["roles"]
-		backendUserRoles, err := client.GetUserRoles(systemKey, id)
+		backendUserRoles, err := client.GetUserRoles(meta.Key, id)
 		if err != nil {
 			return err
 		}
@@ -1180,7 +1208,7 @@ func updateUser(systemKey string, user map[string]interface{}, client *cb.DevCli
 			"add":    convertInterfaceSliceToStringSlice(roleDiff.add),
 			"delete": convertInterfaceSliceToStringSlice(roleDiff.remove),
 		}
-		return client.UpdateUser(systemKey, id, user)
+		return client.UpdateUser(meta.Key, id, user)
 	}
 }
 
