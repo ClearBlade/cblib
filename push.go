@@ -1,7 +1,6 @@
 package cblib
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -888,7 +887,6 @@ func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, d
 
 	// diff backend deployment and local deployment
 	theDiff := diffDeployments(dep, backendDep)
-	fmt.Printf("send this: %+v\n", theDiff)
 	if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
 		return err
 	}
@@ -1231,13 +1229,12 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 	delete(trigger, "name")
 	delete(trigger, "event_definition")
 	if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
-		fmt.Printf("Could not find trigger %s\n", triggerName)
-		fmt.Printf("Would you like to create a new trigger named %s? (Y/n)", triggerName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update trigger '%s'. Error is - %s\n", triggerName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new trigger named %s?", triggerName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if _, err := client.CreateEventHandler(systemKey, triggerName, trigger); err != nil {
 					return fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
 				} else {
@@ -1272,13 +1269,12 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 		timer["start_time"] = time.Now().Format(time.RFC3339)
 	}
 	if _, err := client.UpdateTimer(systemKey, timerName, timer); err != nil {
-		fmt.Printf("Could not find timer %s\n", timerName)
-		fmt.Printf("Would you like to create a new timer named %s? (Y/n)", timerName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update timer '%s'. Error is - %s\n", timerName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new timer named %s?", timerName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if _, err := client.CreateTimer(systemKey, timerName, timer); err != nil {
 					return fmt.Errorf("Could not create timer %s: %s", timerName, err.Error())
 				} else {
@@ -1323,13 +1319,12 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 	}
 
 	if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
-		fmt.Printf("Could not find device %s\n", deviceName)
-		fmt.Printf("Would you like to create a new device named %s? (Y/n)", deviceName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update device '%s'. Error is - %s\n", deviceName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new device named %s?", deviceName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				device["name"] = deviceName
 				if _, err := client.CreateDevice(systemKey, deviceName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create device %s: %s", deviceName, err.Error())
@@ -1389,13 +1384,12 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 	_, err := client.GetEdge(systemKey, edgeName)
 	if err != nil {
 		// Edge does not exist
-		fmt.Printf("Could not find edge %s\n", edgeName)
-		fmt.Printf("Would you like to create a new edge named %s? (Y/n)", edgeName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update edge '%s'. Error is - %s\n", edgeName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new edge named %s?", edgeName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if _, err := client.CreateEdge(systemKey, edgeName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create edge %s: %s", edgeName, err.Error())
 				} else {
@@ -1433,21 +1427,19 @@ func updatePortal(systemKey string, portal map[string]interface{}, client *cb.De
 	_, err := client.GetPortal(systemKey, portalName)
 	if err != nil {
 		// Portal DNE
-		fmt.Printf("Could not find portal %s\n", portalName)
-		fmt.Printf("Would you like to create a new portal named %s? (Y/n)", portalName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update portal '%s'. Error is - %s\n", portalName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new portal named %s?", portalName))
+		if err != nil {
 			return err
-		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
-				if _, err := client.CreatePortal(systemKey, portalName, portal); err != nil {
-					return fmt.Errorf("Could not create portal %s: %s", portalName, err.Error())
-				} else {
-					fmt.Printf("Successfully created new portal %s\n", portalName)
-				}
-			} else {
-				fmt.Printf("Portal will not be created.\n")
+		}
+
+		if c {
+			if _, err := client.CreatePortal(systemKey, portalName, portal); err != nil {
+				return fmt.Errorf("Could not create portal %s: %s", portalName, err.Error())
 			}
+			fmt.Printf("Successfully created new portal %s\n", portalName)
+		} else {
+			fmt.Printf("Portal will not be created.\n")
 		}
 	} else {
 		client.UpdatePortal(systemKey, portalName, portal)
@@ -1463,12 +1455,11 @@ func updatePlugin(systemKey string, plugin map[string]interface{}, client *cb.De
 	if err != nil {
 		// plugin DNE
 		fmt.Printf("Could not find plugin %s\n", pluginName)
-		fmt.Printf("Would you like to create a new plugin named %s? (Y/n)", pluginName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new plugin named %s?", pluginName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if _, err := client.CreatePlugin(systemKey, plugin); err != nil {
 					return fmt.Errorf("Could not create plugin %s: %s", pluginName, err.Error())
 				} else {
@@ -1495,20 +1486,19 @@ func handleUpdateAdaptor(systemKey string, adaptor *models.Adaptor, client *cb.D
 	_, err := client.GetAdaptor(systemKey, adaptorName)
 	if err != nil {
 		// adaptor DNE
-		fmt.Printf("Could not find adaptor %s\n", adaptorName)
-		fmt.Printf("Would you like to create a new adaptor named %s? (Y/n)", adaptorName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update adapter '%s'. Error is - %s\n", adaptorName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new adapter named %s?", adaptorName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if err := createAdaptor(adaptor); err != nil {
-					return fmt.Errorf("Could not create adaptor %s: %s", adaptorName, err.Error())
+					return fmt.Errorf("Could not create adapter %s: %s", adaptorName, err.Error())
 				} else {
-					fmt.Printf("Successfully created new adaptor %s\n", adaptorName)
+					fmt.Printf("Successfully created new adapter %s\n", adaptorName)
 				}
 			} else {
-				fmt.Printf("Adaptor will not be created.\n")
+				fmt.Printf("Adapter will not be created.\n")
 			}
 		}
 	} else {
@@ -1541,13 +1531,12 @@ func updateService(systemKey string, service map[string]interface{}, client *cb.
 	extra := getServiceBody(service)
 	_, err := client.UpdateServiceWithBody(systemKey, svcName, svcCode, extra)
 	if err != nil {
-		fmt.Printf("Could not find service %s\n", svcName)
-		fmt.Printf("Would you like to create a new service named %s? (Y/n)", svcName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update service '%s'. Error is - %s\n", svcName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new service named %s?", svcName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				if err := createService(systemKey, service, client); err != nil {
 					return fmt.Errorf("Could not create service %s: %s", svcName, err.Error())
 				} else {
@@ -1622,13 +1611,12 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 	delete(library, "version")
 	_, err := client.UpdateLibrary(systemKey, libName, library)
 	if err != nil {
-		fmt.Printf("Could not find library %s\n", libName)
-		fmt.Printf("Would you like to create a new library named %s? (Y/n)", libName)
-		reader := bufio.NewReader(os.Stdin)
-		if text, err := reader.ReadString('\n'); err != nil {
+		fmt.Printf("Could not update library '%s'. Error is - %s\n", libName, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new library named %s?", libName))
+		if err != nil {
 			return err
 		} else {
-			if strings.Contains(strings.ToUpper(text), "Y") {
+			if c {
 				library["name"] = libName
 				if err := createLibrary(systemKey, library, client); err != nil {
 					return fmt.Errorf("Could not create library %s: %s", libName, err.Error())
