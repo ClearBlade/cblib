@@ -1669,13 +1669,10 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 	if !ok {
 		return fmt.Errorf("No name in collection json file: %+v\n", collection)
 	}
-	skipCreation := false
-	// here's our workflow for updating a collection:
-	// 1) diff and update the collection schema
-	// 2) attempt to update all of our items
-	// 3) if update fails, we assume the item doesn't exist, so we create the item
-	if err := pushCollectionSchema(meta, client, collection_name); err != nil {
-		fmt.Printf("Could not update collection '%s'. Error is - %s\n", collection_name, err.Error())
+
+	_, err := client.GetDataTotalByName(meta.Key, collection_name, cb.NewQuery())
+	if err != nil {
+		fmt.Printf("Could not update collection '%s'. Collection does not exist on backend. Error is - %s\n", collection_name, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new collection named %s?", collection_name))
 		if err != nil {
 			return err
@@ -1687,24 +1684,29 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 					fmt.Printf("Successfully created new collection %s\n", collection_name)
 				}
 			} else {
-				skipCreation = true
 				fmt.Printf("Collection will not be created.\n")
+				return nil
 			}
 		}
+	}
+
+	// here's our workflow for updating a collection:
+	// 1) diff and update the collection schema
+	// 2) attempt to update all of our items
+	// 3) if update fails, we assume the item doesn't exist, so we create the item
+	if err := pushCollectionSchema(meta, client, collection_name); err != nil {
 		return err
 	}
 
-	if !skipCreation {
-		items := collection["items"].([]interface{})
-		for _, row := range items {
-			query := cb.NewQuery()
-			query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
-			if resp, err := client.UpdateDataByName(meta.Key, collection_name, query, row.(map[string]interface{})); err != nil {
-				fmt.Printf("Error updating item '%s'. Skipping. Error is - %s\n", row.(map[string]interface{})["item_id"], err.Error())
-			} else if resp.Count == 0 {
-				if err := client.CreateDataByName(meta.Key, collection_name, row.(map[string]interface{})); err != nil {
-					return fmt.Errorf("Failed to create item. Error is - %s", err.Error())
-				}
+	items := collection["items"].([]interface{})
+	for _, row := range items {
+		query := cb.NewQuery()
+		query.EqualTo("item_id", row.(map[string]interface{})["item_id"])
+		if resp, err := client.UpdateDataByName(meta.Key, collection_name, query, row.(map[string]interface{})); err != nil {
+			fmt.Printf("Error updating item '%s'. Skipping. Error is - %s\n", row.(map[string]interface{})["item_id"], err.Error())
+		} else if resp.Count == 0 {
+			if err := client.CreateDataByName(meta.Key, collection_name, row.(map[string]interface{})); err != nil {
+				return fmt.Errorf("Failed to create item. Error is - %s", err.Error())
 			}
 		}
 	}
