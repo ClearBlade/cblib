@@ -880,7 +880,6 @@ func pushDeployment(systemInfo *System_meta, cli *cb.DevClient, name string) err
 }
 
 func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, dep map[string]interface{}) error {
-	skipCreation := false
 	// fetch deployment
 	backendDep, err := cli.GetDeploymentByName(systemInfo.Key, name)
 	if err != nil {
@@ -898,17 +897,15 @@ func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, d
 				}
 			} else {
 				fmt.Printf("Deployment will not be created.\n")
-				skipCreation = true
+				return nil
 			}
 		}
 	}
 
-	if !skipCreation {
-		// diff backend deployment and local deployment
-		theDiff := diffDeployments(dep, backendDep)
-		if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
-			return err
-		}
+	// diff backend deployment and local deployment
+	theDiff := diffDeployments(dep, backendDep)
+	if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
+		return err
 	}
 
 	return nil
