@@ -21,6 +21,9 @@ func init() {
 
 	example :=
 		`
+	cb-cli push -all							# Push all assets up to Platform
+	cb-cli push -all -auto-approve				# Push all assets up to Platform and automatically confirm any prompts for creating new assets
+	cb-cli push -all-services -all-portals		# Push all services and all portals up to Platform
 	cb-cli push -service=Service1				# Push a code service up to Platform
 	cb-cli push -collection=Collection1			# Push a code service up to Platform
 	`
