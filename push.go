@@ -1025,13 +1025,14 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				}
 				cols := make([]map[string]interface{}, 0)
 				for _, mapVal := range collections {
-					id, err := getCollectionIdByName(mapVal["Name"].(string), collectionsInfo)
+					collName := mapVal["Name"].(string)
+					id, err := getCollectionIdByName(collName, collectionsInfo)
 					if err != nil {
-						fmt.Printf("Skipping permissions for collection '%s'; Error is - %s", mapVal["Name"].(string), err.Error())
+						fmt.Printf("Skipping permissions for collection '%s'; Error is - %s", collName, err.Error())
 						continue
 					}
 					cols = append(cols, map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"id": id},
+						"itemInfo":    map[string]interface{}{"id": id, "name": collName},
 						"permissions": mapVal["Level"],
 					})
 				}
@@ -1991,7 +1992,9 @@ func updateRole(systemKey string, role map[string]interface{}, collectionsInfo [
 			return err
 		}
 		if err := client.UpdateRole(systemKey, roleName, updateRoleBody); err != nil {
-			fmt.Printf("Failed to update role '%s'. Request body is - %+v\n", roleName, updateRoleBody)
+			if byts, err := json.Marshal(updateRoleBody); err == nil {
+				fmt.Printf("Failed to update role '%s'. Request body is - \n%s\n", roleName, string(byts))
+			}
 			return err
 		}
 	}
