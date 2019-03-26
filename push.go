@@ -1272,14 +1272,15 @@ func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.Dev
 
 func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.DevClient) error {
 	triggerName := trigger["name"].(string)
+
 	triggerDef := trigger["event_definition"].(map[string]interface{})
 	trigger["def_module"] = triggerDef["def_module"]
 	trigger["def_name"] = triggerDef["def_name"]
 	trigger["system_key"] = systemKey
-	delete(trigger, "name")
 	delete(trigger, "event_definition")
-	if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
-		fmt.Printf("Could not update trigger '%s'. Error is - %s\n", triggerName, err.Error())
+
+	if _, err := pullTrigger(systemKey, triggerName, client); err != nil {
+		fmt.Printf("Could not find trigger '%s'. Error is - %s\n", triggerName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new trigger named %s?", triggerName))
 		if err != nil {
 			return err
@@ -1292,8 +1293,15 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 				}
 			} else {
 				fmt.Printf("Trigger will not be created.\n")
+				return nil
 			}
 		}
+	}
+
+	delete(trigger, "name")
+
+	if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
+		return err
 	}
 	return nil
 }
