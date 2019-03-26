@@ -1724,7 +1724,7 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 
 	_, err := client.GetDataTotalByName(meta.Key, collection_name, cb.NewQuery())
 	if err != nil {
-		fmt.Printf("Could not update collection '%s'. Collection does not exist on backend. Error is - %s\n", collection_name, err.Error())
+		fmt.Printf("Could not find collection '%s'. Error is - %s\n", collection_name, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new collection named %s?", collection_name))
 		if err != nil {
 			return err
