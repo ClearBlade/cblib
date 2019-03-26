@@ -1687,15 +1687,17 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 				}
 			} else {
 				fmt.Printf("Library will not be created.\n")
-				return nil
 			}
 		}
-	}
+	} else {
 
-	delete(library, "name")
-	delete(library, "version")
-	_, err := client.UpdateLibrary(systemKey, libName, library)
-	return err
+		delete(library, "name")
+		delete(library, "version")
+		if _, err := client.UpdateLibrary(systemKey, libName, library); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func createLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
