@@ -1381,14 +1381,14 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 		}
 	}
 
-	if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
-		fmt.Printf("Could not update device '%s'. Error is - %s\n", deviceName, err.Error())
+	if _, err := pullDevice(systemKey, deviceName, client); err != nil {
+		fmt.Printf("Could not find device '%s'. Error is - %s\n", deviceName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new device named %s?", deviceName))
 		if err != nil {
 			return err
 		} else {
 			if c {
-				device["name"] = deviceName
+				originalColumns["name"] = deviceName
 				if _, err := client.CreateDevice(systemKey, deviceName, originalColumns); err != nil {
 					return fmt.Errorf("Could not create device %s: %s", deviceName, err.Error())
 				} else {
@@ -1401,6 +1401,10 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 			} else {
 				fmt.Printf("Device will not be created.\n")
 			}
+		}
+	} else {
+		if _, err := client.UpdateDevice(systemKey, deviceName, device); err != nil {
+			return err
 		}
 	}
 	return nil
