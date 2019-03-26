@@ -1601,17 +1601,18 @@ func updateService(systemKey, name string, service map[string]interface{}, clien
 				}
 			} else {
 				fmt.Printf("Service will not be created.\n")
-				return nil
 			}
 		}
-	}
+	} else {
 
-	svcCode := service["code"].(string)
+		svcCode := service["code"].(string)
 
-	extra := getServiceBody(service)
-	_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
-	if err != nil {
-		return err
+		extra := getServiceBody(service)
+		_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
+		if err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
