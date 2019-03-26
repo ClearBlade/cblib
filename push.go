@@ -1293,15 +1293,15 @@ func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.
 				}
 			} else {
 				fmt.Printf("Trigger will not be created.\n")
-				return nil
 			}
 		}
-	}
+	} else {
 
-	delete(trigger, "name")
+		delete(trigger, "name")
 
-	if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
-		return err
+		if _, err := client.UpdateEventHandler(systemKey, triggerName, trigger); err != nil {
+			return err
+		}
 	}
 	return nil
 }
