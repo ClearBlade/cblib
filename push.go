@@ -1341,13 +1341,12 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 				}
 			} else {
 				fmt.Printf("Timer will not be created.\n")
-				return nil
 			}
 		}
-	}
-
-	if _, err := client.UpdateTimer(systemKey, timerName, timer); err != nil {
-		return err
+	} else {
+		if _, err := client.UpdateTimer(systemKey, timerName, timer); err != nil {
+			return err
+		}
 	}
 	return nil
 }
