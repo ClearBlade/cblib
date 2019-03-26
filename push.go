@@ -1572,12 +1572,9 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 }
 
 func updateService(systemKey, name string, service map[string]interface{}, client *cb.DevClient) error {
-	svcCode := service["code"].(string)
 
-	extra := getServiceBody(service)
-	_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
-	if err != nil {
-		fmt.Printf("Could not update service '%s'. Error is - %s\n", name, err.Error())
+	if _, err := pullService(systemKey, name, client); err != nil {
+		fmt.Printf("Could not find service '%s'. Error is - %s\n", name, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new service named %s?", name))
 		if err != nil {
 			return err
@@ -1590,8 +1587,17 @@ func updateService(systemKey, name string, service map[string]interface{}, clien
 				}
 			} else {
 				fmt.Printf("Service will not be created.\n")
+				return nil
 			}
 		}
+	}
+
+	svcCode := service["code"].(string)
+
+	extra := getServiceBody(service)
+	_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
+	if err != nil {
+		return err
 	}
 	return nil
 }
