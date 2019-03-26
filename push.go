@@ -1656,14 +1656,9 @@ func createService(systemKey string, service map[string]interface{}, client *cb.
 
 func updateLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
 	libName := library["name"].(string)
-	if LibraryName != "" {
-		libName = LibraryName
-	}
-	delete(library, "name")
-	delete(library, "version")
-	_, err := client.UpdateLibrary(systemKey, libName, library)
-	if err != nil {
-		fmt.Printf("Could not update library '%s'. Error is - %s\n", libName, err.Error())
+
+	if _, err := pullLibrary(systemKey, libName, client); err != nil {
+		fmt.Printf("Could not find library '%s'. Error is - %s\n", libName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new library named %s?", libName))
 		if err != nil {
 			return err
@@ -1677,10 +1672,15 @@ func updateLibrary(systemKey string, library map[string]interface{}, client *cb.
 				}
 			} else {
 				fmt.Printf("Library will not be created.\n")
+				return nil
 			}
 		}
 	}
-	return nil
+
+	delete(library, "name")
+	delete(library, "version")
+	_, err := client.UpdateLibrary(systemKey, libName, library)
+	return err
 }
 
 func createLibrary(systemKey string, library map[string]interface{}, client *cb.DevClient) error {
