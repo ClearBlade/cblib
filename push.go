@@ -1965,16 +1965,9 @@ func createAdaptor(adap *models.Adaptor) error {
 
 func updateRole(systemKey string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
-	roleID, err := getRoleIdByName(roleName)
-	if err != nil {
-		return fmt.Errorf("Error updating role: %s", err.Error())
-	}
-	updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo)
-	if err != nil {
-		return err
-	}
-	if err := client.UpdateRole(systemKey, roleName, updateRoleBody); err != nil {
-		fmt.Printf("Could not update role '%s'. Error is - %s\n", roleName, err.Error())
+
+	if _, err := pullRole(systemKey, roleName, client); err != nil {
+		fmt.Printf("Could not find role '%s'. Error is - %s\n", roleName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new role named %s?", roleName))
 		if err != nil {
 			return err
@@ -1988,6 +1981,18 @@ func updateRole(systemKey string, role map[string]interface{}, collectionsInfo [
 			} else {
 				fmt.Printf("Role will not be created.\n")
 			}
+		}
+	} else {
+		roleID, err := getRoleIdByName(roleName)
+		if err != nil {
+			return fmt.Errorf("Error updating role: %s", err.Error())
+		}
+		updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo)
+		if err != nil {
+			return err
+		}
+		if err := client.UpdateRole(systemKey, roleName, updateRoleBody); err != nil {
+			return err
 		}
 	}
 	return nil
