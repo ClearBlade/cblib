@@ -432,7 +432,6 @@ func paginateRequests(systemKey string, pageSize int, cf countRequestFunc, df da
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("got data", len(data))
 		rtn = append(rtn, data...)
 	}
 	return rtn, nil
