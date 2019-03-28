@@ -339,9 +339,13 @@ func storeMeta(meta *System_meta) {
 	systemDotJSON["auth"] = true
 }
 
+func pullAllEdges(systemKey string, cli *cb.DevClient) ([]interface{}, error) {
+	return paginateRequests(systemKey, DataPageSize, cli.GetEdgesCountWithQuery, cli.GetEdgesWithQuery)
+}
+
 func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
-	allEdges, err := cli.GetEdges(sysKey)
+	allEdges, err := pullAllEdges(sysKey, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -414,25 +418,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 }
 
 func pullAllDevices(systemKey string, cli *cb.DevClient) ([]interface{}, error) {
-	pageSize := DataPageSize
-	query := cb.NewQuery()
-	r, err := cli.GetDevicesCount(systemKey, query)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to fetch devices count - %s", err.Error())
-	}
-
-	rtn := make([]interface{}, 0)
-	for i := 0; i*pageSize < int(r.Count); i++ {
-		pageQuery := cb.NewQuery()
-		pageQuery.PageNumber = i + 1
-		pageQuery.PageSize = pageSize
-		devices, err := cli.GetDevices(systemKey, pageQuery)
-		if err != nil {
-			return nil, err
-		}
-		rtn = append(rtn, devices...)
-	}
-	return rtn, nil
+	return paginateRequests(systemKey, DataPageSize, cli.GetDevicesCount, cli.GetDevices)
 }
 
 func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
