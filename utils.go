@@ -519,3 +519,13 @@ func replaceEmailWithUserIdInTriggerKeyValuePairs(trig map[string]interface{}, u
 		}
 	}
 }
+
+func replaceEmailWithUserIdForServiceRunAs(service map[string]interface{}, usersInfo []UserInfo) {
+	if email, ok := service[runUserKey]; ok {
+		for i := 0; i < len(usersInfo); i++ {
+			if usersInfo[i].Email == email {
+				service[runUserKey] = usersInfo[i].UserID
+			}
+		}
+	}
+}

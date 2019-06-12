@@ -1626,6 +1626,11 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	return ret
 }
 
+func createServiceWithUpdatedInfo(systemKey string, service map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) error {
+	replaceEmailWithUserIdForServiceRunAs(service, usersInfo)
+	return createService(systemKey, service, client)
+}
+
 func createService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {
 	svcName := service["name"].(string)
 	if ServiceName != "" {
