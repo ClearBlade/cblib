@@ -330,7 +330,7 @@ func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient, name string) 
 	if err != nil {
 		return err
 	}
-	return updateTrigger(systemInfo.Key, trigger, client)
+	return updateTriggerWithUpdatedInfo(systemInfo.Key, trigger, client)
 }
 
 func pushTimers(systemInfo *System_meta, client *cb.DevClient) error {
@@ -1234,6 +1234,19 @@ func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.Dev
 		return nil, fmt.Errorf("Could not create trigger %s: %s", triggerName, err.Error())
 	}
 	return stuff, nil
+}
+
+func updateUserTriggerInfo(trigger map[string]interface{}) {
+	if email, _, ok := isTriggerForSpecificUser(trigger); ok {
+		if id, err := getUserIdByEmail(email); err == nil {
+			replaceEmailWithUserIdInTriggerKeyValuePairs(trigger, []UserInfo{UserInfo{Email: email, UserID: id}})
+		}
+	}
+}
+
+func updateTriggerWithUpdatedInfo(systemKey string, trigger map[string]interface{}, client *cb.DevClient) error {
+	updateUserTriggerInfo(trigger)
+	return updateTrigger(systemKey, trigger, client)
 }
 
 func updateTrigger(systemKey string, trigger map[string]interface{}, client *cb.DevClient) error {
