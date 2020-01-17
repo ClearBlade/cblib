@@ -26,25 +26,27 @@ const runUserKey = "run_user"
 var (
 	RootDirIsSet bool
 
-	rootDir         string
-	dataDir         string
-	svcDir          string
-	libDir          string
-	usersDir        string
-	usersRolesDir   string
-	timersDir       string
-	triggersDir     string
-	rolesDir        string
-	edgesDir        string
-	devicesDir      string
-	devicesRolesDir string
-	portalsDir      string
-	pluginsDir      string
-	adaptorsDir     string
-	deploymentsDir  string
-	cliHiddenDir    string
-	mapNameToIdDir  string
-	arrDir          [17]string //this is used to set up the directory structure for a system
+	rootDir          string
+	dataDir          string
+	svcDir           string
+	libDir           string
+	usersDir         string
+	usersRolesDir    string
+	timersDir        string
+	triggersDir      string
+	rolesDir         string
+	edgesDir         string
+	devicesDir       string
+	devicesRolesDir  string
+	portalsDir       string
+	pluginsDir       string
+	adaptorsDir      string
+	deploymentsDir   string
+	serviceCachesDir string
+	webhooksDir      string
+	cliHiddenDir     string
+	mapNameToIdDir   string
+	arrDir           [19]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -66,6 +68,8 @@ func SetRootDir(theRootDir string) {
 	pluginsDir = rootDir + "/plugins"
 	adaptorsDir = rootDir + "/adapters"
 	deploymentsDir = rootDir + "/deployments"
+	serviceCachesDir = rootDir + "/service-caches"
+	webhooksDir = rootDir + "/webhooks"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	arrDir[0] = svcDir
@@ -85,6 +89,8 @@ func SetRootDir(theRootDir string) {
 	arrDir[14] = deploymentsDir
 	arrDir[15] = cliHiddenDir
 	arrDir[16] = mapNameToIdDir
+	arrDir[17] = serviceCachesDir
+	arrDir[18] = webhooksDir
 }
 
 func setupDirectoryStructure() error {
@@ -583,6 +589,21 @@ func writeDeployment(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(deploymentsDir, name, whitelistDeployment(data))
+}
+
+func whitelistServiceCache(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"description": data["description"],
+		"ttl":         data["ttl"],
+		"name":        data["name"],
+	}
+}
+
+func writeServiceCache(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(serviceCachesDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(serviceCachesDir, name, whitelistServiceCache(data))
 }
 
 func whitelistServicesPermissions(data []interface{}) []map[string]interface{} {
