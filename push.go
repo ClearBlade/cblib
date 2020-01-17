@@ -1339,6 +1339,14 @@ func createDeployment(systemKey string, deployment map[string]interface{}, clien
 	return deployment, nil
 }
 
+func createServiceCache(systemKey string, cache map[string]interface{}, client *cb.DevClient) error {
+	cacheName := cache["name"].(string)
+	if err := client.CreateServiceCacheMeta(systemKey, cacheName, cache); err != nil {
+		return fmt.Errorf("Could not create cache %s: %s", cacheName, err.Error())
+	}
+	return nil
+}
+
 func updateDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
 	deviceName := device["name"].(string)
 	delete(device, "last_active_date")

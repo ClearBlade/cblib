@@ -1011,6 +1011,10 @@ func getDeployments() ([]map[string]interface{}, error) {
 	return getObjectList(deploymentsDir, []string{})
 }
 
+func getServiceCaches() ([]map[string]interface{}, error) {
+	return getObjectList(serviceCachesDir, []string{})
+}
+
 func getDeployment(name string) (map[string]interface{}, error) {
 	return getObject(deploymentsDir, name+".json")
 }
