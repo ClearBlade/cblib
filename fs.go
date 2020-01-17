@@ -599,11 +599,27 @@ func whitelistServiceCache(data map[string]interface{}) map[string]interface{} {
 	}
 }
 
+func whitelistWebhook(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"auth_method":  data["auth_method"],
+		"description":  data["description"],
+		"name":         data["name"],
+		"service_name": data["service_name"],
+	}
+}
+
 func writeServiceCache(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(serviceCachesDir, 0777); err != nil {
 		return err
 	}
 	return writeEntity(serviceCachesDir, name, whitelistServiceCache(data))
+}
+
+func writeWebhook(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(webhooksDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(webhooksDir, name, whitelistWebhook(data))
 }
 
 func whitelistServicesPermissions(data []interface{}) []map[string]interface{} {

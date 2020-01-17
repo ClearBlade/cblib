@@ -327,6 +327,33 @@ func pullServiceCaches(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]in
 	return theCaches, nil
 }
 
+func pullWebhooks(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+	theHooks, err := cli.GetAllWebhooks(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull webhooks out of system %s: %s", sysMeta.Key, err)
+	}
+	for _, hook := range theHooks {
+		hookName := hook["name"].(string)
+		fmt.Printf(" %s", hookName)
+		err := writeWebhook(hookName, hook)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return theHooks, nil
+}
+
+func pullAndWriteWebhook(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+	hook, err := cli.GetWebhook(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+	if err = writeWebhook(hook["name"].(string), hook); err != nil {
+		return nil, err
+	}
+	return hook, nil
+}
+
 func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	sys, err := cli.GetSystem(systemKey)
 	if err != nil {
