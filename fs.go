@@ -1193,6 +1193,10 @@ func getPlugin(name string) (map[string]interface{}, error) {
 	return getObject(pluginsDir, name+".json")
 }
 
+func getServiceCache(name string) (map[string]interface{}, error) {
+	return getObject(serviceCachesDir, name+".json")
+}
+
 func getCollection(name string) (map[string]interface{}, error) {
 	return getObject(dataDir, name+".json")
 }
