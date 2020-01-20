@@ -1031,6 +1031,10 @@ func getServiceCaches() ([]map[string]interface{}, error) {
 	return getObjectList(serviceCachesDir, []string{})
 }
 
+func getWebhooks() ([]map[string]interface{}, error) {
+	return getObjectList(webhooksDir, []string{})
+}
+
 func getDeployment(name string) (map[string]interface{}, error) {
 	return getObject(deploymentsDir, name+".json")
 }
@@ -1211,6 +1215,10 @@ func getPlugin(name string) (map[string]interface{}, error) {
 
 func getServiceCache(name string) (map[string]interface{}, error) {
 	return getObject(serviceCachesDir, name+".json")
+}
+
+func getWebhook(name string) (map[string]interface{}, error) {
+	return getObject(webhooksDir, name+".json")
 }
 
 func getCollection(name string) (map[string]interface{}, error) {
