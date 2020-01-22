@@ -28,12 +28,11 @@ func init() {
 	cb-cli pull -collection=Collection1 -sort-collections=true		# Pulls Collection1 from Platform to local filesystem, with all rows, sorted
 	`
 	pullCommand := &SubCommand{
-		name:         "pull",
-		usage:        usage,
-		needsAuth:    true,
-		mustBeInRepo: true,
-		run:          doPull,
-		example:      example,
+		name:      "pull",
+		usage:     usage,
+		needsAuth: true,
+		run:       doPull,
+		example:   example,
 	}
 
 	pullCommand.flags.BoolVar(&AllServices, "all-services", false, "pull all services from system")

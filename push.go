@@ -29,12 +29,11 @@ func init() {
 	`
 
 	pushCommand := &SubCommand{
-		name:         "push",
-		usage:        usage,
-		needsAuth:    true,
-		mustBeInRepo: true,
-		run:          doPush,
-		example:      example,
+		name:      "push",
+		usage:     usage,
+		needsAuth: true,
+		run:       doPush,
+		example:   example,
 	}
 
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
