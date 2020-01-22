@@ -50,7 +50,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllAssets, "all", false, "pull all assets from system")
 	pullCommand.flags.BoolVar(&AllTriggers, "all-triggers", false, "pull all triggers from system")
 	pullCommand.flags.BoolVar(&AllTimers, "all-timers", false, "pull all timers from system")
-	pullCommand.flags.BoolVar(&AllServiceCaches, "all-service-caches", false, "pull all service caches from system")
+	pullCommand.flags.BoolVar(&AllServiceCaches, "all-shared-caches", false, "pull all shared caches from system")
 	pullCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "pull all webhooks from system")
 
 	pullCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to pull")
@@ -69,7 +69,7 @@ func init() {
 	pullCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to pull")
 	pullCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to pull")
 	pullCommand.flags.StringVar(&DeploymentName, "deployment", "", "Name of deployment to pull")
-	pullCommand.flags.StringVar(&ServiceCacheName, "service-cache", "", "Name of service cache to pull")
+	pullCommand.flags.StringVar(&ServiceCacheName, "shared-cache", "", "Name of shared cache to pull")
 	pullCommand.flags.StringVar(&WebhookName, "webhook", "", "Name of webhook to pull")
 
 	pullCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")

@@ -887,7 +887,7 @@ func (d *DevClient) AddServiceCacheMetaToRole(systemKey, cacheName, roleId strin
 		return err
 	}
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Error updating a role to have a service cache: %v", resp.Body)
+		return fmt.Errorf("Error updating a role to have a shared cache: %v", resp.Body)
 	}
 	return nil
 }

@@ -53,7 +53,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllTriggers, "all-triggers", false, "push all of the local triggers")
 	pushCommand.flags.BoolVar(&AllTimers, "all-timers", false, "push all of the local timers")
 	pushCommand.flags.BoolVar(&AllDeployments, "all-deployments", false, "push all of the local deployments")
-	pushCommand.flags.BoolVar(&AllServiceCaches, "all-service-caches", false, "push all of the local service caches")
+	pushCommand.flags.BoolVar(&AllServiceCaches, "all-shared-caches", false, "push all of the local shared caches")
 	pushCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "push all of the local webhooks")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 
@@ -73,7 +73,7 @@ func init() {
 	pushCommand.flags.StringVar(&PluginName, "plugin", "", "Name of plugin to push")
 	pushCommand.flags.StringVar(&AdaptorName, "adapter", "", "Name of adapter to push")
 	pushCommand.flags.StringVar(&DeploymentName, "deployment", "", "Name of deployment to push")
-	pushCommand.flags.StringVar(&ServiceCacheName, "service-cache", "", "Name of service cache to push")
+	pushCommand.flags.StringVar(&ServiceCacheName, "shared-cache", "", "Name of shared cache to push")
 	pushCommand.flags.StringVar(&WebhookName, "webhook", "", "Name of webhook to push")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
@@ -457,16 +457,16 @@ func pushAllServiceCaches(systemInfo *System_meta, client *cb.DevClient) error {
 		return err
 	}
 	for _, cache := range caches {
-		fmt.Printf("Pushing service cache %+s\n", cache["name"].(string))
+		fmt.Printf("Pushing shared cache %+s\n", cache["name"].(string))
 		if err := updateServiceCache(systemInfo.Key, cache, client); err != nil {
-			return fmt.Errorf("Error updating service cache '%s': %s\n", cache["name"].(string), err.Error())
+			return fmt.Errorf("Error updating shared cache '%s': %s\n", cache["name"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
 func pushOneServiceCache(systemInfo *System_meta, client *cb.DevClient, name string) error {
-	fmt.Printf("Pushing service cache %+s\n", name)
+	fmt.Printf("Pushing shared cache %+s\n", name)
 	cache, err := getServiceCache(name)
 	if err != nil {
 		return err
@@ -502,20 +502,20 @@ func updateServiceCache(systemKey string, cache map[string]interface{}, cli *cb.
 
 	_, err := cli.GetServiceCacheMeta(systemKey, cacheName)
 	if err != nil {
-		// service cache DNE
-		fmt.Printf("Could not find service cache %s\n", cacheName)
-		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new service cache named %s?", cacheName))
+		// shared cache DNE
+		fmt.Printf("Could not find shared cache %s\n", cacheName)
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new shared cache named %s?", cacheName))
 		if err != nil {
 			return err
 		} else {
 			if c {
 				if err := createServiceCache(systemKey, cache, cli); err != nil {
-					return fmt.Errorf("Could not create service cache %s: %s", cacheName, err.Error())
+					return fmt.Errorf("Could not create shared cache %s: %s", cacheName, err.Error())
 				} else {
-					fmt.Printf("Successfully created new service cache %s\n", cacheName)
+					fmt.Printf("Successfully created new shared cache %s\n", cacheName)
 				}
 			} else {
-				fmt.Printf("Service cache will not be created.\n")
+				fmt.Printf("Shared cache will not be created.\n")
 			}
 		}
 	} else {

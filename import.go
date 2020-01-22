@@ -721,10 +721,10 @@ func importAllAssets(systemInfo map[string]interface{}, users []map[string]inter
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
-	logInfo("Importing service caches...")
+	logInfo("Importing shared caches...")
 	if _, err := createServiceCaches(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create service caches: %s", err.Error())
+		fmt.Printf("Could not create shared caches: %s", err.Error())
 	}
 	logInfo("Importing webhooks...")
 	if _, err := createWebhooks(systemInfo, cli); err != nil {

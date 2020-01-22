@@ -313,7 +313,7 @@ func pullAndWriteServiceCache(sysMeta *System_meta, cli *cb.DevClient, name stri
 func pullServiceCaches(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theCaches, err := cli.GetAllServiceCacheMeta(sysMeta.Key)
 	if err != nil {
-		return nil, fmt.Errorf("Could not pull service caches out of system %s: %s", sysMeta.Key, err)
+		return nil, fmt.Errorf("Could not pull shared caches out of system %s: %s", sysMeta.Key, err)
 	}
 	for _, cache := range theCaches {
 		cacheName := cache["name"].(string)
