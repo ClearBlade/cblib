@@ -107,6 +107,17 @@ func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
+var userColumnsToSkip = []string{"email", "creation_date", "cb_service_account", "cb_ttl_override", "cb_token"}
+
+func isInList(list []string, item string) bool {
+	for i := 0; i < len(list); i++ {
+		if list[i] == item {
+			return true
+		}
+	}
+	return false
+}
+
 func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
 	resp, err := cli.GetUserColumns(systemKey)
 	if err != nil {
@@ -115,7 +126,7 @@ func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (ma
 	columns := []map[string]interface{}{}
 	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
-		if col["ColumnName"] == "email" || col["ColumnName"] == "creation_date" {
+		if isInList(userColumnsToSkip, col["ColumnName"].(string)) {
 			continue
 		}
 		columns = append(columns, col)

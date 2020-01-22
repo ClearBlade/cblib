@@ -2069,6 +2069,8 @@ func createDevice(systemKey string, device map[string]interface{}, client *cb.De
 		case "name", "type", "state", "description", "enabled", "allow_key_auth", "keys", "active_key", "allow_certificate_auth", "certificate":
 			originalColumns[columnName] = value
 			break
+		case "cb_token", "cb_ttl_override":
+			break
 		default:
 			customColumns[columnName] = value
 			break
