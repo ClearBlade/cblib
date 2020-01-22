@@ -1226,6 +1226,11 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				val := getMap(valIF)
 				out["allservices"] = map[string]interface{}{"permissions": val["Level"]}
 			}
+		case "ManageUsers":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["manageusers"] = map[string]interface{}{"permissions": val["Level"]}
+			}
 		default:
 
 		}
