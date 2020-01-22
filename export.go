@@ -31,12 +31,11 @@ func init() {
 	systemDotJSON = map[string]interface{}{}
 	svcCode = map[string]interface{}{}
 	myExportCommand := &SubCommand{
-		name:         "export",
-		usage:        usage,
-		needsAuth:    false,
-		mustBeInRepo: false,
-		run:          doExport,
-		example:      example,
+		name:      "export",
+		usage:     usage,
+		needsAuth: false,
+		run:       doExport,
+		example:   example,
 	}
 	myExportCommand.flags.StringVar(&URL, "url", "https://platform.clearblade.com", "Clearblade Platform URL where system is hosted")
 	myExportCommand.flags.StringVar(&MsgURL, "messaging-url", "platform.clearblade.com", "Clearblade messaging url for target system")
@@ -624,7 +623,6 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	var err error
 	if inARepo {
 		sysMeta, err = getSysMeta()
-		os.Chdir("..")
 	} else {
 		sysMeta, err = pullSystemMeta(sysKey, cli)
 	}
@@ -634,7 +632,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	// This was overwriting the rootdir set by cb_console
 	// Only set if it has not already been set
 	if !RootDirIsSet {
-		SetRootDir(strings.Replace(sysMeta.Name, " ", "_", -1))
+		SetRootDir(".")
 	}
 
 	if CleanUp {
@@ -667,7 +665,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
-	logInfo(fmt.Sprintf("System '%s' has been exported into directory %s\n", sysMeta.Name, strings.Replace(sysMeta.Name, " ", "_", -1)))
+	logInfo(fmt.Sprintf("System '%s' has been exported into the current directory\n", sysMeta.Name))
 	return nil
 }
 

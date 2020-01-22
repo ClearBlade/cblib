@@ -28,12 +28,11 @@ func init() {
 	cb-cli import -importrows=false -importusers=false			# prompts for credentials, excludes all collection-rows and users
 	`
 	myImportCommand := &SubCommand{
-		name:         "import",
-		usage:        usage,
-		needsAuth:    false,
-		mustBeInRepo: true,
-		run:          doImport,
-		example:      example,
+		name:      "import",
+		usage:     usage,
+		needsAuth: false,
+		run:       doImport,
+		example:   example,
 	}
 	DEFAULT_IMPORT_ROWS := true
 	DEFAULT_IMPORT_USERS := true
