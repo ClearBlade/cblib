@@ -460,7 +460,17 @@ func getUserIdByEmail(email string) (string, error) {
 func updateCollectionSchema(collectionName string, schema []interface{}) error {
 	collInfo, err := getCollection(collectionName)
 	if err != nil {
-		return err
+		// if the collection file doesn't exist the user is probably trying to pull just the schema without pulling items
+		// fill out the collInfo map so that we can write the schema
+		if os.IsNotExist(err) {
+			collInfo = map[string]interface{}{
+				"items":  []interface{}{},
+				"name":   collectionName,
+				"schema": []map[string]interface{}{},
+			}
+		} else {
+			return err
+		}
 	}
 	collInfo["schema"] = schema
 	collsInfo, err := getCollectionNameToIdAsSlice()
