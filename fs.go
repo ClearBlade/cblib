@@ -475,7 +475,16 @@ func updateCollectionSchema(collectionName string, schema []interface{}) error {
 	collInfo["schema"] = schema
 	collsInfo, err := getCollectionNameToIdAsSlice()
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			collsInfo = []CollectionInfo{
+				CollectionInfo{
+					ID:   "",
+					Name: collectionName,
+				},
+			}
+		} else {
+			return err
+		}
 	}
 	id, err := getCollectionIdByName(collectionName, collsInfo)
 	if err != nil {
@@ -509,7 +518,7 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 		Name: data["name"].(string),
 	})
 	if err != nil {
-		fmt.Printf("Error - Failed to write collection name to ID map; subsequent operations may fail. %+v\n", err.Error())
+		fmt.Printf("Warning - Failed to write collection name to ID map; subsequent operations may fail. %+v\n", err.Error())
 	}
 
 	return writeEntity(dataDir, collectionName, whitelistCollection(data, itemArray))
@@ -525,7 +534,7 @@ func writeUser(email string, data map[string]interface{}) error {
 		return err
 	}
 	if err := updateUserEmailToId(UserInfo{Email: email, UserID: data["user_id"].(string)}); err != nil {
-		fmt.Printf("Error - Failed to write user email to ID map; subsequent operations may fail. %+v\n", err.Error())
+		fmt.Printf("Warning - Failed to write user email to ID map; subsequent operations may fail. %+v\n", err.Error())
 	}
 	blacklistUser(data)
 	return writeEntity(usersDir, email, data)
@@ -727,7 +736,7 @@ func writeRole(name string, data map[string]interface{}) error {
 		Name: data["Name"].(string),
 	})
 	if err != nil {
-		fmt.Printf("Error - Failed to write role name to ID map; subsequent operations may fail. %+v\n", err.Error())
+		fmt.Printf("Warning - Failed to write role name to ID map; subsequent operations may fail. %+v\n", err.Error())
 	}
 	return writeEntity(rolesDir, name, whitelistRole(data))
 }
