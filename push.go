@@ -1590,7 +1590,10 @@ func createWebhook(systemKey string, hook map[string]interface{}, client *cb.Dev
 
 func createExternalDatabase(systemKey string, obj map[string]interface{}, client *cb.DevClient) error {
 	name := obj["name"].(string)
-	obj["credentials"].(map[string]interface{})["password"] = "password"
+	// add a new line before prompting for password
+	fmt.Println("")
+	password := getOneItem(fmt.Sprintf("Password for external database '%s'", name), true)
+	obj["credentials"].(map[string]interface{})["password"] = password
 
 	if err := client.AddExternalDBConnection(systemKey, obj); err != nil {
 		return fmt.Errorf("Could not create external database %s: %s", name, err.Error())
