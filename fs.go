@@ -1074,6 +1074,10 @@ func getWebhooks() ([]map[string]interface{}, error) {
 	return getObjectList(webhooksDir, []string{})
 }
 
+func getExternalDatabases() ([]map[string]interface{}, error) {
+	return getObjectList(externalDatabasesDir, []string{})
+}
+
 func getDeployment(name string) (map[string]interface{}, error) {
 	return getObject(deploymentsDir, name+".json")
 }
