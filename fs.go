@@ -1264,6 +1264,10 @@ func getWebhook(name string) (map[string]interface{}, error) {
 	return getObject(webhooksDir, name+".json")
 }
 
+func getExternalDatabase(name string) (map[string]interface{}, error) {
+	return getObject(externalDatabasesDir, name+".json")
+}
+
 func getCollection(name string) (map[string]interface{}, error) {
 	return getObject(dataDir, name+".json")
 }
