@@ -1164,6 +1164,22 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				}
 				out["portals"] = removeDuplicatePermissions(ptls, "name")
 			}
+		case "ExternalDatabases":
+			if valIF != nil {
+				externalDatabases, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for externalDatabases permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
+				}
+				extDbs := make([]map[string]interface{}, len(externalDatabases))
+				for idx, mapVal := range externalDatabases {
+					extDbs[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["externaldatabases"] = removeDuplicatePermissions(extDbs, "name")
+			}
 		case "Push":
 			if valIF != nil {
 				val := getMap(valIF)
@@ -1230,6 +1246,11 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 			if valIF != nil {
 				val := getMap(valIF)
 				out["manageusers"] = map[string]interface{}{"permissions": val["Level"]}
+			}
+		case "AllExternalDatabases":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["allexternaldatabases"] = map[string]interface{}{"permissions": val["Level"]}
 			}
 		default:
 
