@@ -26,27 +26,28 @@ const runUserKey = "run_user"
 var (
 	RootDirIsSet bool
 
-	rootDir          string
-	dataDir          string
-	svcDir           string
-	libDir           string
-	usersDir         string
-	usersRolesDir    string
-	timersDir        string
-	triggersDir      string
-	rolesDir         string
-	edgesDir         string
-	devicesDir       string
-	devicesRolesDir  string
-	portalsDir       string
-	pluginsDir       string
-	adaptorsDir      string
-	deploymentsDir   string
-	serviceCachesDir string
-	webhooksDir      string
-	cliHiddenDir     string
-	mapNameToIdDir   string
-	arrDir           [19]string //this is used to set up the directory structure for a system
+	rootDir              string
+	dataDir              string
+	svcDir               string
+	libDir               string
+	usersDir             string
+	usersRolesDir        string
+	timersDir            string
+	triggersDir          string
+	rolesDir             string
+	edgesDir             string
+	devicesDir           string
+	devicesRolesDir      string
+	portalsDir           string
+	pluginsDir           string
+	adaptorsDir          string
+	deploymentsDir       string
+	serviceCachesDir     string
+	webhooksDir          string
+	externalDatabasesDir string
+	cliHiddenDir         string
+	mapNameToIdDir       string
+	arrDir               [20]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -70,6 +71,7 @@ func SetRootDir(theRootDir string) {
 	deploymentsDir = rootDir + "/deployments"
 	serviceCachesDir = rootDir + "/shared-caches"
 	webhooksDir = rootDir + "/webhooks"
+	externalDatabasesDir = rootDir + "/external-databases"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	arrDir[0] = svcDir
@@ -91,6 +93,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[16] = mapNameToIdDir
 	arrDir[17] = serviceCachesDir
 	arrDir[18] = webhooksDir
+	arrDir[19] = externalDatabasesDir
 }
 
 func setupDirectoryStructure() error {
@@ -629,6 +632,14 @@ func whitelistWebhook(data map[string]interface{}) map[string]interface{} {
 	}
 }
 
+func whitelistExternalDatabase(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"credentials": data["credentials"],
+		"name":        data["name"],
+		"dbtype":      data["dbtype"],
+	}
+}
+
 func writeServiceCache(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(serviceCachesDir, 0777); err != nil {
 		return err
@@ -641,6 +652,13 @@ func writeWebhook(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(webhooksDir, name, whitelistWebhook(data))
+}
+
+func writeExternalDatabase(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(externalDatabasesDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(externalDatabasesDir, name, whitelistExternalDatabase(data))
 }
 
 func whitelistServicesPermissions(data []interface{}) []map[string]interface{} {
