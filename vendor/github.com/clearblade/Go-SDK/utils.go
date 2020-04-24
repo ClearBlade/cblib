@@ -23,7 +23,8 @@ var (
 	//CB_ADDR is the address of the ClearBlade Platform you are speaking with
 	CB_ADDR = "https://platform.clearblade.com"
 	//CB_MSG_ADDR is the messaging address you wish to speak to
-	CB_MSG_ADDR = "platform.clearblade.com:1883"
+	CB_MSG_ADDR      = "platform.clearblade.com:1883"
+	CB_MSG_AUTH_ADDR = "platform.clearblade.com:8905"
 
 	_HEADER_KEY_KEY    = "ClearBlade-SystemKey"
 	_HEADER_SECRET_KEY = "ClearBlade-SystemSecret"
@@ -104,6 +105,7 @@ type cbClient interface {
 	preamble() string
 	setToken(string)
 	getToken() string
+	getRefreshToken() string
 	getSystemInfo() (string, string)
 	getMessageId() uint16
 	getHttpAddr() string
@@ -118,6 +120,7 @@ type client struct{}
 type UserClient struct {
 	client
 	UserToken    string
+	RefreshToken string
 	mrand        *rand.Rand
 	MQTTClient   MqttClient
 	SystemKey    string
@@ -126,6 +129,7 @@ type UserClient struct {
 	Password     string
 	HttpAddr     string
 	MqttAddr     string
+	MqttAuthAddr string
 	edgeProxy    *EdgeProxy
 }
 
@@ -134,26 +138,30 @@ type DeviceClient struct {
 	DeviceName   string
 	ActiveKey    string
 	DeviceToken  string
+	RefreshToken string
 	mrand        *rand.Rand
 	MQTTClient   MqttClient
 	SystemKey    string
 	SystemSecret string
 	HttpAddr     string
 	MqttAddr     string
+	MqttAuthAddr string
 	edgeProxy    *EdgeProxy
 }
 
 //DevClient is the type for developers
 type DevClient struct {
 	client
-	DevToken   string
-	mrand      *rand.Rand
-	MQTTClient MqttClient
-	Email      string
-	Password   string
-	HttpAddr   string
-	MqttAddr   string
-	edgeProxy  *EdgeProxy
+	DevToken     string
+	RefreshToken string
+	mrand        *rand.Rand
+	MQTTClient   MqttClient
+	Email        string
+	Password     string
+	HttpAddr     string
+	MqttAddr     string
+	MqttAuthAddr string
+	edgeProxy    *EdgeProxy
 }
 
 type EdgeProxy struct {
@@ -236,6 +244,7 @@ func NewDeviceClient(systemkey, systemsecret, deviceName, activeKey string) *Dev
 	return &DeviceClient{
 		DeviceName:   deviceName,
 		DeviceToken:  "",
+		RefreshToken: "",
 		ActiveKey:    activeKey,
 		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		MQTTClient:   nil,
@@ -243,6 +252,7 @@ func NewDeviceClient(systemkey, systemsecret, deviceName, activeKey string) *Dev
 		SystemSecret: systemsecret,
 		HttpAddr:     CB_ADDR,
 		MqttAddr:     CB_MSG_ADDR,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
@@ -250,6 +260,7 @@ func NewDeviceClient(systemkey, systemsecret, deviceName, activeKey string) *Dev
 func NewUserClient(systemkey, systemsecret, email, password string) *UserClient {
 	return &UserClient{
 		UserToken:    "",
+		RefreshToken: "",
 		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		MQTTClient:   nil,
 		SystemSecret: systemsecret,
@@ -258,37 +269,43 @@ func NewUserClient(systemkey, systemsecret, email, password string) *UserClient 
 		Password:     password,
 		HttpAddr:     CB_ADDR,
 		MqttAddr:     CB_MSG_ADDR,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
 //NewDevClient allocates a new DevClient struct
 func NewDevClient(email, password string) *DevClient {
 	return &DevClient{
-		DevToken:   "",
-		mrand:      rand.New(rand.NewSource(time.Now().UnixNano())),
-		MQTTClient: nil,
-		Email:      email,
-		Password:   password,
-		HttpAddr:   CB_ADDR,
-		MqttAddr:   CB_MSG_ADDR,
+		DevToken:     "",
+		RefreshToken: "",
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		Email:        email,
+		Password:     password,
+		HttpAddr:     CB_ADDR,
+		MqttAddr:     CB_MSG_ADDR,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
 func NewDevClientWithToken(token, email string) *DevClient {
 	return &DevClient{
-		DevToken:   token,
-		mrand:      rand.New(rand.NewSource(time.Now().UnixNano())),
-		MQTTClient: nil,
-		Email:      email,
-		Password:   "",
-		HttpAddr:   CB_ADDR,
-		MqttAddr:   CB_MSG_ADDR,
+		DevToken:     token,
+		RefreshToken: "",
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		Email:        email,
+		Password:     "",
+		HttpAddr:     CB_ADDR,
+		MqttAddr:     CB_MSG_ADDR,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
 func NewUserClientWithAddrs(httpAddr, mqttAddr, systemKey, systemSecret, email, password string) *UserClient {
 	return &UserClient{
 		UserToken:    "",
+		RefreshToken: "",
 		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		MQTTClient:   nil,
 		SystemSecret: systemSecret,
@@ -297,29 +314,34 @@ func NewUserClientWithAddrs(httpAddr, mqttAddr, systemKey, systemSecret, email, 
 		Password:     password,
 		HttpAddr:     httpAddr,
 		MqttAddr:     mqttAddr,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 func NewDevClientWithAddrs(httpAddr, mqttAddr, email, password string) *DevClient {
 	return &DevClient{
-		DevToken:   "",
-		mrand:      rand.New(rand.NewSource(time.Now().UnixNano())),
-		MQTTClient: nil,
-		Email:      email,
-		Password:   password,
-		HttpAddr:   httpAddr,
-		MqttAddr:   mqttAddr,
+		DevToken:     "",
+		RefreshToken: "",
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		Email:        email,
+		Password:     password,
+		HttpAddr:     httpAddr,
+		MqttAddr:     mqttAddr,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
 func NewDevClientWithTokenAndAddrs(httpAddr, mqttAddr, token, email string) *DevClient {
 	return &DevClient{
-		DevToken:   token,
-		mrand:      rand.New(rand.NewSource(time.Now().UnixNano())),
-		MQTTClient: nil,
-		Email:      email,
-		Password:   "",
-		HttpAddr:   httpAddr,
-		MqttAddr:   mqttAddr,
+		DevToken:     token,
+		RefreshToken: "",
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		Email:        email,
+		Password:     "",
+		HttpAddr:     httpAddr,
+		MqttAddr:     mqttAddr,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
 	}
 }
 
@@ -327,11 +349,41 @@ func NewDeviceClientWithAddrs(httpAddr, mqttAddr, systemkey, systemsecret, devic
 	return &DeviceClient{
 		DeviceName:   deviceName,
 		DeviceToken:  "",
+		RefreshToken: "",
 		ActiveKey:    activeKey,
 		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 		MQTTClient:   nil,
 		SystemKey:    systemkey,
 		SystemSecret: systemsecret,
+		HttpAddr:     httpAddr,
+		MqttAddr:     mqttAddr,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
+	}
+}
+
+func NewDeviceClientWithServiceAccountAndAddrs(httpAddr, mqttAddr, systemkey, systemsecret, deviceName, token string) *DeviceClient {
+	return &DeviceClient{
+		DeviceName:   deviceName,
+		DeviceToken:  token,
+		ActiveKey:    "",
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		SystemKey:    systemkey,
+		SystemSecret: systemsecret,
+		HttpAddr:     httpAddr,
+		MqttAddr:     mqttAddr,
+	}
+}
+
+func NewUserClientWithServiceAccountAndAddrs(httpAddr, mqttAddr, systemkey, systemsecret, email, token string) *UserClient {
+	return &UserClient{
+		UserToken:    token,
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		SystemSecret: systemsecret,
+		SystemKey:    systemkey,
+		Email:        email,
+		Password:     "",
 		HttpAddr:     httpAddr,
 		MqttAddr:     mqttAddr,
 	}

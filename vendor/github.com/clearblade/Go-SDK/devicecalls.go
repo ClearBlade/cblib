@@ -545,6 +545,10 @@ func (dvc *DeviceClient) getToken() string {
 	return dvc.DeviceToken
 }
 
+func (dvc *DeviceClient) getRefreshToken() string {
+	return dvc.RefreshToken
+}
+
 func (dvc *DeviceClient) getSystemInfo() (string, string) {
 	return dvc.SystemKey, dvc.SystemSecret
 }

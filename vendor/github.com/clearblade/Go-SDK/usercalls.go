@@ -57,6 +57,9 @@ func (u *UserClient) setToken(t string) {
 func (u *UserClient) getToken() string {
 	return u.UserToken
 }
+func (u *UserClient) getRefreshToken() string {
+	return u.RefreshToken
+}
 
 func (u *UserClient) getMessageId() uint16 {
 	return uint16(u.mrand.Int())

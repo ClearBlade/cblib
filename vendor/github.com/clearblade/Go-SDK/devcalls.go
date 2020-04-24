@@ -473,6 +473,12 @@ func (d *DevClient) UpdateRole(systemKey, roleName string, role map[string]inter
 	if manageusers, ok := permissions["manageusers"]; ok {
 		changes["manageusers"] = manageusers
 	}
+	if allexternaldatabases, ok := permissions["allexternaldatabases"]; ok {
+		changes["allexternaldatabases"] = allexternaldatabases
+	}
+	if externaldatabases, ok := permissions["externaldatabases"]; ok {
+		changes["externaldatabases"] = externaldatabases
+	}
 	// Just to be safe, this is silly
 	data["changes"] = changes
 	creds, err := d.credentials()
@@ -991,6 +997,9 @@ func (d *DevClient) setToken(t string) {
 }
 func (d *DevClient) getToken() string {
 	return d.DevToken
+}
+func (d *DevClient) getRefreshToken() string {
+	return d.RefreshToken
 }
 
 func (d *DevClient) getMessageId() uint16 {
