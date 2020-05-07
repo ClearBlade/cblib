@@ -548,6 +548,15 @@ func (dvc *DeviceClient) getToken() string {
 func (dvc *DeviceClient) getRefreshToken() string {
 	return dvc.RefreshToken
 }
+func (dvc *DeviceClient) setRefreshToken(t string) {
+	dvc.RefreshToken = t
+}
+func (dvc *DeviceClient) setExpiresAt(t float64) {
+	dvc.ExpiresAt = t
+}
+func (dvc *DeviceClient) getExpiresAt() float64 {
+	return dvc.ExpiresAt
+}
 
 func (dvc *DeviceClient) getSystemInfo() (string, string) {
 	return dvc.SystemKey, dvc.SystemSecret

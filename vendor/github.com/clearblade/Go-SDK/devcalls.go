@@ -1001,6 +1001,15 @@ func (d *DevClient) getToken() string {
 func (d *DevClient) getRefreshToken() string {
 	return d.RefreshToken
 }
+func (d *DevClient) setRefreshToken(t string) {
+	d.RefreshToken = t
+}
+func (d *DevClient) setExpiresAt(t float64) {
+	d.ExpiresAt = t
+}
+func (d *DevClient) getExpiresAt() float64 {
+	return d.ExpiresAt
+}
 
 func (d *DevClient) getMessageId() uint16 {
 	return uint16(d.mrand.Int())

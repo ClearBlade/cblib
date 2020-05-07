@@ -105,7 +105,10 @@ type cbClient interface {
 	preamble() string
 	setToken(string)
 	getToken() string
+	setRefreshToken(string)
 	getRefreshToken() string
+	setExpiresAt(float64)
+	getExpiresAt() float64
 	getSystemInfo() (string, string)
 	getMessageId() uint16
 	getHttpAddr() string
@@ -121,6 +124,7 @@ type UserClient struct {
 	client
 	UserToken    string
 	RefreshToken string
+	ExpiresAt    float64
 	mrand        *rand.Rand
 	MQTTClient   MqttClient
 	SystemKey    string
@@ -139,6 +143,7 @@ type DeviceClient struct {
 	ActiveKey    string
 	DeviceToken  string
 	RefreshToken string
+	ExpiresAt    float64
 	mrand        *rand.Rand
 	MQTTClient   MqttClient
 	SystemKey    string
@@ -154,6 +159,7 @@ type DevClient struct {
 	client
 	DevToken     string
 	RefreshToken string
+	ExpiresAt    float64
 	mrand        *rand.Rand
 	MQTTClient   MqttClient
 	Email        string
@@ -302,6 +308,19 @@ func NewDevClientWithToken(token, email string) *DevClient {
 	}
 }
 
+func NewRefreshUserClientWithAddrs(httpAddr, mqttAddr, systemKey, systemSecret, refreshToken, accessToken string) *UserClient {
+	return &UserClient{
+		UserToken:    accessToken,
+		RefreshToken: refreshToken,
+		mrand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		MQTTClient:   nil,
+		SystemSecret: systemSecret,
+		SystemKey:    systemKey,
+		HttpAddr:     httpAddr,
+		MqttAddr:     mqttAddr,
+		MqttAuthAddr: CB_MSG_AUTH_ADDR,
+	}
+}
 func NewUserClientWithAddrs(httpAddr, mqttAddr, systemKey, systemSecret, email, password string) *UserClient {
 	return &UserClient{
 		UserToken:    "",
@@ -460,6 +479,13 @@ func (u *UserClient) Authenticate() (*AuthResponse, error) {
 		return nil, err
 	}
 	return nil, nil
+}
+
+func (u *UserClient) RefreshAuthentication() error {
+	if err := refreshAuthentication(u); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *UserClient) AuthAnon() error {
@@ -669,16 +695,46 @@ func authenticate(c cbClient, username, password string) error {
 	}
 
 	var token string = ""
+	respBody := resp.Body.(map[string]interface{})
 	switch c.(type) {
 	case *UserClient:
-		token = resp.Body.(map[string]interface{})["user_token"].(string)
+		token = respBody["user_token"].(string)
 	case *DevClient:
-		token = resp.Body.(map[string]interface{})["dev_token"].(string)
+		token = respBody["dev_token"].(string)
 	}
 	if token == "" {
 		return fmt.Errorf("Token not present i response from platform %+v", resp.Body)
 	}
 	c.setToken(token)
+	c.setRefreshToken(respBody["refresh_token"].(string))
+	c.setExpiresAt(respBody["expires_at"].(float64))
+	return nil
+}
+
+func refreshAuthentication(c *UserClient) error {
+	var creds [][]string
+	var err error
+	creds, err = c.credentials()
+	if err != nil {
+		return err
+	}
+
+	resp, err := post(c, c.preamble()+"/auth", map[string]interface{}{
+		"refresh_token": c.getRefreshToken(),
+		"access_token":  c.getToken(),
+		"grant_type":    "refresh_token",
+	}, creds, nil)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return cbErr.CreateResponseFromMap(resp.Body)
+	}
+
+	respBody := resp.Body.(map[string]interface{})
+	c.setToken(respBody["user_token"].(string))
+	c.setRefreshToken(respBody["refresh_token"].(string))
+	c.setExpiresAt(respBody["expires_at"].(float64))
 	return nil
 }
 
@@ -762,6 +818,8 @@ func register(c cbClient, kind int, username, password, syskey, syssec, fname, l
 	case createUser:
 		token = resp.Body.(map[string]interface{})["user_id"].(string)
 	}
+	c.setExpiresAt(resp.Body.(map[string]interface{})["expires_at"].(float64))
+	c.setRefreshToken(resp.Body.(map[string]interface{})["refresh_token"].(string))
 
 	if token == "" {
 		return nil, fmt.Errorf("Token not present in response from platform %+v", resp.Body)

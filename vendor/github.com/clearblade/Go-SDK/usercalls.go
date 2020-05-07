@@ -60,6 +60,15 @@ func (u *UserClient) getToken() string {
 func (u *UserClient) getRefreshToken() string {
 	return u.RefreshToken
 }
+func (u *UserClient) setRefreshToken(t string) {
+	u.RefreshToken = t
+}
+func (u *UserClient) setExpiresAt(t float64) {
+	u.ExpiresAt = t
+}
+func (u *UserClient) getExpiresAt() float64 {
+	return u.ExpiresAt
+}
 
 func (u *UserClient) getMessageId() uint16 {
 	return uint16(u.mrand.Int())
