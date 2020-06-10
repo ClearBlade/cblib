@@ -35,7 +35,11 @@ func (c *SubCommand) Execute(args []string) error {
 	MetaInfo, _ = getCbMeta()
 
 	if MetaInfo != nil {
-		client = makeClientFromMetaInfo()
+		client, err = newClientFromMetaInfo()
+		if err != nil {
+			return fmt.Errorf("Authentication failed: %s", err)
+		}
+
 		if c.needsAuth {
 			err := client.CheckAuth()
 			if err != nil {

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+
+	"github.com/clearblade/cblib/internal/maputil"
 )
 
 var (
@@ -980,9 +982,9 @@ func ImportSystemWithConfig(config ImportConfig, systemPath string, cli *cb.DevC
 		return blankImportResult, err
 	}
 
-	systemName, _ := lookupString(rawSystemInfo, "systemName", "system_name")
-	systemKey, systemKeyOk := lookupString(rawSystemInfo, "systemKey", "system_key")
-	systemSecret, systemSecretOk := lookupString(rawSystemInfo, "systemSecret", "system_secret")
+	systemName, _ := maputil.LookupString(rawSystemInfo, "systemName", "system_name")
+	systemKey, systemKeyOk := maputil.LookupString(rawSystemInfo, "systemKey", "system_key")
+	systemSecret, systemSecretOk := maputil.LookupString(rawSystemInfo, "systemSecret", "system_secret")
 
 	if !systemKeyOk || !systemSecretOk {
 		return blankImportResult, fmt.Errorf("unable to extract system information")
@@ -995,35 +997,4 @@ func ImportSystemWithConfig(config ImportConfig, systemPath string, cli *cb.DevC
 	}
 
 	return result, nil
-}
-
-// --------------------------------
-// Map utilities
-// --------------------------------
-// Utility functions for interacting with map[string]interface{} types.
-
-// lookupKey looks for the first matching key in the given map and returns
-// its value.
-func lookupKey(m map[string]interface{}, keys ...string) (interface{}, bool) {
-	for _, k := range keys {
-		if value, ok := m[k]; ok {
-			return value, true
-		}
-	}
-	return nil, false
-}
-
-// lookupString is similar to lookupKey but parses the value into a string.
-func lookupString(m map[string]interface{}, keys ...string) (string, bool) {
-	value, found := lookupKey(m, keys...)
-	if !found {
-		return "", false
-	}
-
-	str, ok := value.(string)
-	if !ok {
-		return "", false
-	}
-
-	return str, true
 }

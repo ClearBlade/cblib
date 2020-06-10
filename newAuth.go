@@ -85,7 +85,15 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 	}
 }
 
-func makeClientFromMetaInfo() *cb.DevClient {
+func newClientFromPassword() (*cb.DevClient, error) {
+	return nil, nil
+}
+
+func newClientFromToken() (*cb.DevClient, error) {
+	return nil, nil
+}
+
+func newClientFromMetaInfo() (*cb.DevClient, error) {
 	var newSchema bool
 	devToken := MetaInfo["token"].(string)
 	email, ok := MetaInfo["developerEmail"].(string)
@@ -112,7 +120,7 @@ func makeClientFromMetaInfo() *cb.DevClient {
 		}
 	}
 
-	return cb.NewDevClientWithToken(devToken, email)
+	return cb.NewDevClientWithToken(devToken, email), nil
 }
 
 // AuthorizeWithPassword creates and returns a new clearblade client using email
@@ -135,11 +143,8 @@ func AuthorizeWithPassword(defaults *DefaultInfo, platformURL, messagingURL, ema
 	if len(email) <= 0 {
 		email = defaults.email
 	}
-}
 
-// AuthorizeWithToken creates and returns a new clearblade client using email
-// and token.
-func AuthorizeWithToken(defaults *DefaultInfo, platformURL, messagingURL, email, token string) (*cb.DevClient, error) {
+	return nil, nil
 }
 
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
