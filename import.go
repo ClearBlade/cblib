@@ -930,6 +930,8 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (ma
 
 // ImportSystem imports the system rooted at the given path, using the default
 // import config.
+// NOTE: this is a transitional function, refer to ImportSystemWithConfig for a
+// newer and safer implementation.
 func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (map[string]interface{}, error) {
 
 	// saves old MetaInfo global (used by Authorize) before setting it to our

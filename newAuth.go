@@ -9,6 +9,7 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/maputil"
 )
 
 const (
@@ -62,116 +63,96 @@ func getAnswer(entered, defaultValue string) string {
 	return defaultValue
 }
 
+// fillInTheBlanks will prompt the user for GLOBALS that are not
+// provided via flags.
 func fillInTheBlanks(defaults *DefaultInfo) {
-	var defaultUrl, defaultMsgUrl, defaultEmail, defaultSys string
+	var defaultURL, defaultMsgURL, defaultEmail, defaultSys string
+
 	if defaults != nil {
-		defaultUrl, defaultMsgUrl, defaultEmail, defaultSys = defaults.url, defaults.msgUrl, defaults.email, defaults.systemKey
+		defaultURL = defaults.url
+		defaultMsgURL = defaults.msgUrl
+		defaultEmail = defaults.email
+		defaultSys = defaults.systemKey
 	}
+
 	if URL == "" {
-		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultUrl), false), defaultUrl)
-		if MsgURL == "" {
-			MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgUrl), false), defaultMsgUrl)
-		}
+		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
 	}
-	setupAddrs(URL, MsgURL)
+
+	if MsgURL == "" {
+		MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgURL), false), defaultMsgURL)
+	}
+
 	if SystemKey == "" {
 		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
 	}
+
 	if Email == "" {
 		Email = getAnswer(getOneItem(buildPrompt(emailPrompt, defaultEmail), false), defaultEmail)
 	}
+
 	if Password == "" {
 		Password = getOneItem(passwordPrompt, true)
 	}
+
+	setupAddrs(URL, MsgURL)
 }
 
-func newClientFromPassword() (*cb.DevClient, error) {
-	return nil, nil
+// newClientFromMetaInfo creates a new clearblade client from the given meta
+// info. The meta info should contain the following fields:
+// - "token"
+// - "developerEmail" or "developer_email"
+// - "platformURL" or "platform_url"
+// - "messagingURL" or "platform_url"
+func newClientFromMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, error) {
+
+	// Mix and match old schema vs new schema
+	// LookupString defaults to empty string when it doesn't find any of the
+	// given keys.
+	token, tokenOk := maputil.LookupString(metaInfo, "token")
+	email, emailOk := maputil.LookupString(metaInfo, "developerEmail", "developer_email")
+	platformURL, platformURLOk := maputil.LookupString(metaInfo, "platformURL", "platform_url")
+	messagingURL, _ := maputil.LookupString(metaInfo, "messagingURL", "messaging_url")
+
+	if !tokenOk {
+		return nil, fmt.Errorf("missing token from meta info")
+	}
+
+	if !emailOk {
+		return nil, fmt.Errorf("missing email from meta info")
+	}
+
+	if !platformURLOk {
+		return nil, fmt.Errorf("missing platform url from meta info")
+	}
+
+	// WARNING: changes globals in clearblade SDK
+	setupAddrs(platformURL, messagingURL)
+
+	return cb.NewDevClientWithToken(token, email), nil
 }
 
-func newClientFromToken() (*cb.DevClient, error) {
-	return nil, nil
+// newClientFromGlobalMetaInfo is similar to newClientFromMetaInfo but uses
+// the GLOBAL MetaInfo instead of having to pass your own meta info. Use with
+// caution.
+func newClientFromGlobalMetaInfo() (*cb.DevClient, error) {
+	return newClientFromMetaInfo(MetaInfo)
 }
 
-func newClientFromMetaInfo() (*cb.DevClient, error) {
-	var newSchema bool
-	devToken := MetaInfo["token"].(string)
-	email, ok := MetaInfo["developerEmail"].(string)
-	if !ok {
-		email = MetaInfo["developer_email"].(string)
-		newSchema = true
-	}
-	// Checking if meta has messagingURL attribute to support systems that were exported before
-	// This code is horrible but needs to be done to maintain backward compatibility with
-	// systems that are already exported
-	if newSchema {
-		messagingURL, ok := MetaInfo["messaging_url"].(string)
-		if !ok {
-			setupAddrs(MetaInfo["platform_url"].(string), "")
-		} else {
-			setupAddrs(MetaInfo["platform_url"].(string), messagingURL)
-		}
-	} else {
-		messagingURL, ok := MetaInfo["messagingURL"].(string)
-		if !ok {
-			setupAddrs(MetaInfo["platformURL"].(string), "")
-		} else {
-			setupAddrs(MetaInfo["platformURL"].(string), messagingURL)
-		}
-	}
-
-	return cb.NewDevClientWithToken(devToken, email), nil
-}
-
-// AuthorizeWithPassword creates and returns a new clearblade client using email
-// and password.
-func AuthorizeWithPassword(defaults *DefaultInfo, platformURL, messagingURL, email, password string) (*cb.DevClient, error) {
-
-	platformURL = strings.TrimSpace(platformURL)
-	messagingURL = strings.TrimSpace(messagingURL)
-	email = strings.TrimSpace(email)
-	password = strings.TrimSpace(password)
-
-	if len(platformURL) <= 0 {
-		platformURL = defaults.url
-	}
-
-	if len(messagingURL) <= 0 {
-		messagingURL = defaults.msgUrl
-	}
-
-	if len(email) <= 0 {
-		email = defaults.email
-	}
-
-	return nil, nil
-}
-
+// Authorize creates a new clearblade client by using the GLOBAL meta info, if
+// it is not set, it will prompt the user for missing fields.
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
-	var ok bool
+
 	if MetaInfo != nil {
-		DevToken = MetaInfo["token"].(string)
-		Email, ok = MetaInfo["developerEmail"].(string)
-		if !ok {
-			Email = MetaInfo["developer_email"].(string)
-		}
-		URL, ok = MetaInfo["platformURL"].(string)
-		if !ok {
-			URL = MetaInfo["platform_url"].(string)
-		}
-		MsgURL, ok = MetaInfo["messagingURL"].(string)
-		if !ok {
-			MsgURL = MetaInfo["messaging_url"].(string)
-		}
-		setupAddrs(URL, MsgURL)
-		fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
-		fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
-		return cb.NewDevClientWithToken(DevToken, Email), nil
+		return newClientFromGlobalMetaInfo()
 	}
+
 	// No cb meta file -- get url, syskey, email passwd
 	fillInTheBlanks(defaults)
+
 	fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
 	fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
+
 	cli := cb.NewDevClient(Email, Password)
 	authResp, err := cli.Authenticate()
 	if err != nil {
