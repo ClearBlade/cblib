@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -47,6 +47,80 @@ func init() {
 	AddCommand("imp", myImportCommand)
 	AddCommand("im", myImportCommand)
 }
+
+// --------------------------------
+// Import config and other types
+// --------------------------------
+// We use an import config that is passed around as a parameter during the
+// import process.
+
+// ImportConfig contains configuration values for the import process.
+// NOTE: Other configuration parameters can be added here. The idea is to pass
+// them to the import process using an instance of this struct rather than using
+// global variables.
+type ImportConfig struct {
+	SystemName string // the name of the imported system
+
+	IntoExistingSystem   bool   // true if it should be imported on a system that already exists
+	ExistingSystemKey    string // the system key of the existing system
+	ExistingSystemSecret string // the system secret of the existing system
+
+	ImportUsers            bool   // true if users should be imported
+	ImportRows             bool   // true if collection rows should be imported
+	DefaultUserPassword    string // default password for users that don't have one already
+	DefaultDeviceActiveKey string // default active key for devices that don't have one already
+}
+
+// DefaultImportConfig contains the default configuration values for the import
+// process. Note that this instance SHOULD NOT be updated and used as a global
+// configuration object. If you wish to configure the import processs using the
+// global variables, check the NewImportConfigFromGlobals function.
+//
+// To create your own configuration config just assign this one to your own
+// and modify it:
+//
+// ```
+// customImportConfig := DefaultImportConfig
+// customImportConfig.DefaultUserPassword = "my-new-password"
+// ````
+var DefaultImportConfig = ImportConfig{
+	SystemName: "",
+
+	IntoExistingSystem:   false,
+	ExistingSystemKey:    "",
+	ExistingSystemSecret: "",
+
+	ImportUsers:            false,
+	ImportRows:             false,
+	DefaultUserPassword:    "imported-user-password",
+	DefaultDeviceActiveKey: "imported-device-active-key",
+}
+
+// MakeImportConfigFromGlobals creates a new ImportConfig instance from the
+// global variables in cblib. Use with caution. Note that this function starts
+// with Make* and not with New* because it returns a normal instance, and not
+// a pointer to an instance.
+func MakeImportConfigFromGlobals() ImportConfig {
+	config := DefaultImportConfig
+
+	// TODO: confirm which global to use
+	config.ImportUsers = importUsers // or ImportUsers global?
+	config.ImportRows = importRows   // or ImportRows global?
+
+	return config
+}
+
+// ImportResult holds relevant values resulting from a system import process.
+type ImportResult struct {
+	SystemName   string
+	SystemKey    string
+	SystemSecret string
+}
+
+// --------------------------------
+// Import process (creation, etc)
+// --------------------------------
+// Functions that focus on the creation of the system and other assets.
 
 func createSystem(system map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	name := system["name"].(string)
@@ -648,7 +722,7 @@ func devTokenHardAuthorize() (*cb.DevClient, error) {
 // TODO Handle more specific error for if folder doesnt exist
 // i.e. plugins folder not found vs plugins import failed due to syntax error
 // https://clearblade.atlassian.net/browse/CBCOMM-227
-func importAllAssets(systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
+func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, users []map[string]interface{}, cli *cb.DevClient) error {
 
 	// Common set of calls for a complete system import
 
@@ -790,56 +864,166 @@ func importIt(cli *cb.DevClient) error {
 	return importAllAssets(systemInfo, users, cli)
 }
 
-// Import assuming the system is there in the root directory
-// Alternative to ImportIt for Import from UI
-// if intoExistingSystem is true then userInfo should have system key else error will be thrown
+// --------------------------------
+// Import entrypoint and exposed functions
+// --------------------------------
 
-func importSystem(cli *cb.DevClient, rootdirectory string, userInfo map[string]interface{}) (map[string]interface{}, error) {
+// importSystem will import the system rooted at the given path using the given
+// config. Please that we assume that the given clearblade client is already
+// authorized an ready to use.
+func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (map[string]interface{}, error) {
 
-	// Point the rootDirectory to the extracted folder
-	SetRootDir(rootdirectory)
+	// points the root directory to the system folder
+	// WARNING: side-effect (changes globals)
+	SetRootDir(systemPath)
+
+	// sets up director strcuture
+	// WARNING: side-effect (might change system)
+	err := setupDirectoryStructure()
+	if err != nil {
+		return nil, err
+	}
+
+	// gets users from the system directory
+	// WARNING: side-effect (reads filesystem)
 	users, err := getUsers()
 	if err != nil {
 		return nil, err
 	}
-	// as we don't cd into folders we have to use full path !!
-	path := filepath.Join(rootdirectory, "/system.json")
 
-	systemInfo, err := getDict(path)
+	// gets system info from the system directory
+	// WARNING: side-effect (reads filesystem)
+	systemInfoPath := path.Join(systemPath, "system.json")
+	systemInfo, err := getDict(systemInfoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Hijack to make sure the MetaInfo is not nil
-	cli, err = devTokenHardAuthorize() // Hijacking Authorize()
-	if err != nil {
-		return nil, err
-	}
-	// updating system info accordingly
-	if userInfo["importIntoExistingSystem"].(bool) {
-		systemInfo["systemKey"] = userInfo["system_key"]
-		systemInfo["systemSecret"] = userInfo["system_secret"]
+	// creates system if we are not importing into an existing one
+	if !config.IntoExistingSystem {
+
+		if len(config.SystemName) > 0 {
+			systemInfo["name"] = config.SystemName
+		}
+
+		// NOTE: createSystem will modify systemInfo map
+		_, err := createSystem(systemInfo, cli)
+		if err != nil {
+			return nil, fmt.Errorf("could not create system named '%s': %s", config.SystemName, err)
+		}
+
 	} else {
-		fmt.Printf("Importing system...")
-		if userInfo["systemName"] != nil {
-			systemInfo["name"] = userInfo["systemName"]
-		}
-		if _, err := createSystem(systemInfo, cli); err != nil {
-			return nil, fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
-		}
+		systemInfo["systemKey"] = config.ExistingSystemKey
+		systemInfo["systemSecret"] = config.ExistingSystemSecret
 	}
-	return systemInfo, importAllAssets(systemInfo, users, cli)
+
+	// import assets into created/existing system
+	err = importAllAssets(config, systemInfo, users, cli)
+	if err != nil {
+		return nil, err
+	}
+
+	return systemInfo, nil
 }
 
-// Call this wrapper from the end point !!
-func ImportSystem(cli *cb.DevClient, dir string, userInfo map[string]interface{}) (map[string]interface{}, error) {
+// ImportSystem imports the system rooted at the given path, using the default
+// import config.
+func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (map[string]interface{}, error) {
 
-	// Setting the MetaInfo which is used by Authorize() it has developerEmail, devToken, MsgURL, URL
-	// not changing the overall metaInfo, in case its used some where else
-	tempmetaInfo := MetaInfo
+	// saves old MetaInfo global (used by Authorize) before setting it to our
+	// userInfo parameter
+	// WARNING: side-effect (changes global)
+	oldMetaInfo := MetaInfo
 	MetaInfo = userInfo
-	// similar to old importIt
-	systemInfo, err := importSystem(cli, dir, userInfo)
-	MetaInfo = tempmetaInfo
-	return systemInfo, err
+
+	// authorizes the client BEFORE going into the import process. The import
+	// process SHOULD NOT care about authorization
+	cli, err := devTokenHardAuthorize()
+	if err != nil {
+		return nil, err
+	}
+
+	// recovers old MetaInfo global
+	// WARNING: side-effect (changes global)
+	MetaInfo = oldMetaInfo
+
+	// refactored userInfo into custom ImportConfig. That way we get rid of
+	// the weakly-typed userInfo object and use a strongly-typed ImportConfig
+	// instance
+	// TODO: make userInfo have consistent casing for its keys
+	config := MakeImportConfigFromGlobals()
+	config.SystemName, _ = userInfo["systemName"].(string)                     // camel-case intentional
+	config.IntoExistingSystem, _ = userInfo["importIntoExistingSystem"].(bool) // camel-case intentional
+	config.ExistingSystemKey, _ = userInfo["system_key"].(string)              // snake-case intentional
+	config.ExistingSystemKey, _ = userInfo["system_secret"].(string)           // snake-case intentional
+
+	// imports the system and captures raw system info
+	rawSystemInfo, err := importSystem(config, systemPath, cli)
+	if err != nil {
+		return nil, err
+	}
+
+	// we return as is, rather than an ImportResult instance, to keep backward
+	// compatibility
+	return rawSystemInfo, nil
+}
+
+// ImportSystemWithConfig imports the system rooted at the given path, using the
+// given config for different values. The given client should already be
+// authenticated and ready to go.
+func ImportSystemWithConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (ImportResult, error) {
+
+	blankImportResult := ImportResult{}
+
+	rawSystemInfo, err := importSystem(config, systemPath, cli)
+	if err != nil {
+		return blankImportResult, err
+	}
+
+	systemName, _ := lookupString(rawSystemInfo, "systemName", "system_name")
+	systemKey, systemKeyOk := lookupString(rawSystemInfo, "systemKey", "system_key")
+	systemSecret, systemSecretOk := lookupString(rawSystemInfo, "systemSecret", "system_secret")
+
+	if !systemKeyOk || !systemSecretOk {
+		return blankImportResult, fmt.Errorf("unable to extract system information")
+	}
+
+	result := ImportResult{
+		SystemName:   systemName,
+		SystemKey:    systemKey,
+		SystemSecret: systemSecret,
+	}
+
+	return result, nil
+}
+
+// --------------------------------
+// Map utilities
+// --------------------------------
+// Utility functions for interacting with map[string]interface{} types.
+
+// lookupKey looks for the first matching key in the given map and returns
+// its value.
+func lookupKey(m map[string]interface{}, keys ...string) (interface{}, bool) {
+	for _, k := range keys {
+		if value, ok := m[k]; ok {
+			return value, true
+		}
+	}
+	return nil, false
+}
+
+// lookupString is similar to lookupKey but parses the value into a string.
+func lookupString(m map[string]interface{}, keys ...string) (string, bool) {
+	value, found := lookupKey(m, keys...)
+	if !found {
+		return "", false
+	}
+
+	str, ok := value.(string)
+	if !ok {
+		return "", false
+	}
+
+	return str, true
 }

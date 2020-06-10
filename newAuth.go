@@ -115,6 +115,33 @@ func makeClientFromMetaInfo() *cb.DevClient {
 	return cb.NewDevClientWithToken(devToken, email)
 }
 
+// AuthorizeWithPassword creates and returns a new clearblade client using email
+// and password.
+func AuthorizeWithPassword(defaults *DefaultInfo, platformURL, messagingURL, email, password string) (*cb.DevClient, error) {
+
+	platformURL = strings.TrimSpace(platformURL)
+	messagingURL = strings.TrimSpace(messagingURL)
+	email = strings.TrimSpace(email)
+	password = strings.TrimSpace(password)
+
+	if len(platformURL) <= 0 {
+		platformURL = defaults.url
+	}
+
+	if len(messagingURL) <= 0 {
+		messagingURL = defaults.msgUrl
+	}
+
+	if len(email) <= 0 {
+		email = defaults.email
+	}
+}
+
+// AuthorizeWithToken creates and returns a new clearblade client using email
+// and token.
+func AuthorizeWithToken(defaults *DefaultInfo, platformURL, messagingURL, email, token string) (*cb.DevClient, error) {
+}
+
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 	var ok bool
 	if MetaInfo != nil {
