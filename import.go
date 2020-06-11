@@ -923,6 +923,8 @@ func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]inte
 
 	// authorizes the client BEFORE going into the import process. The import
 	// process SHOULD NOT care about authorization
+	// TODO: If the cli passed above is already valid, we don't need to
+	// authorize again. Can we try removing this?
 	cli, err := devTokenHardAuthorize()
 	if err != nil {
 		return nil, err

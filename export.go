@@ -387,15 +387,19 @@ func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	if err != nil {
 		return nil, err
 	}
-	serv_metas := make(map[string]Service_meta)
+
+	serviceMetas := make(map[string]Service_meta)
+
 	sysMeta := &System_meta{
 		Name:        sys.Name,
 		Key:         sys.Key,
 		Secret:      sys.Secret,
 		Description: sys.Description,
-		Services:    serv_metas,
-		PlatformUrl: URL,
+		Services:    serviceMetas,
+		PlatformUrl: cli.HttpAddr,
+		MessageUrl:  cli.MqttAddr,
 	}
+
 	return sysMeta, nil
 }
 
