@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -36,6 +38,33 @@ func setupAddrs(paddr string, maddr string) {
 	} else {
 		cb.CB_MSG_ADDR = maddr + ":1883"
 	}
+}
+
+// processURLs processes the given platform and messaging URL(s) for correctness.
+// If the messaging URL is not provided it is derived from the platform URL.
+func processURLs(platformURL, messagingURL string) (string, string, error) {
+
+	purl, err := url.Parse(platformURL)
+	if err != nil {
+		return "", "", fmt.Errorf("error parsing plaform URL: %s", err)
+	}
+
+	var mhost, mport string
+
+	if strings.Contains(messagingURL, ":") {
+		mhost, mport, err = net.SplitHostPort(messagingURL)
+		if err != nil {
+			return "", "", fmt.Errorf("error parsing host and port from messaging URL: %s", err)
+		}
+	} else {
+		mhost = messagingURL
+		mport = "1883"
+	}
+
+	finalPlatformURL := fmt.Sprintf("%s://%s", purl.Scheme, purl.Host)
+	finalMesagingURL := fmt.Sprintf("%s:%s", mhost, mport)
+
+	return finalPlatformURL, finalMesagingURL, nil
 }
 
 // Bubble sort, compare by map key

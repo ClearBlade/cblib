@@ -53,6 +53,7 @@ func init() {
 func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	config := MakeImportConfigFromGlobals()
 
+	fmt.Println("CLI>", cli)
 	systemPath, err := os.Getwd()
 	if err != nil {
 		return err
@@ -915,24 +916,14 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (ma
 // newer and safer implementation.
 func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (map[string]interface{}, error) {
 
-	// saves old MetaInfo global (used by Authorize) before setting it to our
-	// userInfo parameter
-	// WARNING: side-effect (changes global)
-	oldMetaInfo := MetaInfo
-	MetaInfo = userInfo
-
 	// authorizes the client BEFORE going into the import process. The import
 	// process SHOULD NOT care about authorization
 	// TODO: If the cli passed above is already valid, we don't need to
 	// authorize again. Can we try removing this?
-	cli, err := devTokenHardAuthorize()
+	cli, err := authorizeUsingMetaInfo(userInfo)
 	if err != nil {
 		return nil, err
 	}
-
-	// recovers old MetaInfo global
-	// WARNING: side-effect (changes global)
-	MetaInfo = oldMetaInfo
 
 	// refactored userInfo into custom ImportConfig. That way we get rid of
 	// the weakly-typed userInfo object and use a strongly-typed ImportConfig

@@ -63,9 +63,9 @@ func getAnswer(entered, defaultValue string) string {
 	return defaultValue
 }
 
-// fillInTheBlanks will prompt the user for GLOBALS that are not
+// promptAndFillMissingAuthFlags will prompt the user for GLOBALS that are not
 // provided via flags.
-func fillInTheBlanks(defaults *DefaultInfo) {
+func promptAndFillMissingAuthFlags(defaults *DefaultInfo) {
 	var defaultURL, defaultMsgURL, defaultEmail, defaultSys string
 
 	if defaults != nil {
@@ -83,12 +83,13 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 		MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgURL), false), defaultMsgURL)
 	}
 
-	if SystemKey == "" {
-		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
-	}
-
 	if Email == "" {
 		Email = getAnswer(getOneItem(buildPrompt(emailPrompt, defaultEmail), false), defaultEmail)
+	}
+
+	// TODO: do we really need to prompt for system key here?
+	if SystemKey == "" {
+		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
 	}
 
 	if Password == "" {
@@ -98,13 +99,30 @@ func fillInTheBlanks(defaults *DefaultInfo) {
 	setupAddrs(URL, MsgURL)
 }
 
-// newClientFromMetaInfo creates a new clearblade client from the given meta
-// info. The meta info should contain the following fields:
-// - "token"
-// - "developerEmail" or "developer_email"
-// - "platformURL" or "platform_url"
-// - "messagingURL" or "platform_url"
-func newClientFromMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, error) {
+// authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
+// flags passed to the CLI program.
+func authorizeUsingGlobalCLIFlags(defaults *DefaultInfo, promptMissing bool) (*cb.DevClient, error) {
+	if promptMissing {
+		promptAndFillMissingAuthFlags(defaults)
+	}
+
+	return authorizeUsing(URL, MsgURL, Email, Password, "")
+}
+
+func authorizeUsingGlobalMetaInfo() (*cb.DevClient, error) {
+	if MetaInfo == nil {
+		return nil, fmt.Errorf("global meta info is nil")
+	}
+	return authorizeUsingMetaInfo(MetaInfo)
+}
+
+// authorizeUsingGlobalMetaInfo creates a new clearblade client by using the
+// the GLOBAL MetaInfo variable (not nil if cb meta exists).
+func authorizeUsingMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, error) {
+
+	if metaInfo == nil {
+		return nil, fmt.Errorf("meta info should be non-nil")
+	}
 
 	// Mix and match old schema vs new schema
 	// LookupString defaults to empty string when it doesn't find any of the
@@ -126,55 +144,90 @@ func newClientFromMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, erro
 		return nil, fmt.Errorf("missing platform url from meta info")
 	}
 
-	// WARNING: changes globals in clearblade SDK
-	setupAddrs(platformURL, messagingURL)
-
-	return cb.NewDevClientWithToken(token, email), nil
+	return authorizeUsing(platformURL, messagingURL, email, "", token)
 }
 
-// newClientFromGlobalMetaInfo is similar to newClientFromMetaInfo but uses
-// the GLOBAL MetaInfo instead of having to pass your own meta info. Use with
-// caution.
-func newClientFromGlobalMetaInfo() (*cb.DevClient, error) {
-	return newClientFromMetaInfo(MetaInfo)
-}
+// authorizeUsing creates a new clearblade client using the given information.
+// If a token is provided it takes precedence over the password.
+func authorizeUsing(platformURL, messagingURL, email, password, token string) (*cb.DevClient, error) {
 
-// Authorize creates a new clearblade client by using the GLOBAL meta info, if
-// it is not set, it will prompt the user for missing fields.
-func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
-
-	if MetaInfo != nil {
-		return newClientFromGlobalMetaInfo()
-	}
-
-	// No cb meta file -- get url, syskey, email passwd
-	fillInTheBlanks(defaults)
-
-	fmt.Printf("Using ClearBlade platform at '%s'\n", cb.CB_ADDR)
-	fmt.Printf("Using ClearBlade messaging at '%s'\n", cb.CB_MSG_ADDR)
-
-	cli := cb.NewDevClient(Email, Password)
-	authResp, err := cli.Authenticate()
+	platformURL, messagingURL, err := processURLs(platformURL, messagingURL)
 	if err != nil {
-		fmt.Printf("Authenticate failed: %s\n", err)
 		return nil, err
 	}
-	info := authResp.DevResponse
+
+	email = strings.TrimSpace(email)
+	password = strings.TrimSpace(password)
+	token = strings.TrimSpace(token)
+
+	if len(email) <= 0 {
+		return nil, fmt.Errorf("email must be non-empty")
+	}
+
+	fmt.Printf("Using ClearBlade platform at '%s'\n", platformURL)
+	fmt.Printf("Using ClearBlade messaging at '%s'\n", messagingURL)
+
+	var cli *cb.DevClient
+
+	if len(token) > 0 {
+		cli = cb.NewDevClientWithTokenAndAddrs(platformURL, messagingURL, token, email)
+
+	} else if len(password) > 0 {
+		cli = cb.NewDevClientWithAddrs(platformURL, messagingURL, email, password)
+
+	} else {
+		errmsg := fmt.Errorf("must provide either password or token")
+		fmt.Printf("Authenticate failed: %s\n", err)
+		return nil, errmsg
+	}
+
+	err = verifyAuthentication(cli)
+	if err != nil {
+		fmt.Printf("Authentication failed: %s\n", err)
+		return nil, err
+	}
+
+	return cli, nil
+}
+
+// verifyAuthentication verifies the given clearblade client, and prompts the
+// user for a code if the given client requires two-factor auth.
+func verifyAuthentication(cli *cb.DevClient) error {
+
+	authResponse, err := cli.Authenticate()
+	if err != nil {
+		return err
+	}
+
+	info := authResponse.DevResponse
+
 	if info.IsTwoFactor {
+
 		prompt := getPromptBasedOnTwoFactorMethod(info.TwoFactorMethod)
 		code := getAnswer(getOneItem(buildPrompt(prompt, ""), false), "")
+
 		err := cli.VerifyAuthentication(cb.VerifyAuthenticationParams{
 			Code:            code,
 			TwoFactorMethod: info.TwoFactorMethod,
 			OtpID:           info.OtpID,
 			OtpIssued:       info.OtpIssued,
 		})
+
 		if err != nil {
-			fmt.Printf("Authentication verification failed: %s\n", err.Error())
-			return nil, err
+			return err
 		}
 	}
-	return cli, nil
+
+	return nil
+}
+
+// Authorize creates a new clearblade client by using the GLOBAL meta info, if
+// it is not set, it will prompt the user for missing flags.
+func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
+	if MetaInfo != nil {
+		return authorizeUsingGlobalMetaInfo()
+	}
+	return authorizeUsingGlobalCLIFlags(defaults, true)
 }
 
 func getPromptBasedOnTwoFactorMethod(method string) string {
@@ -196,8 +249,12 @@ func checkIfTokenHasExpired(client *cb.DevClient, systemKey string) (*cb.DevClie
 		MetaInfo = nil
 		client, _ = Authorize(nil)
 		metaStuff := map[string]interface{}{
-			"platform_url":    cb.CB_ADDR,
-			"messaging_url":   cb.CB_MSG_ADDR,
+			// TODO: settings platform and messaging URL(s) using client rather
+			// than globals from the clearblade Go SDK.
+			// "platform_url":    cb.CB_ADDR,
+			// "messaging_url":   cb.CB_MSG_ADDR,
+			"platform_url":    client.HttpAddr,
+			"messaging_url":   client.MqttAddr,
 			"developer_email": Email,
 			"token":           client.DevToken,
 		}
