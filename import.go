@@ -51,14 +51,23 @@ func init() {
 }
 
 func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-	config := MakeImportConfigFromGlobals()
 
-	fmt.Println("CLI>", cli)
 	systemPath, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
+	// prompt and skip vaues we don't need (messaging URL and system key)
+	promptAndFillMissingAuth(nil, PromptSkipMsgURL|PromptSkipSystemKey)
+
+	// authorizes using global flags
+	cli, err = authorizeUsingGlobalCLIFlags(nil)
+	if err != nil {
+		return err
+	}
+
+	// creates import config and proceeds to import system
+	config := MakeImportConfigFromGlobals()
 	_, err = ImportSystemWithConfig(config, systemPath, cli)
 	if err != nil {
 		return err

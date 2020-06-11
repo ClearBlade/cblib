@@ -63,49 +63,112 @@ func getAnswer(entered, defaultValue string) string {
 	return defaultValue
 }
 
-// promptAndFillMissingAuthFlags will prompt the user for GLOBALS that are not
-// provided via flags.
-func promptAndFillMissingAuthFlags(defaults *DefaultInfo) {
-	var defaultURL, defaultMsgURL, defaultEmail, defaultSys string
+// --------------------------------
+// Prompt and fill functions
+// --------------------------------
+// TODO: Dangerous since they change global variables.
 
-	if defaults != nil {
-		defaultURL = defaults.url
-		defaultMsgURL = defaults.msgUrl
-		defaultEmail = defaults.email
-		defaultSys = defaults.systemKey
-	}
+// PromptSet is used as a bitmask for configuring prompts.
+type PromptSet uint8
 
-	if URL == "" {
-		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
-	}
+const (
+	// PromptSkipURL skips prompting the platform URL if used.
+	PromptSkipURL PromptSet = 1 << iota
+	// PromptSkipMsgURL skips prompting the messaging URL if used.
+	PromptSkipMsgURL
+	// PromptSkipEmail skips prompting the Email if used.
+	PromptSkipEmail
+	// PromptSkipSystemKey skips prompting the system key if used.
+	PromptSkipSystemKey
+	// PromptSkipPassword skips prompting the password if used.
+	PromptSkipPassword
+	// PromptAll prompts for all missing flags (a bit having a value of 1 means skip).
+	PromptAll = 0
+)
 
-	if MsgURL == "" {
-		MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgURL), false), defaultMsgURL)
-	}
-
-	if Email == "" {
-		Email = getAnswer(getOneItem(buildPrompt(emailPrompt, defaultEmail), false), defaultEmail)
-	}
-
-	// TODO: do we really need to prompt for system key here?
-	if SystemKey == "" {
-		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSys), false), defaultSys)
-	}
-
-	if Password == "" {
-		Password = getOneItem(passwordPrompt, true)
-	}
-
-	setupAddrs(URL, MsgURL)
+// Has returns true if the given PromptSet has the desired flag.
+func (p *PromptSet) Has(flag PromptSet) bool {
+	return (*p)&flag == 1
 }
 
-// authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
-// flags passed to the CLI program.
-func authorizeUsingGlobalCLIFlags(defaults *DefaultInfo, promptMissing bool) (*cb.DevClient, error) {
-	if promptMissing {
-		promptAndFillMissingAuthFlags(defaults)
+func promptAndFillMissingURL(defaultURL string) bool {
+	if URL == "" {
+		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
+		return true
+	}
+	return false
+}
+
+func promptAndFillMissingMsgURL(defaultMsgURL string) bool {
+	if MsgURL == "" {
+		MsgURL = getAnswer(getOneItem(buildPrompt(msgurlPrompt, defaultMsgURL), false), defaultMsgURL)
+		return true
+	}
+	return false
+}
+
+func promptAndFillMissingURLAndMsgURL(defaultURL, defaultMsgURL string) (bool, bool) {
+	promptedPlatformURL := promptAndFillMissingURL(defaultURL)
+	if promptedPlatformURL {
+		return true, promptAndFillMissingMsgURL(defaultMsgURL)
+	}
+	return false, false
+}
+
+func promptAndFillMissingEmail(defaultEmail string) bool {
+	if Email == "" {
+		Email = getAnswer(getOneItem(buildPrompt(emailPrompt, defaultEmail), false), defaultEmail)
+		return true
+	}
+	return false
+}
+
+func promptAndFillMissingSystemKey(defaultSystemKey string) bool {
+	if SystemKey == "" {
+		SystemKey = getAnswer(getOneItem(buildPrompt(systemKeyPrompt, defaultSystemKey), false), defaultSystemKey)
+		return true
+	}
+	return false
+}
+
+func promptAndFillMissingPassword() bool {
+	if Password == "" {
+		Password = getOneItem(passwordPrompt, true)
+		return true
+	}
+	return false
+}
+
+func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
+	if !promptSet.Has(PromptSkipURL) {
+		promptAndFillMissingURL(defaults.url)
 	}
 
+	if !promptSet.Has(PromptSkipMsgURL) {
+		promptAndFillMissingMsgURL(defaults.msgUrl)
+	}
+
+	if !promptSet.Has(PromptSkipEmail) {
+		promptAndFillMissingEmail(defaults.email)
+	}
+
+	if !promptSet.Has(PromptSkipSystemKey) {
+		promptAndFillMissingSystemKey(defaults.systemKey)
+	}
+
+	if !promptSet.Has(PromptSkipPassword) {
+		promptAndFillMissingPassword()
+	}
+}
+
+// --------------------------------
+// Authorize
+// --------------------------------
+// Section focuses on authorizing and creating clearblade clients.
+
+// authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
+// global flags passed to the CLI program.
+func authorizeUsingGlobalCLIFlags(defaults *DefaultInfo) (*cb.DevClient, error) {
 	return authorizeUsing(URL, MsgURL, Email, Password, "")
 }
 
@@ -227,7 +290,9 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 	if MetaInfo != nil {
 		return authorizeUsingGlobalMetaInfo()
 	}
-	return authorizeUsingGlobalCLIFlags(defaults, true)
+
+	promptAndFillMissingAuth(defaults, PromptAll)
+	return authorizeUsingGlobalCLIFlags(defaults)
 }
 
 func getPromptBasedOnTwoFactorMethod(method string) string {
