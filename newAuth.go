@@ -242,20 +242,24 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 
 	if len(token) > 0 {
 		cli = cb.NewDevClientWithTokenAndAddrs(platformURL, messagingURL, token, email)
+		// TODO: commented out to preserve backward compatibility. Do we really need
+		// to not check?
+		// err = cli.CheckAuth()
+		// if err != nil {
+		// 	return nil, err
+		// }
 
 	} else if len(password) > 0 {
 		cli = cb.NewDevClientWithAddrs(platformURL, messagingURL, email, password)
+		err = verifyAuthentication(cli)
+		if err != nil {
+			return nil, err
+		}
 
 	} else {
 		errmsg := fmt.Errorf("must provide either password or token")
 		fmt.Printf("Authenticate failed: %s\n", err)
 		return nil, errmsg
-	}
-
-	err = verifyAuthentication(cli)
-	if err != nil {
-		fmt.Printf("Authentication failed: %s\n", err)
-		return nil, err
 	}
 
 	return cli, nil
