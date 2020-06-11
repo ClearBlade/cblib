@@ -3,7 +3,53 @@ package cblib
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestProcessURLsSucceeds(t *testing.T) {
+	tests := []struct {
+		platformURL          string
+		messagingURL         string
+		expectedPlatformURL  string
+		expectedMessagingURL string
+	}{
+
+		// canonical
+		{
+			"https://platform.clearblade.com", "platform.clearblade.com",
+			"https://platform.clearblade.com", "platform.clearblade.com:1883",
+		},
+
+		// platform and messaging override port
+		{
+			"https://platform.clearblade.com:8080", "platform.clearblade.com:8883",
+			"https://platform.clearblade.com:8080", "platform.clearblade.com:8883",
+		},
+
+		// platform has trailing slash
+		{
+			"https://platform.clearblade.com:8080/", "platform.clearblade.com",
+			"https://platform.clearblade.com:8080", "platform.clearblade.com:1883",
+		},
+
+		// does not specify messaging
+		{
+			"https://platform.clearblade.com:8080/", "",
+			"https://platform.clearblade.com:8080", "platform.clearblade.com:1883",
+		},
+	}
+
+	for _, tt := range tests {
+		platformURL, messagingURL, err := processURLs(tt.platformURL, tt.messagingURL)
+		if !assert.Nil(t, err) {
+			t.FailNow()
+		}
+
+		assert.Equal(t, tt.expectedPlatformURL, platformURL)
+		assert.Equal(t, tt.expectedMessagingURL, messagingURL)
+	}
+}
 
 func TestBubbleSort_String(test *testing.T) {
 	// input, truth to be tested against output

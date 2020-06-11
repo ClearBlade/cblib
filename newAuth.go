@@ -88,7 +88,7 @@ const (
 
 // Has returns true if the given PromptSet has the desired flag.
 func (p *PromptSet) Has(flag PromptSet) bool {
-	return (*p)&flag == 1
+	return (*p)&flag != 0
 }
 
 func promptAndFillMissingURL(defaultURL string) bool {
@@ -140,20 +140,28 @@ func promptAndFillMissingPassword() bool {
 }
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
+	var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
+	if defaults != nil {
+		defaultURL = defaults.url
+		defaultMsgURL = defaults.msgUrl
+		defaultEmail = defaults.email
+		defaultSystemKey = defaults.systemKey
+	}
+
 	if !promptSet.Has(PromptSkipURL) {
-		promptAndFillMissingURL(defaults.url)
+		promptAndFillMissingURL(defaultURL)
 	}
 
 	if !promptSet.Has(PromptSkipMsgURL) {
-		promptAndFillMissingMsgURL(defaults.msgUrl)
+		promptAndFillMissingMsgURL(defaultMsgURL)
 	}
 
 	if !promptSet.Has(PromptSkipEmail) {
-		promptAndFillMissingEmail(defaults.email)
+		promptAndFillMissingEmail(defaultEmail)
 	}
 
 	if !promptSet.Has(PromptSkipSystemKey) {
-		promptAndFillMissingSystemKey(defaults.systemKey)
+		promptAndFillMissingSystemKey(defaultSystemKey)
 	}
 
 	if !promptSet.Has(PromptSkipPassword) {

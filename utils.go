@@ -44,18 +44,30 @@ func setupAddrs(paddr string, maddr string) {
 // If the messaging URL is not provided it is derived from the platform URL.
 func processURLs(platformURL, messagingURL string) (string, string, error) {
 
+	platformURL = strings.TrimSpace(platformURL)
+	messagingURL = strings.TrimSpace(messagingURL)
+
 	purl, err := url.Parse(platformURL)
 	if err != nil {
 		return "", "", fmt.Errorf("error parsing plaform URL: %s", err)
 	}
 
+	if !purl.IsAbs() {
+		return "", "", fmt.Errorf("platform URL must specify a scheme (http, https, etc)")
+	}
+
 	var mhost, mport string
 
-	if strings.Contains(messagingURL, ":") {
+	if len(messagingURL) <= 0 {
+		mhost = purl.Hostname()
+		mport = "1883"
+
+	} else if strings.Contains(messagingURL, ":") {
 		mhost, mport, err = net.SplitHostPort(messagingURL)
 		if err != nil {
 			return "", "", fmt.Errorf("error parsing host and port from messaging URL: %s", err)
 		}
+
 	} else {
 		mhost = messagingURL
 		mport = "1883"
