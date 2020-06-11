@@ -413,8 +413,12 @@ func getUserTablePermissions(rolesInfo []map[string]interface{}) map[string]inte
 }
 
 func storeMeta(meta *System_meta) {
-	systemDotJSON["platform_url"] = cb.CB_ADDR
-	systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
+	// TODO: setting systemDotJSON using meta rather than globals
+	// in the clearblade SDK. Might break.
+	// systemDotJSON["platform_url"] = cb.CB_ADDR
+	// systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
+	systemDotJSON["platform_url"] = meta.PlatformUrl
+	systemDotJSON["messaging_url"] = meta.MessageUrl
 	systemDotJSON["system_key"] = meta.Key
 	systemDotJSON["system_secret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
@@ -683,9 +687,13 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
+	// TODO: setting metaStuff using meta rather than globals
+	// in the clearblade SDK. Might break.
 	metaStuff := map[string]interface{}{
-		"platform_url":    cb.CB_ADDR,
-		"messaging_url":   cb.CB_MSG_ADDR,
+		// "platform_url":    cb.CB_ADDR,
+		// "messaging_url":   cb.CB_MSG_ADDR,
+		"platform_url":    sysMeta.PlatformUrl,
+		"messaging_url":   sysMeta.MessageUrl,
 		"developer_email": Email,
 		"token":           cli.DevToken,
 	}

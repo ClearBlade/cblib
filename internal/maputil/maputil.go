@@ -16,6 +16,23 @@ func LookupKey(m map[string]interface{}, keys ...string) (interface{}, bool) {
 	return nil, false
 }
 
+// LookupBool is similar to lookupKey but parses the value into an integer.
+func LookupBool(m map[string]interface{}, keys ...string) (bool, bool) {
+	var defaultFalse bool
+
+	value, found := LookupKey(m, keys...)
+	if !found {
+		return defaultFalse, false
+	}
+
+	b, ok := value.(bool)
+	if !ok {
+		return defaultFalse, false
+	}
+
+	return b, true
+}
+
 // LookupInt is similar to lookupKey but parses the value into an integer.
 func LookupInt(m map[string]interface{}, keys ...string) (int, bool) {
 	var zero int

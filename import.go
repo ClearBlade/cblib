@@ -50,6 +50,22 @@ func init() {
 	AddCommand("im", myImportCommand)
 }
 
+func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+	config := MakeImportConfigFromGlobals()
+
+	systemPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	_, err = ImportSystemWithConfig(config, systemPath, cli)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // --------------------------------
 // Import config and other types
 // --------------------------------
@@ -114,9 +130,10 @@ func MakeImportConfigFromGlobals() ImportConfig {
 
 // ImportResult holds relevant values resulting from a system import process.
 type ImportResult struct {
-	SystemName   string
-	SystemKey    string
-	SystemSecret string
+	rawSystemInfo map[string]interface{}
+	SystemName    string
+	SystemKey     string
+	SystemSecret  string
 }
 
 // --------------------------------
@@ -689,10 +706,6 @@ func mkSvcParams(params []interface{}) []string {
 	return rval
 }
 
-func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-	return importIt(cli)
-}
-
 func hijackAuthorize() (*cb.DevClient, error) {
 	svMetaInfo := MetaInfo
 	MetaInfo = nil
@@ -834,38 +847,6 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 	return nil
 }
 
-func importIt(cli *cb.DevClient) error {
-	//fmt.Printf("Reading system configuration files...")
-	SetRootDir(".")
-	if err := setupDirectoryStructure(); err != nil {
-		return err
-	}
-	users, err := getUsers()
-	if err != nil {
-		return err
-	}
-
-	systemInfo, err := getDict("system.json")
-	if err != nil {
-		return err
-	}
-	// The DevClient should be null at this point because we are delaying auth until
-	// Now.
-	cli, err = hijackAuthorize()
-	if err != nil {
-		return err
-	}
-	//fmt.Printf("Done.\nImporting system...")
-	logInfo("Importing system...")
-	if data, err := createSystem(systemInfo, cli); err != nil {
-		return fmt.Errorf("Could not create system %s: %s", systemInfo["name"], err.Error())
-	} else {
-		logInfo(fmt.Sprintf("Successfully created new system. System key is - %s", data["systemKey"].(string)))
-	}
-
-	return importAllAssets(systemInfo, users, cli)
-}
-
 // --------------------------------
 // Import entrypoint and exposed functions
 // --------------------------------
@@ -954,22 +935,20 @@ func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]inte
 	// refactored userInfo into custom ImportConfig. That way we get rid of
 	// the weakly-typed userInfo object and use a strongly-typed ImportConfig
 	// instance
-	// TODO: make userInfo have consistent casing for its keys
 	config := MakeImportConfigFromGlobals()
-	config.SystemName, _ = userInfo["systemName"].(string)                     // camel-case intentional
-	config.IntoExistingSystem, _ = userInfo["importIntoExistingSystem"].(bool) // camel-case intentional
-	config.ExistingSystemKey, _ = userInfo["system_key"].(string)              // snake-case intentional
-	config.ExistingSystemKey, _ = userInfo["system_secret"].(string)           // snake-case intentional
+	config.SystemName, _ = maputil.LookupString(userInfo, "systemName", "system_name")
+	config.IntoExistingSystem, _ = maputil.LookupBool(userInfo, "importIntoExistingSystem", "import_into_existing_system")
+	config.ExistingSystemKey, _ = maputil.LookupString(userInfo, "systemKey", "system_key")
+	config.ExistingSystemSecret, _ = maputil.LookupString(userInfo, "systemSecret", "system_secret")
 
-	// imports the system and captures raw system info
-	rawSystemInfo, err := importSystem(config, systemPath, cli)
+	importResult, err := ImportSystemWithConfig(config, systemPath, cli)
 	if err != nil {
 		return nil, err
 	}
 
-	// we return as is, rather than an ImportResult instance, to keep backward
-	// compatibility
-	return rawSystemInfo, nil
+	// we return raw (rather than an ImportResult instance), to keep backward
+	// compatibility with code that was already using this function
+	return importResult.rawSystemInfo, nil
 }
 
 // ImportSystemWithConfig imports the system rooted at the given path, using the
@@ -993,9 +972,10 @@ func ImportSystemWithConfig(config ImportConfig, systemPath string, cli *cb.DevC
 	}
 
 	result := ImportResult{
-		SystemName:   systemName,
-		SystemKey:    systemKey,
-		SystemSecret: systemSecret,
+		rawSystemInfo: rawSystemInfo,
+		SystemName:    systemName,
+		SystemKey:     systemKey,
+		SystemSecret:  systemSecret,
 	}
 
 	return result, nil
