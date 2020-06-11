@@ -692,15 +692,17 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	}
 
 	// TODO: setting metaStuff using meta rather than globals
-	// in the clearblade SDK. Might break.
+	// from here or the clearblade SDK. Might break.
 	metaStuff := map[string]interface{}{
 		// "platform_url":    cb.CB_ADDR,
 		// "messaging_url":   cb.CB_MSG_ADDR,
+		// "developer_email": Email,
 		"platform_url":    sysMeta.PlatformUrl,
 		"messaging_url":   sysMeta.MessageUrl,
-		"developer_email": Email,
+		"developer_email": cli.Email,
 		"token":           cli.DevToken,
 	}
+
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
 	}
