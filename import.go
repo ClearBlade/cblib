@@ -61,7 +61,7 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	promptAndFillMissingAuth(nil, PromptSkipMsgURL|PromptSkipSystemKey)
 
 	// authorizes using global flags
-	cli, err = authorizeUsingGlobalCLIFlags(nil)
+	cli, err = authorizeUsingGlobalCLIFlags()
 	if err != nil {
 		return err
 	}
