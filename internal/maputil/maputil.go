@@ -100,3 +100,14 @@ func LookupString(m map[string]interface{}, keys ...string) (string, bool) {
 
 	return str, true
 }
+
+// SetIfMissing assigns the given value to the given key if the key is not
+// present in the map.
+func SetIfMissing(m map[string]interface{}, key string, value interface{}) bool {
+	value, found := LookupKey(m, key)
+	if !found {
+		m[key] = value
+		return true
+	}
+	return false
+}

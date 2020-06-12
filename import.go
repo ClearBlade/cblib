@@ -60,7 +60,7 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	// prompt and skip vaues we don't need (messaging URL and system key)
 	promptAndFillMissingAuth(nil, PromptSkipMsgURL|PromptSkipSystemKey)
 
-	// authorizes using global flags
+	// authorizes using global flags (import ignores cb meta)
 	cli, err = authorizeUsingGlobalCLIFlags()
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 
 	// creates import config and proceeds to import system
 	config := MakeImportConfigFromGlobals()
-	_, err = ImportSystemWithConfig(config, systemPath, cli)
+	_, err = ImportSystemUsingConfig(config, systemPath, cli)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 // ImportConfig contains configuration values for the import process.
 // NOTE: Other configuration parameters can be added here. The idea is to pass
 // them to the import process using an instance of this struct rather than using
-// global variables.
+// global variables. TRY TO KEEP ANY INSTANCE OF THIS STRUCTURE READ-ONLY.
 type ImportConfig struct {
 	SystemName string // the name of the imported system
 
@@ -120,8 +120,8 @@ var DefaultImportConfig = ImportConfig{
 
 	ImportUsers:            false,
 	ImportRows:             false,
-	DefaultUserPassword:    "imported-user-password",
-	DefaultDeviceActiveKey: "imported-device-active-key",
+	DefaultUserPassword:    "",
+	DefaultDeviceActiveKey: "",
 }
 
 // MakeImportConfigFromGlobals creates a new ImportConfig instance from the
@@ -151,7 +151,7 @@ type ImportResult struct {
 // --------------------------------
 // Functions that focus on the creation of the system and other assets.
 
-func createSystem(system map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
+func createSystem(config ImportConfig, system map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
 	name := system["name"].(string)
 	desc := system["description"].(string)
 	auth := system["auth"].(bool)
@@ -168,7 +168,7 @@ func createSystem(system map[string]interface{}, client *cb.DevClient) (map[stri
 	return system, nil
 }
 
-func createRoles(systemInfo map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
+func createRoles(config ImportConfig, systemInfo map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	roles, err := getRoles()
 	if err != nil {
@@ -193,7 +193,7 @@ func createRoles(systemInfo map[string]interface{}, collectionsInfo []Collection
 	return nil
 }
 
-func createUsers(systemInfo map[string]interface{}, users []map[string]interface{}, client *cb.DevClient) ([]UserInfo, error) {
+func createUsers(config ImportConfig, systemInfo map[string]interface{}, users []map[string]interface{}, client *cb.DevClient) ([]UserInfo, error) {
 	//  Create user columns first -- if any
 	sysKey := systemInfo["systemKey"].(string)
 	sysSec := systemInfo["systemSecret"].(string)
@@ -222,14 +222,20 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 	rtn := make([]UserInfo, 0)
 	// Now, create users -- register, update roles, and update user-def colunms
 	for _, user := range users {
+
+		// TODO: added if to keep it backwards-compatible
+		if len(config.DefaultUserPassword) > 0 {
+			maputil.SetIfMissing(user, "password", config.DefaultUserPassword)
+		}
+
 		fmt.Printf(" %s", user["email"].(string))
-		userId, err := createUser(sysKey, sysSec, user, client)
+		userID, err := createUser(sysKey, sysSec, user, client)
 		if err != nil {
 			// don't return an error because we don't want to stop other users from being created
 			fmt.Printf("Error: Failed to create user %s - %s", user["email"].(string), err.Error())
 		}
 		info := UserInfo{
-			UserID: userId,
+			UserID: userID,
 			Email:  user["email"].(string),
 		}
 		rtn = append(rtn, info)
@@ -258,7 +264,7 @@ func createUsers(systemInfo map[string]interface{}, users []map[string]interface
 			continue
 		}
 
-		if err := client.UpdateUser(sysKey, userId, updates); err != nil {
+		if err := client.UpdateUser(sysKey, userID, updates); err != nil {
 			// don't return an error because we don't want to stop other users from being updated
 			fmt.Printf("Could not update user: %s", err.Error())
 		}
@@ -280,12 +286,12 @@ func updateTriggerInfo(trigger map[string]interface{}, usersInfo []UserInfo) {
 	replaceEmailWithUserIdInTriggerKeyValuePairs(trigger, usersInfo)
 }
 
-func createTriggerWithUpdatedInfo(sysKey string, trigger map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) (map[string]interface{}, error) {
+func createTriggerWithUpdatedInfo(config ImportConfig, sysKey string, trigger map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) (map[string]interface{}, error) {
 	updateTriggerInfo(trigger, usersInfo)
 	return createTrigger(sysKey, trigger, client)
 }
 
-func createTriggers(systemInfo map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTriggers(config ImportConfig, systemInfo map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	triggers, err := getTriggers()
 	if err != nil {
@@ -294,7 +300,7 @@ func createTriggers(systemInfo map[string]interface{}, usersInfo []UserInfo, cli
 	triggersRval := make([]map[string]interface{}, len(triggers))
 	for idx, trigger := range triggers {
 		fmt.Printf(" %s", trigger["name"].(string))
-		trigVal, err := createTriggerWithUpdatedInfo(sysKey, trigger, usersInfo, client)
+		trigVal, err := createTriggerWithUpdatedInfo(config, sysKey, trigger, usersInfo, client)
 		if err != nil {
 			return nil, err
 		}
@@ -303,7 +309,7 @@ func createTriggers(systemInfo map[string]interface{}, usersInfo []UserInfo, cli
 	return triggersRval, nil
 }
 
-func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTimers(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	timers, err := getTimers()
 	if err != nil {
@@ -321,7 +327,7 @@ func createTimers(systemInfo map[string]interface{}, client *cb.DevClient) ([]ma
 	return timersRval, nil
 }
 
-func createDeployments(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDeployments(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	deployments, err := getDeployments()
 	if err != nil {
@@ -339,7 +345,7 @@ func createDeployments(systemInfo map[string]interface{}, client *cb.DevClient) 
 	return deploymentsRval, nil
 }
 
-func createServiceCaches(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createServiceCaches(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	caches, err := getServiceCaches()
 	if err != nil {
@@ -355,7 +361,7 @@ func createServiceCaches(systemInfo map[string]interface{}, client *cb.DevClient
 	return caches, nil
 }
 
-func createWebhooks(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createWebhooks(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	hooks, err := getWebhooks()
 	if err != nil {
@@ -371,7 +377,7 @@ func createWebhooks(systemInfo map[string]interface{}, client *cb.DevClient) ([]
 	return hooks, nil
 }
 
-func createExternalDatabases(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createExternalDatabases(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	externalDatabases, err := getExternalDatabases()
 	if err != nil {
@@ -387,7 +393,7 @@ func createExternalDatabases(systemInfo map[string]interface{}, client *cb.DevCl
 	return externalDatabases, nil
 }
 
-func createServices(systemInfo map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) error {
+func createServices(config ImportConfig, systemInfo map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	services, err := getServices()
 	if err != nil {
@@ -404,7 +410,7 @@ func createServices(systemInfo map[string]interface{}, usersInfo []UserInfo, cli
 	return nil
 }
 
-func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createLibraries(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	libraries, err := getLibraries()
 	if err != nil {
@@ -421,7 +427,7 @@ func createLibraries(systemInfo map[string]interface{}, client *cb.DevClient) er
 	return nil
 }
 
-func createAdaptors(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createAdaptors(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	adaptors, err := getAdaptors(sysKey, client)
 	if err != nil {
@@ -436,7 +442,7 @@ func createAdaptors(systemInfo map[string]interface{}, client *cb.DevClient) err
 	return nil
 }
 
-func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) ([]CollectionInfo, error) {
+func createCollections(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]CollectionInfo, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	collections, err := getCollections()
 	rtn := make([]CollectionInfo, 0)
@@ -457,7 +463,7 @@ func createCollections(systemInfo map[string]interface{}, client *cb.DevClient) 
 
 // Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
 // Note: Edge schemas are optional, so if it is not found, we log an error and continue
-func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createEdges(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	sysSecret := systemInfo["systemSecret"].(string)
 	edgesSchema, err := getEdgesSchema()
@@ -498,7 +504,7 @@ func createEdges(systemInfo map[string]interface{}, client *cb.DevClient) error 
 	return nil
 }
 
-func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDevices(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	schemaPresent := true
 	sysKey := systemInfo["systemKey"].(string)
 	devicesSchema, err := getDevicesSchema()
@@ -551,6 +557,12 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 				}
 			}
 		}
+
+		// TODO: added if to keep it backwards-compatible
+		if len(config.DefaultDeviceActiveKey) > 0 {
+			maputil.SetIfMissing(device, "active_key", config.DefaultDeviceActiveKey)
+		}
+
 		deviceName := device["name"].(string)
 		fmt.Printf(" %s", deviceName)
 		deviceInfo, err := createDevice(sysKey, device, client)
@@ -573,7 +585,7 @@ func createDevices(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 	return devicesRval, nil
 }
 
-func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPortals(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	var portals []map[string]interface{}
 	var err error
@@ -600,7 +612,7 @@ func createPortals(systemInfo map[string]interface{}, client *cb.DevClient) ([]m
 	return portalsRval, nil
 }
 
-func createAllEdgeDeployment(systemInfo map[string]interface{}, client *cb.DevClient) error {
+func createAllEdgeDeployment(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) error {
 	//  First, look for deploy.json file. This is the new way of doing edge
 	//  deployment. If that fails try the old way.
 	if fileExists(rootDir + "/deploy.json") {
@@ -608,12 +620,12 @@ func createAllEdgeDeployment(systemInfo map[string]interface{}, client *cb.DevCl
 		if err != nil {
 			return err
 		}
-		return createEdgeDeployInfo(systemInfo, info, client)
+		return createEdgeDeployInfo(config, systemInfo, info, client)
 	}
 	return oldCreateEdgeDeployInfo(systemInfo, client) // old deprecated way
 }
 
-func createEdgeDeployInfo(systemInfo, deployInfo map[string]interface{}, client *cb.DevClient) error {
+func createEdgeDeployInfo(config ImportConfig, systemInfo, deployInfo map[string]interface{}, client *cb.DevClient) error {
 	deployList := deployInfo["deployInfo"].([]interface{})
 	sysKey := systemInfo["systemKey"].(string)
 
@@ -660,7 +672,7 @@ func oldCreateEdgeDeployInfo(systemInfo map[string]interface{}, client *cb.DevCl
 	return nil
 }
 
-func createPlugins(systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPlugins(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := systemInfo["systemKey"].(string)
 	plugins, err := getPlugins()
 	if err != nil {
@@ -752,26 +764,29 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 	// Common set of calls for a complete system import
 
 	logInfo("Importing collections...")
-	collectionsInfo, err := createCollections(systemInfo, cli)
+	collectionsInfo, err := createCollections(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create collections: %s", err.Error())
 	}
+
 	logInfo("Importing roles...")
-	err = createRoles(systemInfo, collectionsInfo, cli)
+	err = createRoles(config, systemInfo, collectionsInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create roles: %s", err.Error())
 	}
+
 	logInfo("Importing users...")
-	usersInfo, err := createUsers(systemInfo, users, cli)
+	usersInfo, err := createUsers(config, systemInfo, users, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create users: %s", err.Error())
 	}
+
 	logInfo("Importing code services...")
 	// Additonal modifications to the ImportIt functions
-	if err := createServices(systemInfo, usersInfo, cli); err != nil {
+	if err := createServices(config, systemInfo, usersInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
@@ -780,8 +795,9 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
 		}
 	}
+
 	logInfo("Importing code libraries...")
-	if err := createLibraries(systemInfo, cli); err != nil {
+	if err := createLibraries(config, systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
@@ -790,64 +806,74 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
 		}
 	}
+
 	logInfo("Importing triggers...")
-	_, err = createTriggers(systemInfo, usersInfo, cli)
+	_, err = createTriggers(config, systemInfo, usersInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create triggers: %s", err.Error())
 	}
+
 	logInfo("Importing timers...")
-	_, err = createTimers(systemInfo, cli)
+	_, err = createTimers(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create timers: %s", err.Error())
 	}
 
 	logInfo("Importing edges...")
-	if err := createEdges(systemInfo, cli); err != nil {
+	if err := createEdges(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create edges: %s", err.Error())
 	}
+
 	logInfo("Importing devices...")
-	_, err = createDevices(systemInfo, cli)
+	_, err = createDevices(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create devices: %s", err.Error())
 	}
+
 	logInfo("Importing portals...")
-	_, err = createPortals(systemInfo, cli)
+	_, err = createPortals(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create portals: %s", err.Error())
 	}
+
 	logInfo("Importing plugins...")
-	_, err = createPlugins(systemInfo, cli)
+	_, err = createPlugins(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create plugins: %s", err.Error())
 	}
+
 	logInfo("Importing adaptors...")
-	if err := createAdaptors(systemInfo, cli); err != nil {
+	if err := createAdaptors(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create adaptors: %s", err.Error())
 	}
+
 	logInfo("Importing deployments...")
-	if _, err := createDeployments(systemInfo, cli); err != nil {
+	if _, err := createDeployments(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
+
 	logInfo("Importing shared caches...")
-	if _, err := createServiceCaches(systemInfo, cli); err != nil {
+	if _, err := createServiceCaches(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create shared caches: %s", err.Error())
 	}
+
 	logInfo("Importing webhooks...")
-	if _, err := createWebhooks(systemInfo, cli); err != nil {
+	if _, err := createWebhooks(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create webhooks: %s", err.Error())
 	}
+
 	logInfo("Importing external databases...")
-	if _, err := createExternalDatabases(systemInfo, cli); err != nil {
+	if _, err := createExternalDatabases(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create external databases: %s", err.Error())
 	}
@@ -900,7 +926,7 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (ma
 		}
 
 		// NOTE: createSystem will modify systemInfo map
-		_, err := createSystem(systemInfo, cli)
+		_, err := createSystem(config, systemInfo, cli)
 		if err != nil {
 			return nil, fmt.Errorf("could not create system named '%s': %s", config.SystemName, err)
 		}
@@ -921,7 +947,7 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (ma
 
 // ImportSystem imports the system rooted at the given path, using the default
 // import config.
-// NOTE: this is a transitional function, refer to ImportSystemWithConfig for a
+// NOTE: this is a transitional function, refer to ImportSystemUsingConfig for a
 // newer and safer implementation.
 func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (map[string]interface{}, error) {
 
@@ -943,7 +969,7 @@ func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]inte
 	config.ExistingSystemKey, _ = maputil.LookupString(userInfo, "systemKey", "system_key")
 	config.ExistingSystemSecret, _ = maputil.LookupString(userInfo, "systemSecret", "system_secret")
 
-	importResult, err := ImportSystemWithConfig(config, systemPath, cli)
+	importResult, err := ImportSystemUsingConfig(config, systemPath, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -953,10 +979,10 @@ func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]inte
 	return importResult.rawSystemInfo, nil
 }
 
-// ImportSystemWithConfig imports the system rooted at the given path, using the
+// ImportSystemUsingConfig imports the system rooted at the given path, using the
 // given config for different values. The given client should already be
 // authenticated and ready to go.
-func ImportSystemWithConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (ImportResult, error) {
+func ImportSystemUsingConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (ImportResult, error) {
 
 	blankImportResult := ImportResult{}
 
