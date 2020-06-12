@@ -140,10 +140,11 @@ func promptAndFillMissingPassword() bool {
 }
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
-	var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
+	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
+	var defaultURL, defaultEmail, defaultSystemKey string
 	if defaults != nil {
 		defaultURL = defaults.url
-		defaultMsgURL = defaults.msgUrl
+		// defaultMsgURL = defaults.msgUrl
 		defaultEmail = defaults.email
 		defaultSystemKey = defaults.systemKey
 	}
@@ -152,9 +153,11 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 		promptAndFillMissingURL(defaultURL)
 	}
 
-	if !promptSet.Has(PromptSkipMsgURL) {
-		promptAndFillMissingMsgURL(defaultMsgURL)
-	}
+	// if !promptSet.Has(PromptSkipMsgURL) {
+	// TODO: messaging URL is optional since it can be derived from platform URL
+	// when not present
+	// 	promptAndFillMissingMsgURL(defaultMsgURL)
+	// }
 
 	if !promptSet.Has(PromptSkipEmail) {
 		promptAndFillMissingEmail(defaultEmail)
@@ -176,7 +179,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 
 // authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
 // global flags passed to the CLI program.
-func authorizeUsingGlobalCLIFlags(defaults *DefaultInfo) (*cb.DevClient, error) {
+func authorizeUsingGlobalCLIFlags() (*cb.DevClient, error) {
 	return authorizeUsing(URL, MsgURL, Email, Password, "")
 }
 
@@ -235,9 +238,6 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 		return nil, fmt.Errorf("email must be non-empty")
 	}
 
-	fmt.Printf("Using ClearBlade platform at '%s'\n", platformURL)
-	fmt.Printf("Using ClearBlade messaging at '%s'\n", messagingURL)
-
 	var cli *cb.DevClient
 
 	if len(token) > 0 {
@@ -258,7 +258,6 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 
 	} else {
 		errmsg := fmt.Errorf("must provide either password or token")
-		fmt.Printf("Authenticate failed: %s\n", err)
 		return nil, errmsg
 	}
 
@@ -299,12 +298,26 @@ func verifyAuthentication(cli *cb.DevClient) error {
 // Authorize creates a new clearblade client by using the GLOBAL meta info, if
 // it is not set, it will prompt the user for missing flags.
 func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
+
+	var cli *cb.DevClient
+	var err error
+
 	if MetaInfo != nil {
-		return authorizeUsingGlobalMetaInfo()
+		cli, err = authorizeUsingGlobalMetaInfo()
+
+	} else {
+		promptAndFillMissingAuth(defaults, PromptAll)
+		cli, err = authorizeUsingGlobalCLIFlags()
 	}
 
-	promptAndFillMissingAuth(defaults, PromptAll)
-	return authorizeUsingGlobalCLIFlags(defaults)
+	if err != nil {
+		return nil, fmt.Errorf("Authorize failed: %s", err)
+	}
+
+	fmt.Printf("Using ClearBlade platform at '%s'\n", cli.HttpAddr)
+	fmt.Printf("Using ClearBlade messaging at '%s'\n", cli.MqttAddr)
+
+	return cli, nil
 }
 
 func getPromptBasedOnTwoFactorMethod(method string) string {

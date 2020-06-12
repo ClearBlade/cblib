@@ -617,6 +617,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("export command takes no arguments; only options\n")
 	}
+
 	inARepo = MetaInfo != nil
 	if inARepo {
 		if exportOptionsExist() {
@@ -629,15 +630,10 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	var err error
-	//if exportOptionsExist() {
-	if DevToken != "" {
-		client = cb.NewDevClientWithToken(DevToken, Email)
-	} else {
-		client, err = Authorize(nil)
-		if err != nil {
-			return fmt.Errorf("Authorize FAILED: %s\n", err)
-		}
+
+	client, err := Authorize(nil)
+	if err != nil {
+		return fmt.Errorf("Authorization failed: %s\n", err)
 	}
 
 	// This is a hack to check if token has expired and auth again
@@ -646,6 +642,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return fmt.Errorf("Re-auth failed: %s", err)
 	}
+
 	return ExportSystem(client, SystemKey)
 }
 
