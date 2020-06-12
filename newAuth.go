@@ -153,9 +153,9 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 		promptAndFillMissingURL(defaultURL)
 	}
 
+	// // TODO: messaging URL is optional since it can be derived from platform URL
+	// // when not present
 	// if !promptSet.Has(PromptSkipMsgURL) {
-	// TODO: messaging URL is optional since it can be derived from platform URL
-	// when not present
 	// 	promptAndFillMissingMsgURL(defaultMsgURL)
 	// }
 
@@ -183,6 +183,8 @@ func authorizeUsingGlobalCLIFlags() (*cb.DevClient, error) {
 	return authorizeUsing(URL, MsgURL, Email, Password, "")
 }
 
+// authorizeUsingGlobalMetaInfo creates a new clearblade client by using the
+// the GLOBAL MetaInfo variable (cb meta must exists).
 func authorizeUsingGlobalMetaInfo() (*cb.DevClient, error) {
 	if MetaInfo == nil {
 		return nil, fmt.Errorf("global meta info is nil")
@@ -190,8 +192,8 @@ func authorizeUsingGlobalMetaInfo() (*cb.DevClient, error) {
 	return authorizeUsingMetaInfo(MetaInfo)
 }
 
-// authorizeUsingGlobalMetaInfo creates a new clearblade client by using the
-// the GLOBAL MetaInfo variable (not nil if cb meta exists).
+// authorizeUsingMetaInfo creates a new clearblade client by using the given
+// meta info map.
 func authorizeUsingMetaInfo(metaInfo map[string]interface{}) (*cb.DevClient, error) {
 
 	if metaInfo == nil {

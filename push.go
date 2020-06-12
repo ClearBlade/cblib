@@ -1863,6 +1863,14 @@ func updateService(systemKey, name string, service map[string]interface{}, clien
 	return nil
 }
 
+func mkSvcParams(params []interface{}) []string {
+	rval := []string{}
+	for _, val := range params {
+		rval = append(rval, val.(string))
+	}
+	return rval
+}
+
 func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	ret := map[string]interface{}{
 		"logging_enabled":   false,

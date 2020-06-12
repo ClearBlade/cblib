@@ -1,7 +1,6 @@
 package cblib
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -125,7 +124,7 @@ var DefaultImportConfig = ImportConfig{
 }
 
 // MakeImportConfigFromGlobals creates a new ImportConfig instance from the
-// global variables in cblib. Use with caution. Note that this function starts
+// GLOBAL variables in cblib. Use with caution. Note that this function starts
 // with Make* and not with New* because it returns a normal instance, and not
 // a pointer to an instance.
 func MakeImportConfigFromGlobals() ImportConfig {
@@ -718,42 +717,6 @@ func enableLogs(service map[string]interface{}) bool {
 		return logVal.(bool) == true
 	}
 	return false
-}
-
-func mkSvcParams(params []interface{}) []string {
-	rval := []string{}
-	for _, val := range params {
-		rval = append(rval, val.(string))
-	}
-	return rval
-}
-
-func hijackAuthorize() (*cb.DevClient, error) {
-	svMetaInfo := MetaInfo
-	MetaInfo = nil
-	SystemKey = "DummyTemporaryPlaceholder"
-	cli, err := Authorize(nil)
-	if err != nil {
-		return nil, err
-	}
-	SystemKey = ""
-	MetaInfo = svMetaInfo
-	return cli, nil
-}
-
-// Used in pairing with importMySystem:
-func devTokenHardAuthorize() (*cb.DevClient, error) {
-	// MetaInfo should not be nil, else the current process will prompt user on command line
-	if MetaInfo == nil {
-		return nil, errors.New("MetaInfo cannot be nil")
-	}
-	SystemKey = "DummyTemporaryPlaceholder"
-	cli, err := Authorize(nil)
-	if err != nil {
-		return nil, err
-	}
-	SystemKey = ""
-	return cli, nil
 }
 
 // TODO Handle more specific error for if folder doesnt exist
