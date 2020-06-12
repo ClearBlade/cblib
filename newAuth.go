@@ -236,10 +236,6 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 	password = strings.TrimSpace(password)
 	token = strings.TrimSpace(token)
 
-	if len(email) <= 0 {
-		return nil, fmt.Errorf("email must be non-empty")
-	}
-
 	var cli *cb.DevClient
 
 	if len(token) > 0 {
