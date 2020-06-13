@@ -9,7 +9,7 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/maputil"
+	"github.com/clearblade/cblib/maputil"
 )
 
 const (

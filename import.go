@@ -8,7 +8,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
-	"github.com/clearblade/cblib/internal/maputil"
+	"github.com/clearblade/cblib/maputil"
 )
 
 var (
