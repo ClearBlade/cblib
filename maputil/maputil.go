@@ -101,6 +101,21 @@ func LookupString(m map[string]interface{}, keys ...string) (string, bool) {
 	return str, true
 }
 
+// LookupMap is similar to lookupKey but parses the value into a map[string]interface{} type.
+func LookupMap(m map[string]interface{}, keys ...string) (map[string]interface{}, bool) {
+	value, found := LookupKey(m, keys...)
+	if !found {
+		return nil, false
+	}
+
+	m, ok := value.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	return m, true
+}
+
 // SetIfMissing assigns the given value to the given key if the key is not
 // present in the map.
 func SetIfMissing(m map[string]interface{}, key string, value interface{}) bool {
