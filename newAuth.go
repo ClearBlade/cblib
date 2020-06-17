@@ -20,7 +20,7 @@ const (
 	passwordPrompt  = "Developer password: "
 )
 
-func init() {
+func initAuthFlags() {
 	flag.StringVar(&URL, "platform-url", "", "Clearblade platform url for target system")
 	flag.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
 	flag.StringVar(&SystemKey, "system-key", "", "System key for target system")

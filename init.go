@@ -8,8 +8,7 @@ import (
 	cb "github.com/clearblade/Go-SDK"
 )
 
-// InitFlags initializes all the flags.
-func InitFlags() {
+func init() {
 	usage :=
 		`
 		Initializes your filesystem with your ClearBlade Platform System or targets your local system to a different remote system within a ClearBlade Platform
