@@ -1990,7 +1990,7 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 			return err
 		} else {
 			if c {
-				if _, err := CreateCollection(meta.Key, collection, client); err != nil {
+				if _, err := CreateCollection(meta.Key, collection, true, client); err != nil {
 					return fmt.Errorf("Could not create collection %s: %s", collection_name, err.Error())
 				} else {
 					fmt.Printf("Successfully created new collection. Updating local copy... %s\n", collection_name)
