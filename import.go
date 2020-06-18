@@ -214,7 +214,7 @@ func createUsers(config ImportConfig, systemInfo map[string]interface{}, users [
 		}
 	}
 
-	if !importUsers {
+	if !config.ImportUsers {
 		return nil, nil
 	}
 
@@ -451,7 +451,7 @@ func createCollections(config ImportConfig, systemInfo map[string]interface{}, c
 
 	for _, collection := range collections {
 		fmt.Printf(" %s\n", collection["name"].(string))
-		if info, err := CreateCollection(sysKey, collection, client); err != nil {
+		if info, err := CreateCollection(sysKey, collection, config.ImportRows, client); err != nil {
 			return rtn, err
 		} else {
 			rtn = append(rtn, info)

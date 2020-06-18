@@ -2045,7 +2045,7 @@ type RoleInfo struct {
 	Name string
 }
 
-func CreateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) (CollectionInfo, error) {
+func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
 	collectionName := collection["name"].(string)
 	isConnect := isConnectCollection(collection)
 	var colId string
@@ -2090,6 +2090,11 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 			return CollectionInfo{}, err
 		}
 	}
+
+	if !pushItems {
+		return myInfo, nil
+	}
+
 	allItems := collection["items"].([]interface{})
 	totalItems := len(allItems)
 	totalPushed := 0
