@@ -706,8 +706,12 @@ func authenticate(c cbClient, username, password string) error {
 		return fmt.Errorf("Token not present i response from platform %+v", resp.Body)
 	}
 	c.setToken(token)
-	c.setRefreshToken(respBody["refresh_token"].(string))
-	c.setExpiresAt(respBody["expires_at"].(float64))
+	if _, ok := respBody["refresh_token"]; ok {
+		c.setRefreshToken(respBody["refresh_token"].(string))
+	}
+	if _, ok := respBody["expires_at"]; ok {
+		c.setExpiresAt(respBody["expires_at"].(float64))
+	}
 	return nil
 }
 

@@ -10,12 +10,12 @@
   version = "v0.1.0"
 
 [[projects]]
-  digest = "1:dfe499eb5001370a9a46d2acb2d63a0fd8a4d18f1bd7fc1f533f37c046d54238"
+  branch = "master"
+  digest = "1:781f54b46372845374c31e02539e23aca0ff55138c1159fe2a77c38ede185975"
   name = "github.com/clearblade/Go-SDK"
   packages = ["."]
   pruneopts = "UT"
-  revision = "06a95f909e206c2213487806aadda669d5138665"
-  version = "3.4.0"
+  revision = "e7ea1fcfd7c397b898052b0636007024b7b980ac"
 
 [[projects]]
   digest = "1:1a58a688cb20f2c431e1a3a85347559f5ad145b92fd83d144f832906f8675fa1"
@@ -24,6 +24,14 @@
   pruneopts = "UT"
   revision = "f1a77f1fc21cab36e0b242be1a68bfb48b583e3c"
   version = "v1.0"
+
+[[projects]]
+  branch = "CBCOMM-246-collections-not-importing"
+  digest = "1:04001c30e0e3164f9dd0a049785c7f17d2d3fd7ecc41b3a4ec4b1d5cff2015c4"
+  name = "github.com/clearblade/cblib"
+  packages = ["models"]
+  pruneopts = "UT"
+  revision = "cb6f1c688f5b27e27662c72c5c84e1b75bf6048b"
 
 [[projects]]
   digest = "1:ce7ab28302e0c9bdeb6b5311f3e7c4338d6d6ab0de6ff62e377a10bcbe957b1e"
@@ -116,6 +124,7 @@
     "github.com/bgentry/speakeasy",
     "github.com/clearblade/Go-SDK",
     "github.com/clearblade/cbjson",
+    "github.com/clearblade/cblib/models",
     "github.com/totherme/unstructured",
   ]
   solver-name = "gps-cdcl"
