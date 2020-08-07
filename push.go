@@ -1863,6 +1863,14 @@ func updateService(systemKey, name string, service map[string]interface{}, clien
 	return nil
 }
 
+func mkSvcParams(params []interface{}) []string {
+	rval := []string{}
+	for _, val := range params {
+		rval = append(rval, val.(string))
+	}
+	return rval
+}
+
 func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	ret := map[string]interface{}{
 		"logging_enabled":   false,
@@ -1982,7 +1990,7 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 			return err
 		} else {
 			if c {
-				if _, err := CreateCollection(meta.Key, collection, client); err != nil {
+				if _, err := CreateCollection(meta.Key, collection, true, client); err != nil {
 					return fmt.Errorf("Could not create collection %s: %s", collection_name, err.Error())
 				} else {
 					fmt.Printf("Successfully created new collection. Updating local copy... %s\n", collection_name)
@@ -2037,7 +2045,7 @@ type RoleInfo struct {
 	Name string
 }
 
-func CreateCollection(systemKey string, collection map[string]interface{}, client *cb.DevClient) (CollectionInfo, error) {
+func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
 	collectionName := collection["name"].(string)
 	isConnect := isConnectCollection(collection)
 	var colId string
@@ -2082,6 +2090,11 @@ func CreateCollection(systemKey string, collection map[string]interface{}, clien
 			return CollectionInfo{}, err
 		}
 	}
+
+	if !pushItems {
+		return myInfo, nil
+	}
+
 	allItems := collection["items"].([]interface{})
 	totalItems := len(allItems)
 	totalPushed := 0

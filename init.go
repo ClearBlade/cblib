@@ -9,7 +9,6 @@ import (
 )
 
 func init() {
-
 	usage :=
 		`
 		Initializes your filesystem with your ClearBlade Platform System or targets your local system to a different remote system within a ClearBlade Platform
@@ -69,11 +68,12 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	}
 
 	metaStuff := map[string]interface{}{
-		"platform_url":    URL,
-		"messaging_url":   MsgURL,
-		"developer_email": Email,
+		"platform_url":    cli.HttpAddr,
+		"messaging_url":   cli.MqttAddr,
+		"developer_email": cli.Email,
 		"token":           cli.DevToken,
 	}
+
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
 	}

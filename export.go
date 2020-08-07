@@ -387,15 +387,19 @@ func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
 	if err != nil {
 		return nil, err
 	}
-	serv_metas := make(map[string]Service_meta)
+
+	serviceMetas := make(map[string]Service_meta)
+
 	sysMeta := &System_meta{
 		Name:        sys.Name,
 		Key:         sys.Key,
 		Secret:      sys.Secret,
 		Description: sys.Description,
-		Services:    serv_metas,
-		PlatformUrl: URL,
+		Services:    serviceMetas,
+		PlatformUrl: cli.HttpAddr,
+		MessageUrl:  cli.MqttAddr,
 	}
+
 	return sysMeta, nil
 }
 
@@ -413,8 +417,12 @@ func getUserTablePermissions(rolesInfo []map[string]interface{}) map[string]inte
 }
 
 func storeMeta(meta *System_meta) {
-	systemDotJSON["platform_url"] = cb.CB_ADDR
-	systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
+	// TODO: setting systemDotJSON using meta rather than globals
+	// in the clearblade SDK. Might break.
+	// systemDotJSON["platform_url"] = cb.CB_ADDR
+	// systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
+	systemDotJSON["platform_url"] = meta.PlatformUrl
+	systemDotJSON["messaging_url"] = meta.MessageUrl
 	systemDotJSON["system_key"] = meta.Key
 	systemDotJSON["system_secret"] = meta.Secret
 	systemDotJSON["name"] = meta.Name
@@ -609,6 +617,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("export command takes no arguments; only options\n")
 	}
+
 	inARepo = MetaInfo != nil
 	if inARepo {
 		if exportOptionsExist() {
@@ -621,15 +630,10 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		*/
 		setupFromRepo()
 	}
-	var err error
-	//if exportOptionsExist() {
-	if DevToken != "" {
-		client = cb.NewDevClientWithToken(DevToken, Email)
-	} else {
-		client, err = Authorize(nil)
-		if err != nil {
-			return fmt.Errorf("Authorize FAILED: %s\n", err)
-		}
+
+	client, err := Authorize(nil)
+	if err != nil {
+		return fmt.Errorf("Authorization failed: %s\n", err)
 	}
 
 	// This is a hack to check if token has expired and auth again
@@ -638,6 +642,7 @@ func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return fmt.Errorf("Re-auth failed: %s", err)
 	}
+
 	return ExportSystem(client, SystemKey)
 }
 
@@ -683,12 +688,18 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 		return err
 	}
 
+	// TODO: setting metaStuff using meta rather than globals
+	// from here or the clearblade SDK. Might break.
 	metaStuff := map[string]interface{}{
-		"platform_url":    cb.CB_ADDR,
-		"messaging_url":   cb.CB_MSG_ADDR,
-		"developer_email": Email,
+		// "platform_url":    cb.CB_ADDR,
+		// "messaging_url":   cb.CB_MSG_ADDR,
+		// "developer_email": Email,
+		"platform_url":    sysMeta.PlatformUrl,
+		"messaging_url":   sysMeta.MessageUrl,
+		"developer_email": cli.Email,
 		"token":           cli.DevToken,
 	}
+
 	if err = storeCBMeta(metaStuff); err != nil {
 		return err
 	}
