@@ -1,11 +1,7 @@
 github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQkY=
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
-github.com/clearblade/Go-SDK v0.0.0-20200326154343-c53ec242858e h1:c29/gIK4mou1Pdl9RWzIq4gdf6GlJetfbRDITeJUbjs=
-github.com/clearblade/Go-SDK v0.0.0-20200326154343-c53ec242858e/go.mod h1:KByFsQUrafel53AhheIy5KflUpcqPeyPFqMQNwuwuS0=
-github.com/clearblade/Go-SDK v0.0.0-20200422135121-9dc7cde89698 h1:6JqF19YFe7E9BUhRxbjN+h6tvfw2NTWLIzfA9jMWcJI=
-github.com/clearblade/Go-SDK v0.0.0-20200422135121-9dc7cde89698/go.mod h1:KByFsQUrafel53AhheIy5KflUpcqPeyPFqMQNwuwuS0=
-github.com/clearblade/Go-SDK v0.0.0-20200427165408-06a95f909e20 h1:gjWhhoPtOrDeFxUCLj++UOa7jiJ+RaO5dHLX0Y/kQuE=
-github.com/clearblade/Go-SDK v0.0.0-20200427165408-06a95f909e20/go.mod h1:KByFsQUrafel53AhheIy5KflUpcqPeyPFqMQNwuwuS0=
+github.com/clearblade/Go-SDK v0.0.0-20200721221241-d0b957008a27 h1:XZ4DikfgdZF23uecFldnp2CeBoJFlvw7w04+cVYFrzc=
+github.com/clearblade/Go-SDK v0.0.0-20200721221241-d0b957008a27/go.mod h1:KByFsQUrafel53AhheIy5KflUpcqPeyPFqMQNwuwuS0=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c h1:KnJkP9fLFNyoV+pU3mXiRW5oLJdgDzVM/hWQhc0Scas=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c/go.mod h1:Pbu2bhtMVaWboL3mRaFQmGs8USG8uG4EAW2LB3SfCME=
 github.com/clearblade/go-utils v1.1.4 h1:/pcYKVTAJ5RcXRZnVENNdUZUKCoZRa3OVhbyer/aHiY=
