@@ -224,7 +224,8 @@ func createUsers(config ImportConfig, systemInfo map[string]interface{}, users [
 
 		// TODO: added if to keep it backwards-compatible
 		if len(config.DefaultUserPassword) > 0 {
-			maputil.SetIfMissing(user, "password", config.DefaultUserPassword)
+			password := randSeq(10)
+			maputil.SetIfMissing(user, password, config.DefaultUserPassword)
 		}
 
 		fmt.Printf(" %s", user["email"].(string))
