@@ -1410,7 +1410,7 @@ func updateUser(meta *System_meta, user map[string]interface{}, client *cb.DevCl
 
 func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) (string, error) {
 	email := user["email"].(string)
-	password := "password"
+	password := randSeq(10)
 	if pwd, ok := user["password"]; ok {
 		password = pwd.(string)
 	}
