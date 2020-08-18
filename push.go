@@ -1085,7 +1085,7 @@ func isEdgeMatch(edgeA interface{}, edgeB interface{}) bool {
 func isAssetMatch(assetA interface{}, assetB interface{}) bool {
 	typedA := assetA.(map[string]interface{})
 	typedB := assetB.(map[string]interface{})
-	return typedA["asset_class"].(string) == typedB["asset_class"].(string) && typedA["asset_id"].(string) == typedB["asset_id"].(string) && typedA["sync"].(bool) == typedB["sync"].(bool)
+	return typedA["asset_class"].(string) == typedB["asset_class"].(string) && typedA["asset_id"].(string) == typedB["asset_id"].(string) && typedA["sync_to_edge"].(bool) == typedB["sync_to_edge"].(bool) && typedA["sync_to_platform"].(bool) == typedB["sync_to_platform"].(bool)
 }
 
 func createRole(systemKey string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
