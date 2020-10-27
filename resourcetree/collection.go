@@ -11,7 +11,7 @@ import (
 // Collection stores information regarding a collection.
 type Collection struct {
 	Name    string                   `json:"name" mapstructure:"name"`
-	Schema  []ColumnSchema           `json:"schema" mapstructure:"schema"`
+	Schema  []*ColumnSchema          `json:"schema" mapstructure:"schema"`
 	Indexes Indexes                  `json:"indexes" mapstructure:"indexes"`
 	Items   []map[string]interface{} `json:"items" mapstructure:"items"`
 }
@@ -45,8 +45,8 @@ type Index struct {
 
 // Indexes is a slice of Index.
 type Indexes struct {
-	Total int     `json:"Total" mapstructure:"total"`
-	Data  []Index `json:"Data" mapstructure:"Data"`
+	Total int      `json:"Total" mapstructure:"total"`
+	Data  []*Index `json:"Data" mapstructure:"Data"`
 }
 
 // NewCollectionFromReader returns a new *Collection from the given reader.

@@ -289,3 +289,26 @@ func Test_DeletingAllUserRoles(t *testing.T) {
 	}
 
 }
+
+func TestDifferenceSliceUsingSucceeds(t *testing.T) {
+
+	tests := []struct {
+		a    []interface{}
+		b    []interface{}
+		diff []interface{}
+	}{
+		{[]interface{}{1, 2, 3}, []interface{}{}, []interface{}{1, 2, 3}},
+		{[]interface{}{1, 2, 3}, []interface{}{1}, []interface{}{2, 3}},
+		{[]interface{}{1, 2, 3}, []interface{}{1, 2}, []interface{}{3}},
+		{[]interface{}{1, 2, 3}, []interface{}{1, 2, 3}, []interface{}{}},
+		{[]interface{}{2, 3}, []interface{}{1, 2, 3}, []interface{}{}},
+		{[]interface{}{3}, []interface{}{1, 2, 3}, []interface{}{}},
+		{[]interface{}{}, []interface{}{1, 2, 3}, []interface{}{}},
+	}
+
+	for _, tt := range tests {
+		diff := DifferenceSliceUsing(tt.a, tt.b, func(a, b interface{}) bool { return a == b })
+		assert.Equal(t, tt.diff, diff)
+	}
+
+}

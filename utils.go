@@ -356,6 +356,31 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 	return false
 }
 
+// DifferenceSliceUsing returns the difference between the slices `a` and `b`.
+// In other words, returns the items from `a` that *are not* in `b`.
+func DifferenceSliceUsing(a, b []interface{}, compare func(interface{}, interface{}) bool) []interface{} {
+
+	diff := make([]interface{}, 0, len(a))
+
+	for _, aitem := range a {
+
+		notInB := true
+
+		for _, bitem := range b {
+			if compare(aitem, bitem) {
+				notInB = false
+				break
+			}
+		}
+
+		if notInB {
+			diff = append(diff, aitem)
+		}
+	}
+
+	return diff
+}
+
 func findDiff(listA []interface{}, listB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
 	rtn := make([]interface{}, 0)
 	for i := 0; i < len(listA); i++ {

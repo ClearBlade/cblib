@@ -10,6 +10,8 @@ import (
 	"github.com/clearblade/cblib/models"
 
 	cb "github.com/clearblade/Go-SDK"
+
+	rt "github.com/clearblade/cblib/resourcetree"
 )
 
 func init() {
@@ -1004,6 +1006,104 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	for i := 0; i < len(diff.add); i++ {
 		if err := cli.AddColumn(collID, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
 			return fmt.Errorf("Unable to create column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		}
+	}
+
+	return nil
+}
+
+func getDiffForIndexes(local, remote []*rt.Index) ([]*rt.Index, []*rt.Index) {
+
+	localSlice := make([]interface{}, 0, len(local))
+	for _, item := range local {
+		localSlice = append(localSlice, item)
+	}
+
+	remoteSlice := make([]interface{}, 0, len(remote))
+	for _, item := range remote {
+		remoteSlice = append(remoteSlice, item)
+	}
+
+	addedDiff := DifferenceSliceUsing(localSlice, remoteSlice, func(a, b interface{}) bool {
+		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
+	})
+
+	removedDiff := DifferenceSliceUsing(remoteSlice, localSlice, func(a, b interface{}) bool {
+		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
+	})
+
+	added := make([]*rt.Index, 0, len(addedDiff))
+	for _, item := range addedDiff {
+		added = append(added, item.(*rt.Index))
+	}
+
+	removed := make([]*rt.Index, 0, len(removedDiff))
+	for _, item := range removedDiff {
+		removed = append(removed, item.(*rt.Index))
+	}
+
+	return added, removed
+}
+
+func createCollectionIndex(systemInfo *System_meta, cli *cb.DevClient, name string, index *rt.Index) error {
+	switch index.IndexType {
+	case rt.IndexUnique:
+		return cli.CreateUniqueIndex(systemInfo.Key, name, index.Name)
+	case rt.IndexNonUnique:
+		return cli.CreateIndex(systemInfo.Key, name, index.Name)
+	default:
+		return fmt.Errorf("unknown index: %s", index.IndexType)
+	}
+}
+
+func dropCollectionIndex(systemInfo *System_meta, cli *cb.DevClient, name string, index *rt.Index) error {
+	switch index.IndexType {
+	case rt.IndexUnique:
+		return cli.DropUniqueIndex(systemInfo.Key, name, index.Name)
+	case rt.IndexNonUnique:
+		return cli.DropIndex(systemInfo.Key, name, index.Name)
+	default:
+		return fmt.Errorf("unknown index: %s", index.IndexType)
+	}
+}
+
+func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name string) error {
+
+	fmt.Printf("Pushing collection indexes for '%s'\n", name)
+
+	localColl, err := getCollection(name)
+	if err != nil {
+		return err
+	}
+
+	localIndexes, err := rt.NewIndexesFromMap(localColl["indexes"].(map[string]interface{}))
+	if err != nil {
+		return err
+	}
+
+	remoteIndexesData, err := cli.ListIndexes(systemInfo.Key, name)
+	if err != nil {
+		return err
+	}
+
+	remoteIndexes, err := rt.NewIndexesFromMap(remoteIndexesData)
+	if err != nil {
+		return err
+	}
+
+	addedIndexes, removedIndexes := getDiffForIndexes(localIndexes.Data, remoteIndexes.Data)
+
+	for _, index := range removedIndexes {
+		err = dropCollectionIndex(systemInfo, cli, name, index)
+		if err != nil {
+			return fmt.Errorf("Unable to drop index %s: %s", index.Name, err)
+		}
+	}
+
+	for _, index := range addedIndexes {
+		err = createCollectionIndex(systemInfo, cli, name, index)
+		if err != nil {
+			return fmt.Errorf("Unable to create index %s: %s", index.Name, err)
 		}
 	}
 
@@ -2006,9 +2106,14 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 
 	// here's our workflow for updating a collection:
 	// 1) diff and update the collection schema
-	// 2) attempt to update all of our items
-	// 3) if update fails, we assume the item doesn't exist, so we create the item
+	// 1) diff and update the collection indexes
+	// 3) attempt to update all of our items
+	// 4) if update fails, we assume the item doesn't exist, so we create the item
 	if err := pushCollectionSchema(meta, client, collection_name); err != nil {
+		return err
+	}
+
+	if err := pushCollectionIndexes(meta, client, collection_name); err != nil {
 		return err
 	}
 
