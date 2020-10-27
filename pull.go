@@ -55,6 +55,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllServiceCaches, "all-shared-caches", false, "pull all shared caches from system")
 	pullCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "pull all webhooks from system")
 	pullCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "pull all external databases from system")
+	pullCommand.flags.BoolVar(&SkipPullIndexes, "no-indexes", false, "Ignores pulling indexes")
 
 	pullCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to pull")
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
