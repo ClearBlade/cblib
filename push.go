@@ -1024,11 +1024,11 @@ func getDiffForIndexes(local, remote []*rt.Index) ([]*rt.Index, []*rt.Index) {
 		remoteSlice = append(remoteSlice, item)
 	}
 
-	addedDiff := DifferenceSliceUsing(localSlice, remoteSlice, func(a, b interface{}) bool {
+	addedDiff := DiffSliceUsing(localSlice, remoteSlice, func(a, b interface{}) bool {
 		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
 	})
 
-	removedDiff := DifferenceSliceUsing(remoteSlice, localSlice, func(a, b interface{}) bool {
+	removedDiff := DiffSliceUsing(remoteSlice, localSlice, func(a, b interface{}) bool {
 		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
 	})
 

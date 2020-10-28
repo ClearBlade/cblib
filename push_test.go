@@ -16,6 +16,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 		removed []*rt.Index
 	}{
 
+		// they are the same, no diff
 		{
 			[]*rt.Index{{Name: "a"}, {Name: "b"}, {Name: "c"}},
 			[]*rt.Index{{Name: "a"}, {Name: "b"}, {Name: "c"}},
@@ -23,6 +24,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 			[]*rt.Index{},
 		},
 
+		// added one item to local
 		{
 			[]*rt.Index{{Name: "a"}, {Name: "b"}, {Name: "c"}},
 			[]*rt.Index{{Name: "a"}, {Name: "b"}},
@@ -30,6 +32,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 			[]*rt.Index{},
 		},
 
+		// removed one item from local
 		{
 			[]*rt.Index{{Name: "a"}, {Name: "b"}},
 			[]*rt.Index{{Name: "a"}, {Name: "b"}, {Name: "c"}},
@@ -37,6 +40,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 			[]*rt.Index{{Name: "c"}},
 		},
 
+		// change index type for the same column
 		{
 			[]*rt.Index{{Name: "a", IndexType: rt.IndexNonUnique}},
 			[]*rt.Index{{Name: "a", IndexType: rt.IndexUnique}},

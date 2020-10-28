@@ -356,24 +356,37 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 	return false
 }
 
-// DifferenceSliceUsing returns the difference between the slices `a` and `b`.
+// FilterSlice returns the items of the slice `s` for which `predicate` returns true.
+func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{} {
+	filtered := make([]interface{}, 0, len(s))
+
+	for _, item := range s {
+		if predicate(item) {
+			filtered = append(filtered, item)
+		}
+	}
+
+	return filtered
+}
+
+// DiffSliceUsing returns the difference between the slices `a` and `b`.
 // In other words, returns the items from `a` that *are not* in `b`.
-func DifferenceSliceUsing(a, b []interface{}, compare func(interface{}, interface{}) bool) []interface{} {
+func DiffSliceUsing(a, b []interface{}, compare func(interface{}, interface{}) bool) []interface{} {
 
 	diff := make([]interface{}, 0, len(a))
 
 	for _, aitem := range a {
 
-		notInB := true
+		foundInB := false
 
 		for _, bitem := range b {
 			if compare(aitem, bitem) {
-				notInB = false
+				foundInB = true
 				break
 			}
 		}
 
-		if notInB {
+		if !foundInB {
 			diff = append(diff, aitem)
 		}
 	}
@@ -381,24 +394,15 @@ func DifferenceSliceUsing(a, b []interface{}, compare func(interface{}, interfac
 	return diff
 }
 
-func findDiff(listA []interface{}, listB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
-	rtn := make([]interface{}, 0)
-	for i := 0; i < len(listA); i++ {
-		found := false
-		if isDefaultColumnCb(listA[i]) {
-			found = true
-		}
-		for j := 0; j < len(listB); j++ {
-			if !isDefaultColumnCb(listB[j]) && isMatch(listA[i], listB[j]) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			rtn = append(rtn, listA[i])
-		}
-	}
-	return rtn
+func findDiff(sliceA []interface{}, sliceB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
+
+	diff := DiffSliceUsing(sliceA, sliceB, isMatch)
+
+	diffWithoutDefaultColumns := FilterSlice(diff, func(item interface{}) bool {
+		return !isDefaultColumnCb(item)
+	})
+
+	return diffWithoutDefaultColumns
 }
 
 func compareLists(localList []interface{}, backendList []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) ListDiff {
