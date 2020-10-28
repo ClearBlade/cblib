@@ -38,6 +38,17 @@ func TestCollectionFromReaderReturnsCollection(t *testing.T) {
 	assert.Len(t, coll.Items, 0)
 }
 
+func TestIndexesFromNilReturnsEmptyIndexes(t *testing.T) {
+
+	indexes, err := NewIndexesFromMap(nil)
+	if !assert.Nil(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, 0, indexes.Total)
+	assert.Len(t, indexes.Data, 0)
+}
+
 func TestIndexesFromEmptyMapReturnsEmptyIndexes(t *testing.T) {
 
 	data := map[string]interface{}{

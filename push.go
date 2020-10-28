@@ -1012,28 +1012,6 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	return nil
 }
 
-func createCollectionIndex(systemInfo *System_meta, cli *cb.DevClient, name string, index *rt.Index) error {
-	switch index.IndexType {
-	case rt.IndexUnique:
-		return cli.CreateUniqueIndex(systemInfo.Key, name, index.Name)
-	case rt.IndexNonUnique:
-		return cli.CreateIndex(systemInfo.Key, name, index.Name)
-	default:
-		return fmt.Errorf("unknown index: %s", index.IndexType)
-	}
-}
-
-func dropCollectionIndex(systemInfo *System_meta, cli *cb.DevClient, name string, index *rt.Index) error {
-	switch index.IndexType {
-	case rt.IndexUnique:
-		return cli.DropUniqueIndex(systemInfo.Key, name, index.Name)
-	case rt.IndexNonUnique:
-		return cli.DropIndex(systemInfo.Key, name, index.Name)
-	default:
-		return fmt.Errorf("unknown index: %s", index.IndexType)
-	}
-}
-
 func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name string) error {
 
 	fmt.Printf("Pushing collection indexes for '%s'\n", name)
@@ -1061,16 +1039,24 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 	addedIndexes, removedIndexes := DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
 
 	for _, index := range removedIndexes {
-		err = dropCollectionIndex(systemInfo, cli, name, index)
+		err = doDropIndex(
+			index,
+			func() error { return cli.DropUniqueIndex(systemInfo.Key, name, index.Name) },
+			func() error { return cli.DropIndex(systemInfo.Key, name, index.Name) },
+		)
 		if err != nil {
-			return fmt.Errorf("Unable to drop index %s: %s", index.Name, err)
+			return err
 		}
 	}
 
 	for _, index := range addedIndexes {
-		err = createCollectionIndex(systemInfo, cli, name, index)
+		err = doCreateIndex(
+			index,
+			func() error { return cli.CreateUniqueIndex(systemInfo.Key, name, index.Name) },
+			func() error { return cli.CreateIndex(systemInfo.Key, name, index.Name) },
+		)
 		if err != nil {
-			return fmt.Errorf("Unable to create index %s: %s", index.Name, err)
+			return err
 		}
 	}
 

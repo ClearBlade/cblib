@@ -1,6 +1,10 @@
 package cblib
 
-import rt "github.com/clearblade/cblib/resourcetree"
+import (
+	"fmt"
+
+	rt "github.com/clearblade/cblib/resourcetree"
+)
 
 // IndexDiff implements the `Differ` interface.
 type IndexDiff struct {
@@ -42,4 +46,38 @@ func DiffIndexesFull(left, right []*rt.Index) ([]*rt.Index, []*rt.Index) {
 	Diff(&removed)
 
 	return added.Result, removed.Result
+}
+
+// index utilities
+
+func handleIndex(index *rt.Index, onUnique func() error, onNonunique func() error) error {
+	switch index.IndexType {
+	case rt.IndexUnique:
+		if onUnique != nil {
+			return onUnique()
+		}
+	case rt.IndexNonUnique:
+		if onNonunique != nil {
+			return onNonunique()
+		}
+	default:
+		return fmt.Errorf("unknown index type: %s", index.IndexType)
+	}
+	return nil
+}
+
+func doDropIndex(index *rt.Index, onUnique func() error, onNonunique func() error) error {
+	err := handleIndex(index, onUnique, onNonunique)
+	if err != nil {
+		return fmt.Errorf("unable to drop index: %s", err)
+	}
+	return nil
+}
+
+func doCreateIndex(index *rt.Index, onUnique func() error, onNonunique func() error) error {
+	err := handleIndex(index, onUnique, onNonunique)
+	if err != nil {
+		return fmt.Errorf("unable to create index: %s", err)
+	}
+	return nil
 }

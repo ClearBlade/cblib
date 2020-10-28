@@ -56,3 +56,17 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 	}
 
 }
+
+func TestHandleUniqueIndexSucceeds(t *testing.T) {
+	onUniqueCalled := false
+	index := &rt.Index{"name", rt.IndexUnique}
+	handleIndex(index, func() error { onUniqueCalled = true; return nil }, nil)
+	assert.True(t, onUniqueCalled)
+}
+
+func TestHandleNonuniqueIndexSucceeds(t *testing.T) {
+	onNonuniqueCalled := false
+	index := &rt.Index{"name", rt.IndexNonUnique}
+	handleIndex(index, nil, func() error { onNonuniqueCalled = true; return nil })
+	assert.True(t, onNonuniqueCalled)
+}
