@@ -50,7 +50,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		added, removed := getDiffForIndexes(tt.a, tt.b)
+		added, removed := DiffIndexesFull(tt.a, tt.b)
 		assert.Equal(t, tt.added, added)
 		assert.Equal(t, tt.removed, removed)
 	}

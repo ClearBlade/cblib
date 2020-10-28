@@ -1012,39 +1012,6 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	return nil
 }
 
-func getDiffForIndexes(local, remote []*rt.Index) ([]*rt.Index, []*rt.Index) {
-
-	localSlice := make([]interface{}, 0, len(local))
-	for _, item := range local {
-		localSlice = append(localSlice, item)
-	}
-
-	remoteSlice := make([]interface{}, 0, len(remote))
-	for _, item := range remote {
-		remoteSlice = append(remoteSlice, item)
-	}
-
-	addedDiff := DiffSliceUsing(localSlice, remoteSlice, func(a, b interface{}) bool {
-		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
-	})
-
-	removedDiff := DiffSliceUsing(remoteSlice, localSlice, func(a, b interface{}) bool {
-		return a.(*rt.Index).Name == b.(*rt.Index).Name && a.(*rt.Index).IndexType == b.(*rt.Index).IndexType
-	})
-
-	added := make([]*rt.Index, 0, len(addedDiff))
-	for _, item := range addedDiff {
-		added = append(added, item.(*rt.Index))
-	}
-
-	removed := make([]*rt.Index, 0, len(removedDiff))
-	for _, item := range removedDiff {
-		removed = append(removed, item.(*rt.Index))
-	}
-
-	return added, removed
-}
-
 func createCollectionIndex(systemInfo *System_meta, cli *cb.DevClient, name string, index *rt.Index) error {
 	switch index.IndexType {
 	case rt.IndexUnique:
@@ -1091,7 +1058,7 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 		return err
 	}
 
-	addedIndexes, removedIndexes := getDiffForIndexes(localIndexes.Data, remoteIndexes.Data)
+	addedIndexes, removedIndexes := DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
 
 	for _, index := range removedIndexes {
 		err = dropCollectionIndex(systemInfo, cli, name, index)

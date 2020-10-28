@@ -369,36 +369,12 @@ func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{
 	return filtered
 }
 
-// DiffSliceUsing returns the difference between the slices `a` and `b`.
-// In other words, returns the items from `a` that *are not* in `b`.
-func DiffSliceUsing(a, b []interface{}, compare func(interface{}, interface{}) bool) []interface{} {
-
-	diff := make([]interface{}, 0, len(a))
-
-	for _, aitem := range a {
-
-		foundInB := false
-
-		for _, bitem := range b {
-			if compare(aitem, bitem) {
-				foundInB = true
-				break
-			}
-		}
-
-		if !foundInB {
-			diff = append(diff, aitem)
-		}
-	}
-
-	return diff
-}
-
 func findDiff(sliceA []interface{}, sliceB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
 
-	diff := DiffSliceUsing(sliceA, sliceB, isMatch)
+	diff := UnsafeDiff{sliceA, sliceB, nil, isMatch}
+	Diff(&diff)
 
-	diffWithoutDefaultColumns := FilterSlice(diff, func(item interface{}) bool {
+	diffWithoutDefaultColumns := FilterSlice(diff.Result, func(item interface{}) bool {
 		return !isDefaultColumnCb(item)
 	})
 
