@@ -140,7 +140,7 @@ func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]inter
 	if isConnect {
 
 		columnsResp = []interface{}{}
-		indexes = nil
+		indexes = &rt.Indexes{}
 
 	} else {
 
@@ -171,6 +171,7 @@ func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]inter
 	co["schema"] = columnsResp
 	co["indexes"] = indexes
 	co["items"] = []interface{}{}
+
 	if !isConnect && shouldExportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
