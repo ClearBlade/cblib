@@ -77,7 +77,6 @@ var (
 	AllServiceCaches           bool
 	AllWebhooks                bool
 	AllExternalDatabases       bool
-	SkipPullIndexes            bool
 	AutoApprove                bool
 	TempDir                    string
 	SkipUpdateMapNameToIdFiles bool
