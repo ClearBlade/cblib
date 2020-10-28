@@ -1,8 +1,8 @@
 package cblib
 
 // Differ defines an interface for a collection that can be diffed against
-// another collection, it works with indexes to let the caller handle type
-// since Go doesn't have generics. Similar to sort.Interface.
+// another collection, it works with indices to let the caller handle the
+// type since Go doesn't have generics. Similar to sort.Interface.
 // see: https://golang.org/pkg/sort/#Interface
 type Differ interface {
 	Prepare()
