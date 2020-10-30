@@ -1021,6 +1021,7 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 		return err
 	}
 
+	// NOTE: cast will default to nil if no indexes entry is available
 	maybeIndex, _ := localColl["indexes"].(map[string]interface{})
 	localIndexes, err := rt.NewIndexesFromMap(maybeIndex)
 	if err != nil {
