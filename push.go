@@ -1021,7 +1021,8 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 		return err
 	}
 
-	localIndexes, err := rt.NewIndexesFromMap(localColl["indexes"].(map[string]interface{}))
+	maybeIndex, _ := localColl["indexes"].(map[string]interface{})
+	localIndexes, err := rt.NewIndexesFromMap(maybeIndex)
 	if err != nil {
 		return err
 	}
