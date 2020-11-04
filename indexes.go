@@ -8,13 +8,15 @@ import (
 
 // IndexDiff implements the `Differ` interface.
 type IndexDiff struct {
-	A      []*rt.Index
-	B      []*rt.Index
-	Result []*rt.Index
+	A       []*rt.Index
+	B       []*rt.Index
+	Added   []*rt.Index
+	Removed []*rt.Index
 }
 
 func (idxdiff *IndexDiff) Prepare() {
-	idxdiff.Result = make([]*rt.Index, 0, len(idxdiff.A))
+	idxdiff.Added = make([]*rt.Index, 0, len(idxdiff.A))
+	idxdiff.Removed = make([]*rt.Index, 0, len(idxdiff.B))
 }
 
 func (idxdiff *IndexDiff) LenA() int {
@@ -32,20 +34,18 @@ func (idxdiff *IndexDiff) Same(i, j int) bool {
 }
 
 func (idxdiff *IndexDiff) Keep(i int) {
-	idxdiff.Result = append(idxdiff.Result, idxdiff.A[i])
+	idxdiff.Added = append(idxdiff.Added, idxdiff.A[i])
 }
 
-// DiffIndexesFull takes two indexes, and returns two slices. The first slice
-// contains the items that are in `left` but not in `right` (added), and the second
-// slice returns the items that are in `right` but not in `left` (removed).
-func DiffIndexesFull(left, right []*rt.Index) ([]*rt.Index, []*rt.Index) {
-	added := IndexDiff{left, right, nil}
-	Diff(&added)
+func (idxdiff *IndexDiff) Drop(j int) {
+	idxdiff.Removed = append(idxdiff.Removed, idxdiff.B[j])
+}
 
-	removed := IndexDiff{right, left, nil}
-	Diff(&removed)
-
-	return added.Result, removed.Result
+// DiffIndexesFull takes two slices of indexes diffs them using *IndexDiff.
+func DiffIndexesFull(after, before []*rt.Index) *IndexDiff {
+	diff := IndexDiff{after, before, nil, nil}
+	Diff(&diff)
+	return &diff
 }
 
 // index utilities

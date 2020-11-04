@@ -125,22 +125,22 @@ func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 
 	diff := getDiffForColumns(localSchema, userColumns, DefaultUserColumns)
-	for i := 0; i < len(diff.remove); i++ {
-		if err := client.DeleteUserColumn(systemInfo.Key, diff.remove[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+	for i := 0; i < len(diff.Removed); i++ {
+		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 		}
 	}
-	for i := 0; i < len(diff.add); i++ {
-		if err := client.CreateUserColumn(systemInfo.Key, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Failed to create user column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Added); i++ {
+		if err := client.CreateUserColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Failed to create user column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
 	return nil
 }
 
-func getDiffForColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) ListDiff {
-	return compareLists(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
-		return isDefaultColumn(defaultColumns, a.(map[string]interface{})["ColumnName"].(string))
+func getDiffForColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *UnsafeDiff {
+	return compareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
+		return !isDefaultColumn(defaultColumns, a.(map[string]interface{})["ColumnName"].(string))
 	})
 }
 
@@ -168,14 +168,14 @@ func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 
 	diff := getDiffForColumns(typedLocalSchema, allEdgeColumns, DefaultEdgeColumns)
-	for i := 0; i < len(diff.remove); i++ {
-		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.remove[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.remove[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Removed); i++ {
+		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
-	for i := 0; i < len(diff.add); i++ {
-		if err := client.CreateEdgeColumn(systemInfo.Key, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Added); i++ {
+		if err := client.CreateEdgeColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -199,14 +199,14 @@ func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 	}
 
 	diff := getDiffForColumns(localSchema, allDeviceColumns, DefaultDeviceColumns)
-	for i := 0; i < len(diff.remove); i++ {
-		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.remove[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.remove[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Removed); i++ {
+		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
-	for i := 0; i < len(diff.add); i++ {
-		if err := client.CreateDeviceColumn(systemInfo.Key, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Added); i++ {
+		if err := client.CreateDeviceColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -998,14 +998,14 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	}
 
 	diff := getDiffForColumns(localSchema, backendSchema, DefaultCollectionColumns)
-	for i := 0; i < len(diff.remove); i++ {
-		if err := cli.DeleteColumn(collID, diff.remove[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.remove[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Removed); i++ {
+		if err := cli.DeleteColumn(collID, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
-	for i := 0; i < len(diff.add); i++ {
-		if err := cli.AddColumn(collID, diff.add[i].(map[string]interface{})["ColumnName"].(string), diff.add[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.add[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+	for i := 0; i < len(diff.Added); i++ {
+		if err := cli.AddColumn(collID, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -1022,8 +1022,8 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 	}
 
 	// NOTE: cast will default to nil if no indexes entry is available
-	maybeIndex, _ := localColl["indexes"].(map[string]interface{})
-	localIndexes, err := rt.NewIndexesFromMap(maybeIndex)
+	maybeIndexes, _ := localColl["indexes"].(map[string]interface{})
+	localIndexes, err := rt.NewIndexesFromMap(maybeIndexes)
 	if err != nil {
 		return err
 	}
@@ -1038,9 +1038,9 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 		return err
 	}
 
-	addedIndexes, removedIndexes := DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
+	diff := DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
 
-	for _, index := range removedIndexes {
+	for _, index := range diff.Removed {
 		err = doDropIndex(
 			index,
 			func() error { return cli.DropUniqueIndex(systemInfo.Key, name, index.Name) },
@@ -1051,7 +1051,7 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 		}
 	}
 
-	for _, index := range addedIndexes {
+	for _, index := range diff.Added {
 		err = doCreateIndex(
 			index,
 			func() error { return cli.CreateUniqueIndex(systemInfo.Key, name, index.Name) },
@@ -1119,16 +1119,16 @@ func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, d
 }
 
 func diffDeployments(localDep map[string]interface{}, backendDep map[string]interface{}) map[string]interface{} {
-	assetDiff := compareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch, func(a interface{}) bool { return false })
-	edgeDiff := compareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch, func(a interface{}) bool { return false })
+	assetDiff := compareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch)
+	edgeDiff := compareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch)
 	return map[string]interface{}{
 		"assets": map[string]interface{}{
-			"add":    assetDiff.add,
-			"remove": assetDiff.remove,
+			"add":    assetDiff.Added,
+			"remove": assetDiff.Removed,
 		},
 		"edges": map[string]interface{}{
-			"add":    edgeDiff.add,
-			"remove": edgeDiff.remove,
+			"add":    edgeDiff.Added,
+			"remove": edgeDiff.Removed,
 		},
 	}
 }
@@ -1457,8 +1457,8 @@ func updateUser(meta *System_meta, user map[string]interface{}, client *cb.DevCl
 	}
 	roleDiff := diffRoles(userRoles, convertStringSliceToInterfaceSlice(backendUserRoles))
 	user["roles"] = map[string]interface{}{
-		"add":    convertInterfaceSliceToStringSlice(roleDiff.add),
-		"delete": convertInterfaceSliceToStringSlice(roleDiff.remove),
+		"add":    convertInterfaceSliceToStringSlice(roleDiff.Added),
+		"delete": convertInterfaceSliceToStringSlice(roleDiff.Removed),
 	}
 	return client.UpdateUser(meta.Key, user["user_id"].(string), user)
 }
@@ -1492,18 +1492,18 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 	}
 	defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
 	roleDiff := diffRoles(userRoles, defaultRoles)
-	if len(roleDiff.add) > 0 || len(roleDiff.remove) > 0 {
-		add := convertInterfaceSliceToStringSlice(roleDiff.add)
-		remove := convertInterfaceSliceToStringSlice(roleDiff.remove)
-		if err := client.UpdateUserRoles(systemKey, userId, add, remove); err != nil {
+	if len(roleDiff.Added) > 0 || len(roleDiff.Removed) > 0 {
+		added := convertInterfaceSliceToStringSlice(roleDiff.Added)
+		removed := convertInterfaceSliceToStringSlice(roleDiff.Removed)
+		if err := client.UpdateUserRoles(systemKey, userId, added, removed); err != nil {
 			return "", err
 		}
 	}
 	return userId, nil
 }
 
-func diffRoles(local, backend []interface{}) ListDiff {
-	return compareLists(local, backend, roleExists, func(a interface{}) bool { return false })
+func diffRoles(local, backend []interface{}) *UnsafeDiff {
+	return compareLists(local, backend, roleExists)
 }
 
 func roleExists(a interface{}, b interface{}) bool {
@@ -1694,7 +1694,11 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 		return err
 	}
 	roleDiff := diffRoles(deviceRoles, convertStringSliceToInterfaceSlice(backendDeviceRoles))
-	return client.UpdateDeviceRoles(systemKey, deviceName, convertInterfaceSliceToStringSlice(roleDiff.add), convertInterfaceSliceToStringSlice(roleDiff.remove))
+	return client.UpdateDeviceRoles(
+		systemKey,
+		deviceName,
+		convertInterfaceSliceToStringSlice(roleDiff.Added),
+		convertInterfaceSliceToStringSlice(roleDiff.Removed))
 }
 
 func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevClient) error {
@@ -2061,7 +2065,7 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 
 	// here's our workflow for updating a collection:
 	// 1) diff and update the collection schema
-	// 1) diff and update the collection indexes
+	// 2) diff and update the collection indexes
 	// 3) attempt to update all of our items
 	// 4) if update fails, we assume the item doesn't exist, so we create the item
 	if err := pushCollectionSchema(meta, client, collection_name); err != nil {

@@ -369,24 +369,18 @@ func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{
 	return filtered
 }
 
-func findDiff(sliceA []interface{}, sliceB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
-
-	diff := UnsafeDiff{sliceA, sliceB, nil, isMatch}
+func compareListsAndFilter(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool, filter func(interface{}) bool) *UnsafeDiff {
+	diff := UnsafeDiff{after, before, nil, nil, compare}
 	Diff(&diff)
-
-	diffWithoutDefaultColumns := FilterSlice(diff.Result, func(item interface{}) bool {
-		return !isDefaultColumnCb(item)
-	})
-
-	return diffWithoutDefaultColumns
+	diff.Added = FilterSlice(diff.Added, filter)
+	diff.Removed = FilterSlice(diff.Removed, filter)
+	return &diff
 }
 
-func compareLists(localList []interface{}, backendList []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) ListDiff {
-	diff := ListDiff{
-		add:    findDiff(localList, backendList, isMatch, isDefaultColumnCb),
-		remove: findDiff(backendList, localList, isMatch, isDefaultColumnCb),
-	}
-	return diff
+func compareLists(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool) *UnsafeDiff {
+	diff := UnsafeDiff{after, before, nil, nil, compare}
+	Diff(&diff)
+	return &diff
 }
 
 func convertStringSliceToInterfaceSlice(strs []string) []interface{} {

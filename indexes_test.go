@@ -50,11 +50,10 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		added, removed := DiffIndexesFull(tt.a, tt.b)
-		assert.Equal(t, tt.added, added)
-		assert.Equal(t, tt.removed, removed)
+		diff := DiffIndexesFull(tt.a, tt.b)
+		assert.Equal(t, tt.added, diff.Added)
+		assert.Equal(t, tt.removed, diff.Removed)
 	}
-
 }
 
 func TestHandleUniqueIndexSucceeds(t *testing.T) {

@@ -5,112 +5,160 @@ package cblib
 // type since Go doesn't have generics. Similar to sort.Interface.
 // see: https://golang.org/pkg/sort/#Interface
 type Differ interface {
-	Prepare()
 	LenA() int
 	LenB() int
 	Same(i, j int) bool
 	Keep(i int)
 }
 
-// Diff computes the difference between A and B in the given `Differ`.
+// DifferPrepare defines an interface for an optional prepare operation that
+// implementors might want to use for allocating memory, etc.
+type DifferPrepare interface {
+	Prepare()
+}
+
+// DifferDrop defines an interface for an optional drop operation that captures
+// dropped values.
+type DifferDrop interface {
+	Drop(j int)
+}
+
+// Diff computes the difference between A (after) and B (before) in the given
+// `Differ`. Values that are in A but not in B will be sent to `Keep` (added),
+// while values that are in B but not in A will be sent to `Drop` (removed).
 func Diff(diff Differ) {
 
-	diff.Prepare()
+	diffPrepare, ok := diff.(DifferPrepare)
+	if ok {
+		diffPrepare.Prepare()
+	}
+
+	intersectA := make(map[int]struct{}, diff.LenA())
+	intersectB := make(map[int]struct{}, diff.LenB())
 
 	for idx := 0; idx < diff.LenA(); idx++ {
-
-		found := false
-
 		for jdx := 0; jdx < diff.LenB(); jdx++ {
 			if diff.Same(idx, jdx) {
-				found = true
+				intersectA[idx] = struct{}{}
+				intersectB[jdx] = struct{}{}
 			}
 		}
+	}
 
-		if !found {
+	for idx := 0; idx < diff.LenA(); idx++ {
+		if _, ok := intersectA[idx]; !ok {
 			diff.Keep(idx)
+		}
+	}
+
+	diffDrop, ok := diff.(DifferDrop)
+	if !ok {
+		return
+	}
+
+	for jdx := 0; jdx < diff.LenB(); jdx++ {
+		if _, ok := intersectB[jdx]; !ok {
+			diffDrop.Drop(jdx)
 		}
 	}
 }
 
 // IntDiff implements the `Differ` interface for a slice of integers.
 type IntDiff struct {
-	A      []int
-	B      []int
-	Result []int
+	After   []int
+	Before  []int
+	Added   []int
+	Removed []int
 }
 
 func (idiff *IntDiff) Prepare() {
-	idiff.Result = make([]int, 0, len(idiff.A))
+	idiff.Added = make([]int, 0, len(idiff.After))
+	idiff.Removed = make([]int, 0, len(idiff.Before))
 }
 
 func (idiff *IntDiff) LenA() int {
-	return len(idiff.A)
+	return len(idiff.After)
 }
 
 func (idiff *IntDiff) LenB() int {
-	return len(idiff.B)
+	return len(idiff.Before)
 }
 
 func (idiff *IntDiff) Same(i, j int) bool {
-	return idiff.A[i] == idiff.B[j]
+	return idiff.After[i] == idiff.Before[j]
 }
 
 func (idiff *IntDiff) Keep(i int) {
-	idiff.Result = append(idiff.Result, idiff.A[i])
+	idiff.Added = append(idiff.Added, idiff.After[i])
+}
+
+func (idiff *IntDiff) Drop(j int) {
+	idiff.Removed = append(idiff.Removed, idiff.Before[j])
 }
 
 // StringDiff implements the `Differ` interface for a slice of strings.
 type StringDiff struct {
-	A      []string
-	B      []string
-	Result []string
+	After   []string
+	Before  []string
+	Added   []string
+	Removed []string
 }
 
 func (sdiff *StringDiff) Prepare() {
-	sdiff.Result = make([]string, 0, len(sdiff.A))
+	sdiff.Added = make([]string, 0, len(sdiff.After))
+	sdiff.Removed = make([]string, 0, len(sdiff.Before))
 }
 
 func (sdiff *StringDiff) LenA() int {
-	return len(sdiff.A)
+	return len(sdiff.After)
 }
 
 func (sdiff *StringDiff) LenB() int {
-	return len(sdiff.B)
+	return len(sdiff.Before)
 }
 
 func (sdiff *StringDiff) Same(i, j int) bool {
-	return sdiff.A[i] == sdiff.B[j]
+	return sdiff.After[i] == sdiff.Before[j]
 }
 
 func (sdiff *StringDiff) Keep(i int) {
-	sdiff.Result = append(sdiff.Result, sdiff.A[i])
+	sdiff.Added = append(sdiff.Added, sdiff.After[i])
+}
+
+func (sdiff *StringDiff) Drop(j int) {
+	sdiff.Removed = append(sdiff.Removed, sdiff.Before[j])
 }
 
 // UnsafeDiff implements the `Differ` interface for an unsafe slice of interfaces.
 type UnsafeDiff struct {
-	A       []interface{}
-	B       []interface{}
-	Result  []interface{}
+	After   []interface{}
+	Before  []interface{}
+	Added   []interface{}
+	Removed []interface{}
 	Compare func(interface{}, interface{}) bool
 }
 
 func (udiff *UnsafeDiff) Prepare() {
-	udiff.Result = make([]interface{}, 0, len(udiff.A))
+	udiff.Added = make([]interface{}, 0, len(udiff.After))
+	udiff.Removed = make([]interface{}, 0, len(udiff.Before))
 }
 
 func (udiff *UnsafeDiff) LenA() int {
-	return len(udiff.A)
+	return len(udiff.After)
 }
 
 func (udiff *UnsafeDiff) LenB() int {
-	return len(udiff.B)
+	return len(udiff.Before)
 }
 
 func (udiff *UnsafeDiff) Same(i, j int) bool {
-	return udiff.Compare(udiff.A[i], udiff.B[j])
+	return udiff.Compare(udiff.After[i], udiff.Before[j])
 }
 
 func (udiff *UnsafeDiff) Keep(i int) {
-	udiff.Result = append(udiff.Result, udiff.A[i])
+	udiff.Added = append(udiff.Added, udiff.After[i])
+}
+
+func (udiff *UnsafeDiff) Drop(j int) {
+	udiff.Removed = append(udiff.Removed, udiff.Before[j])
 }
