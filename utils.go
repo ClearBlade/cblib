@@ -356,32 +356,31 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 	return false
 }
 
-func findDiff(listA []interface{}, listB []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) []interface{} {
-	rtn := make([]interface{}, 0)
-	for i := 0; i < len(listA); i++ {
-		found := false
-		if isDefaultColumnCb(listA[i]) {
-			found = true
-		}
-		for j := 0; j < len(listB); j++ {
-			if !isDefaultColumnCb(listB[j]) && isMatch(listA[i], listB[j]) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			rtn = append(rtn, listA[i])
+// FilterSlice returns the items of the slice `s` for which `predicate` returns true.
+func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{} {
+	filtered := make([]interface{}, 0, len(s))
+
+	for _, item := range s {
+		if predicate(item) {
+			filtered = append(filtered, item)
 		}
 	}
-	return rtn
+
+	return filtered
 }
 
-func compareLists(localList []interface{}, backendList []interface{}, isMatch func(interface{}, interface{}) bool, isDefaultColumnCb func(interface{}) bool) ListDiff {
-	diff := ListDiff{
-		add:    findDiff(localList, backendList, isMatch, isDefaultColumnCb),
-		remove: findDiff(backendList, localList, isMatch, isDefaultColumnCb),
-	}
-	return diff
+func compareListsAndFilter(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool, filter func(interface{}) bool) *UnsafeDiff {
+	diff := UnsafeDiff{after, before, nil, nil, compare}
+	Diff(&diff)
+	diff.Added = FilterSlice(diff.Added, filter)
+	diff.Removed = FilterSlice(diff.Removed, filter)
+	return &diff
+}
+
+func compareLists(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool) *UnsafeDiff {
+	diff := UnsafeDiff{after, before, nil, nil, compare}
+	Diff(&diff)
+	return &diff
 }
 
 func convertStringSliceToInterfaceSlice(strs []string) []interface{} {

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+
+	rt "github.com/clearblade/cblib/resourcetree"
 )
 
 var (
@@ -91,7 +93,6 @@ func PullAndWriteCollections(sysMeta *System_meta, cli *cb.DevClient, saveThem, 
 			}
 		}
 	}
-
 	return rval, nil
 }
 
@@ -112,18 +113,47 @@ func pullCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string)
 	return cli.GetColumnsByCollectionName(sysMeta.Key, name)
 }
 
+func pullCollectionIndexes(sysMeta *System_meta, cli *cb.DevClient, name string) (*rt.Indexes, error) {
+
+	data, err := cli.ListIndexes(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+
+	indexes, err := rt.NewIndexesFromMap(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexes, nil
+}
+
 func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
 	fmt.Printf(" %s", co["name"].(string))
+
 	isConnect := isConnectCollection(co)
+
 	var columnsResp []interface{}
 	var err error
+	var indexes *rt.Indexes
+
 	if isConnect {
+
 		columnsResp = []interface{}{}
+		indexes = &rt.Indexes{}
+
 	} else {
+
 		columnsResp, err = pullCollectionColumns(sysMeta, cli, co["name"].(string))
 		if err != nil {
 			return nil, err
 		}
+
+		indexes, err = pullCollectionIndexes(sysMeta, cli, co["name"].(string))
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	//remove the item_id column if it is not supposed to be exported
@@ -139,7 +169,9 @@ func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]inter
 	}
 
 	co["schema"] = columnsResp
+	co["indexes"] = indexes
 	co["items"] = []interface{}{}
+
 	if !isConnect && shouldExportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
@@ -147,6 +179,7 @@ func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]inter
 		}
 		co["items"] = items
 	}
+
 	return co, nil
 }
 

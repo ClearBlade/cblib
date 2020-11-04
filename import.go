@@ -577,7 +577,7 @@ func createDevices(config ImportConfig, systemInfo map[string]interface{}, clien
 		}
 		defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
 		roleDiff := diffRoles(deviceRoles, defaultRoles)
-		if err := client.UpdateDeviceRoles(sysKey, deviceName, convertInterfaceSliceToStringSlice(roleDiff.add), convertInterfaceSliceToStringSlice(roleDiff.remove)); err != nil {
+		if err := client.UpdateDeviceRoles(sysKey, deviceName, convertInterfaceSliceToStringSlice(roleDiff.Added), convertInterfaceSliceToStringSlice(roleDiff.Removed)); err != nil {
 			return nil, err
 		}
 		devicesRval[idx] = deviceInfo

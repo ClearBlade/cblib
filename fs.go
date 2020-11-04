@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+
 	"github.com/clearblade/cblib/models"
 )
 
@@ -347,9 +348,10 @@ func writeEntity(dirName, fileName string, stuff interface{}) error {
 
 func whitelistCollection(data map[string]interface{}, items []interface{}) map[string]interface{} {
 	return map[string]interface{}{
-		"items":  items,
-		"name":   data["name"],
-		"schema": data["schema"],
+		"items":   items,
+		"name":    data["name"],
+		"schema":  data["schema"],
+		"indexes": data["indexes"],
 	}
 }
 
