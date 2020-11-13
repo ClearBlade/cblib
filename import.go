@@ -86,7 +86,8 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 // them to the import process using an instance of this struct rather than using
 // global variables. TRY TO KEEP ANY INSTANCE OF THIS STRUCTURE READ-ONLY.
 type ImportConfig struct {
-	SystemName string // the name of the imported system
+	SystemName        string // the name of the imported system
+	SystemDescription string // the description of the imported system
 
 	IntoExistingSystem   bool   // true if it should be imported on a system that already exists
 	ExistingSystemKey    string // the system key of the existing system
@@ -111,7 +112,8 @@ type ImportConfig struct {
 // customImportConfig.DefaultUserPassword = "my-new-password"
 // ````
 var DefaultImportConfig = ImportConfig{
-	SystemName: "",
+	SystemName:        "",
+	SystemDescription: "",
 
 	IntoExistingSystem:   false,
 	ExistingSystemKey:    "",
@@ -887,6 +889,10 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (ma
 
 		if len(config.SystemName) > 0 {
 			systemInfo["name"] = config.SystemName
+		}
+
+		if len(config.SystemDescription) > 0 {
+			systemInfo["description"] = config.SystemDescription
 		}
 
 		// NOTE: createSystem will modify systemInfo map
