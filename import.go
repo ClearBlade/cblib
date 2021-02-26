@@ -846,6 +846,7 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 
 	fmt.Printf(" Done\n")
 	logInfo(fmt.Sprintf("Success! New system key is: %s", systemInfo["systemKey"].(string)))
+	logInfo(fmt.Sprintf("New system secret is: %s", systemInfo["systemSecret"].(string)))
 	return nil
 }
 
