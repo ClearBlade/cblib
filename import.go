@@ -35,13 +35,12 @@ func init() {
 		run:       doImport,
 		example:   example,
 	}
-	DEFAULT_IMPORT_ROWS := true
-	DEFAULT_IMPORT_USERS := true
-	myImportCommand.flags.BoolVar(&importRows, "importrows", DEFAULT_IMPORT_ROWS, "imports all data into all collections")
-	myImportCommand.flags.BoolVar(&importUsers, "importusers", DEFAULT_IMPORT_USERS, "imports all users into the system")
+	myImportCommand.flags.BoolVar(&importRows, "importrows", true, "imports all data into all collections")
+	myImportCommand.flags.BoolVar(&importUsers, "importusers", true, "imports all users into the system")
 	myImportCommand.flags.StringVar(&URL, "url", "https://platform.clearblade.com", "Clearblade Platform URL where system is hosted, ex https://platform.clearblade.com")
 	myImportCommand.flags.StringVar(&Email, "email", "", "Developer email for login to import destination")
 	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
+	myImportCommand.flags.StringVar(&DevToken, "dev-token", "", "Developer token to use instead of email/password")
 	myImportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
 	myImportCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	AddCommand("import", myImportCommand)
@@ -56,8 +55,13 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 		return err
 	}
 
-	// prompt and skip vaues we don't need (messaging URL and system key)
-	promptAndFillMissingAuth(nil, PromptSkipMsgURL|PromptSkipSystemKey)
+	// prompt and skip values we don't need
+	skips := PromptSkipMsgURL | PromptSkipSystemKey
+	if DevToken != "" {
+		skips |= PromptSkipEmail
+		skips |= PromptSkipPassword
+	}
+	promptAndFillMissingAuth(nil, skips)
 
 	// authorizes using global flags (import ignores cb meta)
 	cli, err = authorizeUsingGlobalCLIFlags()

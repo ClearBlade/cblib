@@ -180,7 +180,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 // authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
 // global flags passed to the CLI program.
 func authorizeUsingGlobalCLIFlags() (*cb.DevClient, error) {
-	return authorizeUsing(URL, MsgURL, Email, Password, "")
+	return authorizeUsing(URL, MsgURL, Email, Password, DevToken)
 }
 
 // authorizeUsingGlobalMetaInfo creates a new clearblade client by using the
