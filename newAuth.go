@@ -83,7 +83,7 @@ const (
 	// PromptSkipPassword skips prompting the password if used.
 	PromptSkipPassword
 	// PromptAll prompts for all missing flags (a bit having a value of 1 means skip).
-	PromptAll = 0
+	PromptAll PromptSet = 0
 )
 
 // Has returns true if the given PromptSet has the desired flag.
@@ -304,7 +304,12 @@ func Authorize(defaults *DefaultInfo) (*cb.DevClient, error) {
 		cli, err = authorizeUsingGlobalMetaInfo()
 
 	} else {
-		promptAndFillMissingAuth(defaults, PromptAll)
+		prompt := PromptAll
+		if DevToken != "" {
+			prompt |= PromptSkipEmail
+			prompt |= PromptSkipPassword
+		}
+		promptAndFillMissingAuth(defaults, prompt)
 		cli, err = authorizeUsingGlobalCLIFlags()
 	}
 
