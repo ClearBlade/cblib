@@ -42,8 +42,8 @@ func TestSaveToDir(t *testing.T) {
 
 	// foo, bar
 
-	fooBar := makeStubRemote("bar")
-	remotes.Put(fooBar)
+	bar := makeStubRemote("bar")
+	remotes.Put(bar)
 	err = SaveToDir(tempdir, remotes)
 	require.NoError(t, err)
 
