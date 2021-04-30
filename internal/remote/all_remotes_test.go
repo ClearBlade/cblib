@@ -90,7 +90,6 @@ func TestFindByName(t *testing.T) {
 }
 
 func TestCurrent(t *testing.T) {
-
 	foo := makeStubRemote("foo")
 	bar := makeStubRemote("bar")
 
