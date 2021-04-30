@@ -22,6 +22,49 @@ var (
 )
 
 func (c *SubCommand) Execute(args []string) error {
+	var err error
+
+	err = c.setup(args)
+	if err != nil {
+		return fmt.Errorf("Setup failed: %s", err)
+	}
+
+	err = c.beforeExecute(args)
+	if err != nil {
+		return fmt.Errorf("Before execute failed: %s", err)
+	}
+
+	err = c.execute(args)
+	if err != nil {
+		return err
+	}
+
+	err = c.afterExecute(args)
+	if err != nil {
+		return fmt.Errorf("After execute failed: %s", err)
+	}
+
+	return nil
+}
+
+func (c *SubCommand) setup(args []string) error {
+	SetRootDir(".")
+	return nil
+}
+
+func (c *SubCommand) beforeExecute(args []string) error {
+	// TODO: read remotes
+	// TODO: reconcile remotes from legacy if needed
+	// TODO: activate current remote
+	return nil
+}
+
+func (c *SubCommand) afterExecute(args []string) error {
+	// TODO: persist remote changes
+	return nil
+}
+
+func (c *SubCommand) execute(args []string) error {
 	var client *cb.DevClient
 	var err error
 	c.flags.Parse(args)
@@ -30,7 +73,6 @@ func (c *SubCommand) Execute(args []string) error {
 		setupAddrs(URL, MsgURL)
 	}
 
-	SetRootDir(".")
 	// This is the most important part of initialization
 	MetaInfo, _ = getCbMeta()
 
@@ -54,6 +96,7 @@ func (c *SubCommand) Execute(args []string) error {
 	}
 	RootDirIsSet = false
 	return c.run(c, client, c.flags.Args()...)
+
 }
 
 func PrintHelpFor(c *SubCommand, args ...string) {

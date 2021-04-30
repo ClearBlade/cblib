@@ -1,0 +1,5 @@
+{
+    "platformURL": "https://legacy.remote",
+    "messaging_url": "legacy.remote:1883",
+    "token": "legacy-token"
+}

@@ -1,0 +1,13 @@
+{
+    "remotes": {
+        "legacy": {
+            "Name": "legacy",
+            "PlatformURL": "https://legacy.remote",
+            "MessagingURL": "legacy.remote:1883",
+            "SystemKey": "legacy-system-key",
+            "SystemSecret": "legacy-system-secret",
+            "Token": "legacy-token"
+        }
+    },
+    "current": "legacy"
+}

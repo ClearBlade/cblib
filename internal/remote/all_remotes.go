@@ -51,6 +51,11 @@ func (rs *Remotes) updateCurrentIfNeeded() {
 	}
 }
 
+// Len returns the total number of remotes.
+func (rs *Remotes) Len() int {
+	return len(rs.data.Remotes)
+}
+
 // Put adds the given remote to the mapping of remotes.
 func (rs *Remotes) Put(remote *Remote) error {
 	err := validateRemoteName(remote.Name)

@@ -12,10 +12,6 @@ const (
 	hiddenDir = ".cb-cli"
 )
 
-func makeSystemJSONPath(rootDir string) string {
-	return path.Join(rootDir, "system.json")
-}
-
 func makePersistPath(rootDir string) string {
 	return path.Join(rootDir, hiddenDir, "remotes")
 }
@@ -46,7 +42,7 @@ func SaveToDir(rootDir string, remotes *Remotes) error {
 }
 
 // LoadFromDir loads the remotes from the given directory root. If there's no
-// remotes, returns empty remote.Remotes.
+// remotes, it returns empty remotes.
 func LoadFromDir(rootDir string) (*Remotes, error) {
 	err := fsutil.EnsureDirectory(rootDir)
 	if err != nil {
