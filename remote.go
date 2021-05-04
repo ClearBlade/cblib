@@ -2,21 +2,12 @@ package cblib
 
 import "github.com/clearblade/cblib/internal/remote"
 
-// useRemote makes the given remote active, which implies updating the system.json
-// file (system key, secret), as well as cbmeta (credentials). Ideally, we would
-// use the remote directory, but there's a lot of code scattered around that
+// useRemoteByMerging makes the given remote active, which implies updating the
+// system.json file (system key, secret), as well as cbmeta (credentials). Ideally,
+// we would use the remote directly, but there's a lot of code scattered around that
 // depends on the aforementioned files.
-func useRemote(remote *remote.Remote) error {
-	systemMeta, err := getSysMeta()
-	if err != nil {
-		return err
-	}
-	systemJSON := systemMetaToMap(systemMeta)
-
-	cbmeta, err := getCbMeta()
-	if err != nil {
-		return err
-	}
+func useRemoteByMerging(systemJSON, cbmeta map[string]interface{}, remote *remote.Remote) error {
+	var err error
 
 	err = remoteTransformSystemJSON(systemJSON, remote)
 	if err != nil {
@@ -40,6 +31,23 @@ func useRemote(remote *remote.Remote) error {
 	}
 
 	return nil
+}
+
+// useRemoteByMergingFromFlobals is simular to useRemoteByMerging, but obtains
+// the metadata from the global state.
+func useRemoteByMergingFromGlobals(remote *remote.Remote) error {
+	systemMeta, err := getSysMeta()
+	if err != nil {
+		return err
+	}
+	systemJSON := systemMetaToMap(systemMeta)
+
+	cbmeta, err := getCbMeta()
+	if err != nil {
+		return err
+	}
+
+	return useRemoteByMerging(systemJSON, cbmeta, remote)
 }
 
 func remoteTransformSystemJSON(data map[string]interface{}, remote *remote.Remote) error {

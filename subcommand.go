@@ -68,7 +68,7 @@ func (c *SubCommand) beforeExecute(args []string) error {
 			return fmt.Errorf("No current remote")
 		}
 
-		useRemote(curr)
+		useRemoteByMergingFromGlobals(curr)
 	}
 
 	return nil
