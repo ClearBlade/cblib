@@ -118,3 +118,18 @@ func LoadFromDirLegacy(rootDir string) (*Remotes, error) {
 
 	return remotes, nil
 }
+
+// LoadFromDirOrLegacy loads the remotes from the given directory root. If there's
+// no remotes, it tries to infer remotes from the existing project.
+func LoadFromDirOrLegacy(rootDir string) (*Remotes, error) {
+	remotes, err := LoadFromDir(".")
+	if err != nil {
+		return nil, err
+	}
+
+	if remotes.Len() == 0 {
+		return LoadFromDirLegacy(rootDir)
+	}
+
+	return remotes, nil
+}

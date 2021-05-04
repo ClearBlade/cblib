@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/remote"
 )
 
 type SubCommand struct {
@@ -15,6 +16,7 @@ type SubCommand struct {
 	flags     flag.FlagSet
 	run       func(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	example   string
+	remotes   *remote.Remotes
 }
 
 var (
@@ -53,14 +55,35 @@ func (c *SubCommand) setup(args []string) error {
 }
 
 func (c *SubCommand) beforeExecute(args []string) error {
-	// TODO: read remotes
-	// TODO: reconcile remotes from legacy if needed
-	// TODO: activate current remote
+	var err error
+
+	if c.needsAuth {
+		c.remotes, err = remote.LoadFromDirOrLegacy(".")
+		if err != nil {
+			return err
+		}
+
+		curr, ok := c.remotes.Current()
+		if !ok {
+			return fmt.Errorf("No current remote")
+		}
+
+		useRemote(curr)
+	}
+
 	return nil
 }
 
 func (c *SubCommand) afterExecute(args []string) error {
-	// TODO: persist remote changes
+	var err error
+
+	if c.remotes != nil {
+		err = remote.SaveToDir(".", c.remotes)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

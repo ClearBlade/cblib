@@ -62,7 +62,7 @@ func reallyInit(cli *cb.DevClient, sysKey string) error {
 	if err := setupDirectoryStructure(); err != nil {
 		return err
 	}
-	storeMeta(sysMeta)
+	setGlobalSystemDotJSONFromSystemMeta(sysMeta)
 
 	if err = storeSystemDotJSON(systemDotJSON); err != nil {
 		return err
