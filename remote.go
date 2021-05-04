@@ -1,6 +1,16 @@
 package cblib
 
-import "github.com/clearblade/cblib/internal/remote"
+import (
+	"os"
+	"path"
+
+	"github.com/urfave/cli/v2"
+
+	cb "github.com/clearblade/Go-SDK"
+
+	"github.com/clearblade/cblib/internal/remote"
+	"github.com/clearblade/cblib/internal/remote/remotecmd"
+)
 
 // useRemoteByMerging makes the given remote active, which implies updating the
 // system.json file (system key, secret), as well as cbmeta (credentials). Ideally,
@@ -63,4 +73,35 @@ func remoteTransformCBMeta(data map[string]interface{}, remote *remote.Remote) e
 	data["platform_url"] = remote.PlatformURL
 	data["token"] = remote.Token
 	return nil
+}
+
+// --------------------------------
+// Command
+// --------------------------------
+// Actual execution is delegated to the remotecmd package
+
+func init() {
+	remoteCommand := &SubCommand{
+		name:      remotecmd.Name,
+		usage:     remotecmd.Usage,
+		needsAuth: false,
+		run:       doRemoteDelegate,
+	}
+	AddCommand("remote", remoteCommand)
+}
+
+func doRemoteDelegate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	remotes, err := remote.LoadFromDirOrLegacy(rootDir)
+	if err != nil {
+		return err
+	}
+	cmd.remotes = remotes
+
+	delegate := &cli.App{
+		Name: path.Base(os.Args[0]),
+		Commands: []*cli.Command{
+			remotecmd.New(remotes),
+		},
+	}
+	return delegate.Run(os.Args)
 }

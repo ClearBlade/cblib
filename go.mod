@@ -11,5 +11,6 @@ require (
 	github.com/onsi/ginkgo v1.12.3 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/totherme/unstructured v0.0.0-20170821094912-3faf2d56d8b8
+	github.com/urfave/cli/v2 v2.3.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 )
