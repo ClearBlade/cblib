@@ -119,7 +119,6 @@ func (c *SubCommand) execute(args []string) error {
 	}
 	RootDirIsSet = false
 	return c.run(c, client, c.flags.Args()...)
-
 }
 
 func PrintHelpFor(c *SubCommand, args ...string) {
