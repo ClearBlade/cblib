@@ -45,12 +45,12 @@ func New(remotes *remote.Remotes) *cli.Command {
 			{
 				Name:    "list",
 				Aliases: []string{"ls"},
-				Usage:   "list remotes",
+				Usage:   "List remotes",
 				Action:  cmd.list,
 			},
 			{
 				Name:  "put",
-				Usage: "create or update remotes",
+				Usage: "Create or update remotes",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "name",
@@ -100,7 +100,7 @@ func New(remotes *remote.Remotes) *cli.Command {
 			{
 				Name:    "remove",
 				Aliases: []string{"rm"},
-				Usage:   "remove remotes",
+				Usage:   "Remove remotes",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "name",
@@ -113,7 +113,7 @@ func New(remotes *remote.Remotes) *cli.Command {
 			},
 			{
 				Name:  "set-current",
-				Usage: "set current remote",
+				Usage: "Set current remote",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "name",
