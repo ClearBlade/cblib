@@ -1,3 +1,4 @@
+// package remotecmd contains the CLI for the remote subcommand.
 package remotecmd
 
 import (
@@ -27,10 +28,14 @@ const (
 	errRemoteNotFound = "not a remote"
 )
 
+// remoteCommand implements all the actions that are trigged by the CLI interactions.
+// It uses dependency inversion to receive the remotes that are gonna be managed.
 type remoteCommand struct {
 	remotes *remote.Remotes
 }
 
+// New returns a new *cli.Command instance that implements the CLI interactions
+// against the given *remote.Remotes instance.
 func New(remotes *remote.Remotes) *cli.Command {
 	cmd := &remoteCommand{remotes}
 	return &cli.Command{

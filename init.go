@@ -9,6 +9,10 @@ import (
 	"github.com/clearblade/cblib/internal/remote"
 )
 
+var (
+	flagInitRemoteName string
+)
+
 func init() {
 	usage :=
 		`
@@ -36,6 +40,7 @@ func init() {
 	myInitCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	myInitCommand.flags.StringVar(&DevToken, "dev-token", "", "Developer token to use instead of email/password")
 	myInitCommand.flags.BoolVar(&SkipUpdateMapNameToIdFiles, "skip-update-map-name-to-id", false, "Set this to true to skip pulling the IDs for roles, collections, and users. This is useful if the system has lots of these types of assets and the goal is to retrieve the schema for the tables after initialization.")
+	myInitCommand.flags.StringVar(&flagInitRemoteName, "name", "init", "Name of the initial remote")
 	AddCommand("init", myInitCommand)
 }
 
@@ -83,7 +88,7 @@ func initRemote(cmd *SubCommand, systemMeta *System_meta, cli *cb.DevClient) err
 	cmd.remotes = remote.NewRemotes()
 
 	initRemote := &remote.Remote{
-		Name:         "init",
+		Name:         flagInitRemoteName,
 		PlatformURL:  cli.HttpAddr,
 		MessagingURL: cli.MqttAddr,
 		SystemKey:    systemMeta.Key,

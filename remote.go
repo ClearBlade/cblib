@@ -13,9 +13,9 @@ import (
 )
 
 // useRemoteByMerging makes the given remote active, which implies updating the
-// system.json file (system key, secret), as well as cbmeta (credentials). Ideally,
-// we would use the remote directly, but there's a lot of code scattered around that
-// depends on the aforementioned files.
+// system.json file (system key, system secret), as well as cbmeta (credentials).
+// NOTE: Ideally,  we would use the remote directly, but there's a lot of code
+// scattered around that depends on the aforementioned files.
 func useRemoteByMerging(systemJSON, cbmeta map[string]interface{}, remote *remote.Remote) error {
 	var err error
 
@@ -78,7 +78,8 @@ func remoteTransformCBMeta(data map[string]interface{}, remote *remote.Remote) e
 // --------------------------------
 // Command
 // --------------------------------
-// Actual execution is delegated to the remotecmd package
+// Actual CLI implementation is delegated to the internal/remote/remotecmd package
+// in order to keep the root package clean.
 
 func init() {
 	remoteCommand := &SubCommand{
@@ -103,5 +104,6 @@ func doRemoteDelegate(cmd *SubCommand, client *cb.DevClient, args ...string) err
 			remotecmd.New(remotes),
 		},
 	}
+
 	return delegate.Run(os.Args)
 }
