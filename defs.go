@@ -221,3 +221,15 @@ type System_meta struct {
 	PlatformUrl string
 	MessageUrl  string
 }
+
+func systemMetaToMap(meta *System_meta) map[string]interface{} {
+	result := make(map[string]interface{})
+	result["platform_url"] = meta.PlatformUrl
+	result["messaging_url"] = meta.MessageUrl
+	result["system_key"] = meta.Key
+	result["system_secret"] = meta.Secret
+	result["name"] = meta.Name
+	result["description"] = meta.Description
+	result["auth"] = true
+	return result
+}

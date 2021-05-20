@@ -1,0 +1,21 @@
+{
+    "remotes": {
+        "bar": {
+            "Name": "bar",
+            "PlatformURL": "https://bar.remote",
+            "MessagingURL": "bar.remote:1883",
+            "SystemKey": "bar-system-key",
+            "SystemSecret": "bar-system-secret",
+            "Token": "bar-token"
+        },
+        "foo": {
+            "Name": "foo",
+            "PlatformURL": "https://foo.remote",
+            "MessagingURL": "foo.remote:1883",
+            "SystemKey": "foo-system-key",
+            "SystemSecret": "foo-system-secret",
+            "Token": "foo-token"
+        }
+    },
+    "current": "foo"
+}

@@ -449,20 +449,6 @@ func getUserTablePermissions(rolesInfo []map[string]interface{}) map[string]inte
 	return rval
 }
 
-func storeMeta(meta *System_meta) {
-	// TODO: setting systemDotJSON using meta rather than globals
-	// in the clearblade SDK. Might break.
-	// systemDotJSON["platform_url"] = cb.CB_ADDR
-	// systemDotJSON["messaging_url"] = cb.CB_MSG_ADDR
-	systemDotJSON["platform_url"] = meta.PlatformUrl
-	systemDotJSON["messaging_url"] = meta.MessageUrl
-	systemDotJSON["system_key"] = meta.Key
-	systemDotJSON["system_secret"] = meta.Secret
-	systemDotJSON["name"] = meta.Name
-	systemDotJSON["description"] = meta.Description
-	systemDotJSON["auth"] = true
-}
-
 func pullAllEdges(systemKey string, cli *cb.DevClient) ([]interface{}, error) {
 	return paginateRequests(systemKey, DataPageSize, cli.GetEdgesCountWithQuery, cli.GetEdgesWithQuery)
 }
@@ -708,7 +694,7 @@ func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	if err := setupDirectoryStructure(); err != nil {
 		return err
 	}
-	storeMeta(sysMeta)
+	setGlobalSystemDotJSONFromSystemMeta(sysMeta)
 
 	assetsToExport := createAffectedAssets()
 	assetsToExport.AllAssets = true

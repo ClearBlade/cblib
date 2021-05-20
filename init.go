@@ -6,6 +6,11 @@ import (
 	"os"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/remote"
+)
+
+var (
+	flagInitRemoteName string
 )
 
 func init() {
@@ -35,6 +40,7 @@ func init() {
 	myInitCommand.flags.StringVar(&Password, "password", "", "Developer password")
 	myInitCommand.flags.StringVar(&DevToken, "dev-token", "", "Developer token to use instead of email/password")
 	myInitCommand.flags.BoolVar(&SkipUpdateMapNameToIdFiles, "skip-update-map-name-to-id", false, "Set this to true to skip pulling the IDs for roles, collections, and users. This is useful if the system has lots of these types of assets and the goal is to retrieve the schema for the tables after initialization.")
+	myInitCommand.flags.StringVar(&flagInitRemoteName, "name", "init", "Name of the initial remote")
 	AddCommand("init", myInitCommand)
 }
 
@@ -49,43 +55,59 @@ func doInit(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if err != nil {
 		return err
 	}
-	return reallyInit(client, SystemKey)
+	return reallyInit(cmd, client, SystemKey)
 }
 
-func reallyInit(cli *cb.DevClient, sysKey string) error {
-	sysMeta, err := pullSystemMeta(sysKey, cli)
+func reallyInit(cmd *SubCommand, cli *cb.DevClient, sysKey string) error {
+	SetRootDir(".")
+
+	if err := setupDirectoryStructure(); err != nil {
+		return err
+	}
+
+	systemMeta, err := pullSystemMeta(sysKey, cli)
 	if err != nil {
 		return err
 	}
 
-	SetRootDir(".")
-	if err := setupDirectoryStructure(); err != nil {
-		return err
-	}
-	storeMeta(sysMeta)
-
-	if err = storeSystemDotJSON(systemDotJSON); err != nil {
+	err = initRemote(cmd, systemMeta, cli)
+	if err != nil {
 		return err
 	}
 
-	metaStuff := map[string]interface{}{
+	if !SkipUpdateMapNameToIdFiles {
+		logInfo("Updating map name to ID files...")
+		updateMapNameToIDFiles(systemMeta, cli)
+	}
+
+	fmt.Printf("System '%s' has been initialized in the current directory.\n", systemMeta.Name)
+	return nil
+}
+
+func initRemote(cmd *SubCommand, systemMeta *System_meta, cli *cb.DevClient) error {
+	cmd.remotes = remote.NewRemotes()
+
+	initRemote := &remote.Remote{
+		Name:         flagInitRemoteName,
+		PlatformURL:  cli.HttpAddr,
+		MessagingURL: cli.MqttAddr,
+		SystemKey:    systemMeta.Key,
+		SystemSecret: systemMeta.Secret,
+		Token:        cli.DevToken,
+	}
+
+	cmd.remotes.Put(initRemote)
+
+	systemJSON := systemMetaToMap(systemMeta)
+
+	cbmeta := map[string]interface{}{
 		"platform_url":    cli.HttpAddr,
 		"messaging_url":   cli.MqttAddr,
 		"developer_email": cli.Email,
 		"token":           cli.DevToken,
 	}
 
-	if err = storeCBMeta(metaStuff); err != nil {
-		return err
-	}
-
-	if !SkipUpdateMapNameToIdFiles {
-		logInfo("Updating map name to ID files...")
-		updateMapNameToIDFiles(sysMeta, cli)
-	}
-
-	fmt.Printf("System '%s' has been initialized in the current directory.\n", sysMeta.Name)
-	return nil
+	return useRemoteByMerging(systemJSON, cbmeta, initRemote)
 }
 
 type DefaultInfo struct {

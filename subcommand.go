@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/remote"
 )
 
 type SubCommand struct {
@@ -15,6 +16,7 @@ type SubCommand struct {
 	flags     flag.FlagSet
 	run       func(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	example   string
+	remotes   *remote.Remotes
 }
 
 var (
@@ -22,6 +24,70 @@ var (
 )
 
 func (c *SubCommand) Execute(args []string) error {
+	var err error
+
+	err = c.setup(args)
+	if err != nil {
+		return fmt.Errorf("Setup failed: %s", err)
+	}
+
+	err = c.beforeExecute(args)
+	if err != nil {
+		return fmt.Errorf("Before execute failed: %s", err)
+	}
+
+	err = c.execute(args)
+	if err != nil {
+		return err
+	}
+
+	err = c.afterExecute(args)
+	if err != nil {
+		return fmt.Errorf("After execute failed: %s", err)
+	}
+
+	return nil
+}
+
+func (c *SubCommand) setup(args []string) error {
+	SetRootDir(".")
+	return nil
+}
+
+func (c *SubCommand) beforeExecute(args []string) error {
+	var err error
+
+	if c.needsAuth {
+		c.remotes, err = remote.LoadFromDirOrLegacy(".")
+		if err != nil {
+			return err
+		}
+
+		curr, ok := c.remotes.Current()
+		if !ok {
+			return fmt.Errorf("No current remote")
+		}
+
+		useRemoteByMergingFromGlobals(curr)
+	}
+
+	return nil
+}
+
+func (c *SubCommand) afterExecute(args []string) error {
+	var err error
+
+	if c.remotes != nil {
+		err = remote.SaveToDir(".", c.remotes)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *SubCommand) execute(args []string) error {
 	var client *cb.DevClient
 	var err error
 	c.flags.Parse(args)
@@ -30,7 +96,6 @@ func (c *SubCommand) Execute(args []string) error {
 		setupAddrs(URL, MsgURL)
 	}
 
-	SetRootDir(".")
 	// This is the most important part of initialization
 	MetaInfo, _ = getCbMeta()
 
