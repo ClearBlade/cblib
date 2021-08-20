@@ -228,6 +228,16 @@ func pushAllCollections(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
+func pushOneCollectionSchema(systemInfo *System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing collection schema %s\n", name)
+	collection, err := getCollection(name)
+	if err != nil {
+		fmt.Printf("error is %+v\n", err)
+		return err
+	}
+	return pushCollectionSchema(systemInfo, collection, client)
+}
+
 func pushOneCollection(systemInfo *System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing collection %s\n", name)
 	collection, err := getCollection(name)
@@ -737,7 +747,7 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	if CollectionSchema != "" {
 		didSomething = true
-		if err := pushCollectionSchema(systemInfo, client, CollectionSchema); err != nil {
+		if err := pushOneCollectionSchema(systemInfo, client, CollectionSchema); err != nil {
 			return err
 		}
 	}
@@ -973,8 +983,12 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name string) error {
-	fmt.Printf("Pushing collection schema for '%s'\n", name)
+func pushCollectionSchema(systemInfo *System_meta, collection map[string]interface{}, cli *cb.DevClient) error {
+	name, err := getCollectionName(collection)
+	if err != nil {
+		return err
+	}
+
 	allCollectionsInfo, err := getCollectionNameToIdAsSlice()
 	if err != nil {
 		return err
@@ -983,8 +997,8 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	if err != nil {
 		return err
 	}
-	localCollInfo, err := getCollection(name)
-	if err != nil {
+
+	if err = checkIfCollectionExists(systemInfo, collection, cli, CheckIfCollectionExistsOptions{pullItems: false, pushItems: false}); err != nil {
 		return err
 	}
 
@@ -992,7 +1006,7 @@ func pushCollectionSchema(systemInfo *System_meta, cli *cb.DevClient, name strin
 	if err != nil {
 		return err
 	}
-	localSchema, ok := localCollInfo["schema"].([]interface{})
+	localSchema, ok := collection["schema"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
@@ -2037,30 +2051,9 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 }
 
 func updateCollection(meta *System_meta, collection map[string]interface{}, client *cb.DevClient) error {
-	collection_name, ok := collection["name"].(string)
-	if !ok {
-		return fmt.Errorf("No name in collection json file: %+v\n", collection)
-	}
-
-	_, err := client.GetDataTotalByName(meta.Key, collection_name, cb.NewQuery())
+	err := checkIfCollectionExists(meta, collection, client, CheckIfCollectionExistsOptions{pullItems: true, pushItems: true})
 	if err != nil {
-		fmt.Printf("Could not find collection '%s'. Error is - %s\n", collection_name, err.Error())
-		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new collection named %s?", collection_name))
-		if err != nil {
-			return err
-		} else {
-			if c {
-				if _, err := CreateCollection(meta.Key, collection, true, client); err != nil {
-					return fmt.Errorf("Could not create collection %s: %s", collection_name, err.Error())
-				} else {
-					fmt.Printf("Successfully created new collection. Updating local copy... %s\n", collection_name)
-					return PullAndWriteCollection(meta, collection_name, client, true, true)
-				}
-			} else {
-				fmt.Printf("Collection will not be created.\n")
-				return nil
-			}
-		}
+		return err
 	}
 
 	// here's our workflow for updating a collection:
@@ -2068,7 +2061,12 @@ func updateCollection(meta *System_meta, collection map[string]interface{}, clie
 	// 2) diff and update the collection indexes
 	// 3) attempt to update all of our items
 	// 4) if update fails, we assume the item doesn't exist, so we create the item
-	if err := pushCollectionSchema(meta, client, collection_name); err != nil {
+	if err := pushCollectionSchema(meta, collection, client); err != nil {
+		return err
+	}
+
+	collection_name, err := getCollectionName(collection)
+	if err != nil {
 		return err
 	}
 
