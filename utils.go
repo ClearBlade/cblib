@@ -556,3 +556,53 @@ func replaceEmailWithUserIdForServiceRunAs(service map[string]interface{}, users
 		}
 	}
 }
+
+func getCollectionName(collection map[string]interface{}) (string, error) {
+	collection_name, ok := collection["name"].(string)
+	if !ok {
+		return "", fmt.Errorf("No name in collection json file: %+v\n", collection)
+	}
+	return collection_name, nil
+}
+
+type CreateCollectionIfNecessaryOptions struct {
+	pushItems bool
+	pullItems bool
+}
+
+type CreateCollectionIfNecessaryOutput struct {
+	collectionExistsOrWasCreated bool
+}
+
+func createCollectionIfNecessary(meta *System_meta, collection map[string]interface{}, client *cb.DevClient, options CreateCollectionIfNecessaryOptions) (CreateCollectionIfNecessaryOutput, error) {
+	collection_name, err := getCollectionName(collection)
+	if err != nil {
+		return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, err
+	}
+
+	_, err = client.GetDataTotalByName(meta.Key, collection_name, cb.NewQuery())
+	if err != nil {
+		fmt.Printf("Could not find collection '%s'. Error is - %s\n", collection_name, err.Error())
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new collection named %s?", collection_name))
+		if err != nil {
+			return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, err
+		} else {
+			if c {
+				if _, err := CreateCollection(meta.Key, collection, options.pushItems, client); err != nil {
+					return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, fmt.Errorf("Could not create collection %s: %s", collection_name, err.Error())
+				} else {
+					fmt.Printf("Successfully created new collection %s\n", collection_name)
+				}
+				if options.pullItems {
+					fmt.Printf("Updating local copy... %s\n", collection_name)
+					return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: true}, PullAndWriteCollection(meta, collection_name, client, true, true)
+				}
+				return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: true}, nil
+			} else {
+				fmt.Printf("Collection will not be created.\n")
+				return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, nil
+			}
+		}
+	}
+	return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: true}, nil
+}
