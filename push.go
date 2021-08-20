@@ -235,6 +235,11 @@ func pushOneCollectionSchema(systemInfo *System_meta, client *cb.DevClient, name
 		fmt.Printf("error is %+v\n", err)
 		return err
 	}
+	if out, err := createCollectionIfNecessary(systemInfo, collection, client, CreateCollectionIfNecessaryOptions{pullItems: false, pushItems: false}); err != nil {
+		return err
+	} else if !out.collectionExistsOrWasCreated {
+		return nil
+	}
 	return pushCollectionSchema(systemInfo, collection, client)
 }
 
@@ -995,10 +1000,6 @@ func pushCollectionSchema(systemInfo *System_meta, collection map[string]interfa
 	}
 	collID, err := getCollectionIdByName(name, allCollectionsInfo)
 	if err != nil {
-		return err
-	}
-
-	if err = checkIfCollectionExists(systemInfo, collection, cli, CheckIfCollectionExistsOptions{pullItems: false, pushItems: false}); err != nil {
 		return err
 	}
 
@@ -2051,9 +2052,11 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 }
 
 func updateCollection(meta *System_meta, collection map[string]interface{}, client *cb.DevClient) error {
-	err := checkIfCollectionExists(meta, collection, client, CheckIfCollectionExistsOptions{pullItems: true, pushItems: true})
+	out, err := createCollectionIfNecessary(meta, collection, client, CreateCollectionIfNecessaryOptions{pullItems: true, pushItems: true})
 	if err != nil {
 		return err
+	} else if !out.collectionExistsOrWasCreated {
+		return nil
 	}
 
 	// here's our workflow for updating a collection:
