@@ -754,6 +754,17 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 		fmt.Printf("Could not create users: %s", err.Error())
 	}
 
+	logInfo("Importing code libraries...")
+	if err := createLibraries(config, systemInfo, cli); err != nil {
+		serr, _ := err.(*os.PathError)
+		if err != serr {
+			return err
+		} else {
+			fmt.Printf("Path Error importing libraries: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
+			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
+		}
+	}
+
 	logInfo("Importing code services...")
 	// Additonal modifications to the ImportIt functions
 	if err := createServices(config, systemInfo, usersInfo, cli); err != nil {
@@ -763,17 +774,6 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 		} else {
 			fmt.Printf("Path Error importing services: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
 			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
-		}
-	}
-
-	logInfo("Importing code libraries...")
-	if err := createLibraries(config, systemInfo, cli); err != nil {
-		serr, _ := err.(*os.PathError)
-		if err != serr {
-			return err
-		} else {
-			fmt.Printf("Path Error importing libraries: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
-			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
 		}
 	}
 
