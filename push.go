@@ -1321,6 +1321,22 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				}
 				out["externaldatabases"] = removeDuplicatePermissions(extDbs, "name")
 			}
+		case "ServiceCaches":
+			if valIF != nil {
+				serviceCaches, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for serviceCaches permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
+				}
+				svcCaches := make([]map[string]interface{}, len(serviceCaches))
+				for idx, mapVal := range serviceCaches {
+					svcCaches[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["servicecaches"] = removeDuplicatePermissions(svcCaches, "name")
+			}
 		case "Push":
 			if valIF != nil {
 				val := getMap(valIF)
