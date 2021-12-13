@@ -1137,6 +1137,10 @@ func diffDeployments(localDep map[string]interface{}, backendDep map[string]inte
 	assetDiff := compareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch)
 	edgeDiff := compareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch)
 	return map[string]interface{}{
+		"bucket_config": map[string]interface{}{
+			"add":    localDep["bucket_config"],
+			"remove": backendDep["bucket_config"],
+		},
 		"assets": map[string]interface{}{
 			"add":    assetDiff.Added,
 			"remove": assetDiff.Removed,

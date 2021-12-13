@@ -602,11 +602,20 @@ func writeTimer(name string, data map[string]interface{}) error {
 }
 
 func whitelistDeployment(data map[string]interface{}) map[string]interface{} {
+	bucket_config := data["bucket_config"].(map[string]interface{})
 	return map[string]interface{}{
 		"assets":      data["assets"],
 		"description": data["description"],
 		"edges":       data["edges"],
 		"name":        data["name"],
+		"bucket_config": map[string]interface{}{
+			"deployment_name":  data["name"],
+			"edge_config":      bucket_config["edge_config"],
+			"edge_storage":     bucket_config["edge_storage"],
+			"platform_config":  bucket_config["platform_config"],
+			"platform_storage": bucket_config["platform_storage"],
+		},
+		"buckets_enabled": data["buckets_enabled"],
 	}
 }
 
