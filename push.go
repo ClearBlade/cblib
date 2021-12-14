@@ -1413,6 +1413,22 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				val := getMap(valIF)
 				out["allexternaldatabases"] = map[string]interface{}{"permissions": val["Level"]}
 			}
+		case "Files":
+			if valIF != nil {
+				files, err := getASliceOfMaps(valIF)
+				if err != nil {
+					fmt.Printf("Bad format for files permissions, not a slice of maps: %T\n", valIF)
+					os.Exit(1)
+				}
+				theFiles := make([]map[string]interface{}, len(files))
+				for idx, mapVal := range files {
+					theFiles[idx] = map[string]interface{}{
+						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
+						"permissions": mapVal["Level"],
+					}
+				}
+				out["files"] = removeDuplicatePermissions(theFiles, "name")
+			}
 		default:
 
 		}
