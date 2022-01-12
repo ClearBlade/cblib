@@ -1991,6 +1991,7 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 		"auto_restart":      false,
 		"concurrency":       0,
 		"dependencies":      "",
+		"preload":           false,
 		runUserKey:          "",
 	}
 	if loggingEnabled, ok := service["logging_enabled"]; ok {
@@ -2016,6 +2017,9 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	}
 	if runUser, ok := service[runUserKey].(string); ok {
 		ret[runUserKey] = runUser
+	}
+	if preload, ok := service["preload"].(bool); ok {
+		ret["preload"] = preload
 	}
 	return ret
 }

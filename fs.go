@@ -782,6 +782,7 @@ func whitelistService(data map[string]interface{}) map[string]interface{} {
 		"logging_enabled":   data["logging_enabled"],
 		"name":              data["name"],
 		"params":            data["params"],
+		"preload":           data["preload"],
 		runUserKey:          data["run_user"],
 	}
 }
