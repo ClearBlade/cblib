@@ -46,6 +46,7 @@ var (
 	serviceCachesDir     string
 	webhooksDir          string
 	externalDatabasesDir string
+	bucketSetsDir        string
 	cliHiddenDir         string
 	mapNameToIdDir       string
 	arrDir               [20]string //this is used to set up the directory structure for a system
@@ -73,6 +74,7 @@ func SetRootDir(theRootDir string) {
 	serviceCachesDir = rootDir + "/shared-caches"
 	webhooksDir = rootDir + "/webhooks"
 	externalDatabasesDir = rootDir + "/external-databases"
+	bucketSetsDir = rootDir + "/bucket-sets"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	arrDir[0] = svcDir
@@ -802,6 +804,23 @@ func writeService(name, runUser string, data map[string]interface{}) error {
 	return writeEntity(mySvcDir, name, serv)
 }
 
+func writeBucketSet(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(bucketSetsDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(bucketSetsDir, name, whitelistBucketSet(data))
+}
+
+func whitelistBucketSet(data map[string]interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"edge_config":      data["edge_config"],
+		"edge_storage":     data["edge_storage"],
+		"name":             data["name"],
+		"platform_config":  data["platform_config"],
+		"platform_storage": data["platform_storage"],
+	}
+}
+
 func whitelistLibrary(data map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"api":          data["api"],
@@ -1088,6 +1107,14 @@ func getWebhooks() ([]map[string]interface{}, error) {
 
 func getExternalDatabases() ([]map[string]interface{}, error) {
 	return getObjectList(externalDatabasesDir, []string{})
+}
+
+func getBucketSets() ([]map[string]interface{}, error) {
+	return getObjectList(bucketSetsDir, []string{})
+}
+
+func getBucketSet(name string) (map[string]interface{}, error) {
+	return getObject(bucketSetsDir, name+".json")
 }
 
 func getDeployment(name string) (map[string]interface{}, error) {

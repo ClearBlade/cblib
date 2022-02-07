@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/clearblade/cblib/models"
+	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
 
@@ -58,6 +59,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllServiceCaches, "all-shared-caches", false, "push all of the local shared caches")
 	pushCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "push all of the local webhooks")
 	pushCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "push all of the local external databases")
+	pushCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "push all of the local bucket sets")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
@@ -79,6 +81,7 @@ func init() {
 	pushCommand.flags.StringVar(&ServiceCacheName, "shared-cache", "", "Name of shared cache to push")
 	pushCommand.flags.StringVar(&WebhookName, "webhook", "", "Name of webhook to push")
 	pushCommand.flags.StringVar(&ExternalDatabaseName, "external-database", "", "Name of external database to push")
+	pushCommand.flags.StringVar(&BucketSetName, "bucket-set", "", "Name of bucket set to push")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -522,6 +525,31 @@ func pushAllExternalDatabases(systemInfo *System_meta, client *cb.DevClient) err
 	return nil
 }
 
+func pushAllBucketSets(systemInfo *System_meta, client *cb.DevClient) error {
+	bucketSets, err := getBucketSets()
+	if err != nil {
+		return err
+	}
+	for _, bucketSet := range bucketSets {
+		fmt.Printf("Pushing bucket set %+s\n", bucketSet["name"].(string))
+		if err := updateBucketSet(systemInfo.Key, bucketSet, client); err != nil {
+			return fmt.Errorf("Error updating bucket set '%+v': %s\n", bucketSet, err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOneBucketSet(systemInfo *System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing bucket set %+s\n", name)
+
+	bucketSet, err := getBucketSet(name)
+	if err != nil {
+		return err
+	}
+
+	return updateBucketSet(systemInfo.Key, bucketSet, client)
+}
+
 func pushOneWebhook(systemInfo *System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing webhook %+s\n", name)
 	hook, err := getWebhook(name)
@@ -626,6 +654,55 @@ func updateExternalDatabase(systemKey string, obj map[string]interface{}, cli *c
 		delete(obj, "name")
 		delete(obj, "dbtype")
 		return cli.UpdateExternalDBConnection(systemKey, name, obj)
+	}
+
+	return nil
+}
+
+func updateBucketSet(systemKey string, obj map[string]interface{}, cli *cb.DevClient) error {
+	name := obj["name"].(string)
+
+	bucketSet, err := cli.GetBucketSet(systemKey, name)
+	if err != nil {
+		// bucket set DNE
+		fmt.Printf("Could not find bucket set %s\n", name)
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new bucket set named %s?", name))
+		if err != nil {
+			return err
+		} else {
+			if c {
+				if err := createBucketSet(systemKey, obj, cli); err != nil {
+					return fmt.Errorf("Could not create bucket set %s: %s", name, err.Error())
+				} else {
+					fmt.Printf("Successfully created new bucket set %s\n", name)
+				}
+			} else {
+				fmt.Printf("Bucket set will not be created.\n")
+			}
+		}
+	} else {
+		ourBucket, err := json.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		theirBucket, err := json.Marshal(whitelistBucketSet(bucketSet))
+		if err != nil {
+			return err
+		}
+		diff, _ := jsondiff.Compare(ourBucket, theirBucket, &jsondiff.Options{})
+		if diff == jsondiff.FullMatch {
+			fmt.Println("Bucket set hasn't changed, not updating")
+			// no changes have been made, exit
+			return nil
+		}
+
+		// since there is no UpdateBucketSet we must first delete and then create
+		err = cli.DeleteBucketSet(systemKey, name)
+		if err != nil {
+			return err
+		}
+
+		return createBucketSet(systemKey, obj, cli)
 	}
 
 	return nil
@@ -977,6 +1054,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if ExternalDatabaseName != "" {
 		didSomething = true
 		if err := pushOneExternalDatabase(systemInfo, client, ExternalDatabaseName); err != nil {
+			return err
+		}
+	}
+
+	if AllBucketSets || AllAssets {
+		didSomething = true
+		if err := pushAllBucketSets(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if BucketSetName != "" {
+		didSomething = true
+		if err := pushOneBucketSet(systemInfo, client, BucketSetName); err != nil {
 			return err
 		}
 	}
@@ -1704,6 +1795,14 @@ func createExternalDatabase(systemKey string, obj map[string]interface{}, client
 
 	if err := client.AddExternalDBConnection(systemKey, obj); err != nil {
 		return fmt.Errorf("Could not create external database %s: %s", name, err.Error())
+	}
+	return nil
+}
+
+func createBucketSet(systemKey string, bucketSet map[string]interface{}, client *cb.DevClient) error {
+	bucketSetName := bucketSet["name"].(string)
+	if _, err := client.CreateBucketSet(systemKey, bucketSetName, bucketSet); err != nil {
+		return fmt.Errorf("Could not create bucket set %s: %s", bucketSetName, err.Error())
 	}
 	return nil
 }

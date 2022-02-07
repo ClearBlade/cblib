@@ -54,6 +54,7 @@ var (
 	ServiceCacheName           string
 	WebhookName                string
 	ExternalDatabaseName       string
+	BucketSetName              string
 	Message                    bool
 	Topic                      string
 	Payload                    string
@@ -77,6 +78,7 @@ var (
 	AllServiceCaches           bool
 	AllWebhooks                bool
 	AllExternalDatabases       bool
+	AllBucketSets              bool
 	AutoApprove                bool
 	TempDir                    string
 	SkipUpdateMapNameToIdFiles bool
@@ -114,6 +116,7 @@ type AffectedAssets struct {
 	AllServiceCaches     bool
 	AllWebhooks          bool
 	AllExternalDatabases bool
+	AllBucketSets        bool
 	DeviceSchema         bool
 	UserSchema           bool
 	EdgeSchema           bool
@@ -134,6 +137,7 @@ type AffectedAssets struct {
 	ServiceCacheName     string
 	WebhookName          string
 	ExternalDatabaseName string
+	BucketSetName        string
 	ExportUsers          bool
 	ExportRows           bool
 	ExportItemId         bool
@@ -161,6 +165,7 @@ func createAffectedAssets() AffectedAssets {
 		EdgeSchema:           EdgeSchema,
 		AllTriggers:          AllTriggers,
 		AllTimers:            AllTimers,
+		AllBucketSets:        AllBucketSets,
 		CollectionSchema:     CollectionSchema,
 		ServiceName:          ServiceName,
 		LibraryName:          LibraryName,
@@ -178,6 +183,7 @@ func createAffectedAssets() AffectedAssets {
 		ServiceCacheName:     ServiceCacheName,
 		WebhookName:          WebhookName,
 		ExternalDatabaseName: ExternalDatabaseName,
+		BucketSetName:        BucketSetName,
 		ExportUsers:          ExportUsers,
 		ExportRows:           ExportRows,
 		ExportItemId:         ExportItemId,
