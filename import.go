@@ -399,6 +399,22 @@ func createExternalDatabases(config ImportConfig, systemInfo map[string]interfac
 	return externalDatabases, nil
 }
 
+func createBucketSets(config ImportConfig, systemInfo map[string]interface{}, client *cb.DevClient) ([]map[string]interface{}, error) {
+	sysKey := systemInfo["systemKey"].(string)
+	bucketSets, err := getBucketSets()
+	if err != nil {
+		return nil, err
+	}
+	for _, bucketSet := range bucketSets {
+		fmt.Printf(" %s", bucketSet["name"].(string))
+		err := createBucketSet(sysKey, bucketSet, client)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return bucketSets, nil
+}
+
 func createServices(config ImportConfig, systemInfo map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) error {
 	sysKey := systemInfo["systemKey"].(string)
 	services, err := getServices()
@@ -846,6 +862,12 @@ func importAllAssets(config ImportConfig, systemInfo map[string]interface{}, use
 	if _, err := createExternalDatabases(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create external databases: %s", err.Error())
+	}
+
+	logInfo("Importing bucket sets...")
+	if _, err := createBucketSets(config, systemInfo, cli); err != nil {
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create bucket sets: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")

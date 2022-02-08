@@ -404,6 +404,35 @@ func pullAndWriteExternalDatabase(sysMeta *System_meta, cli *cb.DevClient, name 
 	return fullDBMetadata, nil
 }
 
+func pullBucketSets(sysMeta *System_meta, cli *cb.DevClient) ([]interface{}, error) {
+	theBucketSets, err := cli.GetBucketSets(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull bucket sets out of system %s: %s", sysMeta.Key, err)
+	}
+
+	for _, bucketSet := range theBucketSets {
+		bsMap := bucketSet.(map[string]interface{})
+		bsName := bsMap["name"].(string)
+		fmt.Printf(" %s", bsName)
+		err := writeBucketSet(bsName, bsMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return theBucketSets, nil
+}
+
+func pullAndWriteBucketSet(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+	bs, err := cli.GetBucketSet(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+	if err = writeBucketSet(bs["name"].(string), bs); err != nil {
+		return nil, err
+	}
+	return bs, nil
+}
+
 func pullAndWriteWebhook(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	hook, err := cli.GetWebhook(sysMeta.Key, name)
 	if err != nil {
