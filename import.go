@@ -265,6 +265,9 @@ func createUsers(config ImportConfig, systemInfo map[string]interface{}, users [
 				}
 			}
 		}
+		if isServiceAccount, ok := user["cb_service_account"]; ok {
+			updates["cb_service_account"] = isServiceAccount
+		}
 
 		if len(updates) == 0 {
 			continue
