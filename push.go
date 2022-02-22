@@ -2296,6 +2296,21 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		}
 	}
 
+	indexInfo, err := rt.NewIndexesFromMap(collection["indexes"].(map[string]interface{}))
+	if err != nil {
+		return CollectionInfo{}, err
+	}
+	for _, index := range indexInfo.Data {
+		err := doCreateIndex(
+			index,
+			func() error { return client.CreateUniqueIndex(systemKey, collectionName, index.Name) },
+			func() error { return client.CreateIndex(systemKey, collectionName, index.Name) },
+		)
+		if err != nil {
+			return CollectionInfo{}, err
+		}
+	}
+
 	if !pushItems {
 		return myInfo, nil
 	}
