@@ -154,7 +154,7 @@ Usage: cb-cli <command>
 Commands:
 
 `
-	for cmd, _ := range subCommands {
+	for cmd := range subCommands {
 		usage += fmt.Sprintf("\t%v\n", cmd)
 	}
 	usage += `

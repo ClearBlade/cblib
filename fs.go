@@ -486,7 +486,7 @@ func updateCollectionSchema(collectionName string, schema []interface{}) error {
 		// just provide a list with this collection info without the collection id
 		if os.IsNotExist(err) {
 			collsInfo = []CollectionInfo{
-				CollectionInfo{
+				{
 					ID:   "",
 					Name: collectionName,
 				},

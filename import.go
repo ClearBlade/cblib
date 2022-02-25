@@ -569,7 +569,7 @@ func createDevices(config ImportConfig, systemInfo map[string]interface{}, clien
 	for idx, device := range devices {
 		if !schemaPresent {
 			if idx == 0 {
-				for columnname, _ := range device {
+				for columnname := range device {
 					switch strings.ToLower(columnname) {
 					case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date":
 						continue
@@ -717,11 +717,11 @@ func createPlugins(config ImportConfig, systemInfo map[string]interface{}, clien
 
 func convertOldEdgeDeployInfo(info map[string]interface{}) (map[string][]string, error) {
 	rval := map[string][]string{
-		"service": []string{},
-		"library": []string{},
-		"trigger": []string{},
+		"service": {},
+		"library": {},
+		"trigger": {},
 	}
-	for resourceKey, _ := range info {
+	for resourceKey := range info {
 		stuff := strings.Split(resourceKey, "::")
 		if len(stuff) != 2 {
 			return nil, fmt.Errorf("Poorly formed edge sync info entry: '%s'", resourceKey)

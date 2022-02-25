@@ -211,7 +211,7 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	//The order returned for each page is not consistent and could therefore result in duplicate rows
 	//
 	//https://www.postgresql.org/docs/current/static/sql-select.html
-	dataQuery.Order = []cb.Ordering{cb.Ordering{OrderKey: "item_id", SortOrder: true}} // SortOrder: true means we are sorting item_id ascending
+	dataQuery.Order = []cb.Ordering{{OrderKey: "item_id", SortOrder: true}} // SortOrder: true means we are sorting item_id ascending
 	allData := []interface{}{}
 	itemIDs := make(map[string]interface{})
 	totalDownloaded := 0

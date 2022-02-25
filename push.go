@@ -1670,7 +1670,7 @@ func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.Dev
 func updateUserTriggerInfo(trigger map[string]interface{}) {
 	if email, _, ok := isTriggerForSpecificUser(trigger); ok {
 		if id, err := getUserIdByEmail(email); err == nil {
-			replaceEmailWithUserIdInTriggerKeyValuePairs(trigger, []UserInfo{UserInfo{Email: email, UserID: id}})
+			replaceEmailWithUserIdInTriggerKeyValuePairs(trigger, []UserInfo{{Email: email, UserID: id}})
 		}
 	}
 }
@@ -2296,18 +2296,21 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		}
 	}
 
-	indexInfo, err := rt.NewIndexesFromMap(collection["indexes"].(map[string]interface{}))
-	if err != nil {
-		return CollectionInfo{}, err
-	}
-	for _, index := range indexInfo.Data {
-		err := doCreateIndex(
-			index,
-			func() error { return client.CreateUniqueIndex(systemKey, collectionName, index.Name) },
-			func() error { return client.CreateIndex(systemKey, collectionName, index.Name) },
-		)
+	indexes, ok := collection["indexes"].(map[string]interface{})
+	if ok {
+		indexInfo, err := rt.NewIndexesFromMap(indexes)
 		if err != nil {
 			return CollectionInfo{}, err
+		}
+		for _, index := range indexInfo.Data {
+			err := doCreateIndex(
+				index,
+				func() error { return client.CreateUniqueIndex(systemKey, collectionName, index.Name) },
+				func() error { return client.CreateIndex(systemKey, collectionName, index.Name) },
+			)
+			if err != nil {
+				return CollectionInfo{}, err
+			}
 		}
 	}
 
