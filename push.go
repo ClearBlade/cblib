@@ -333,7 +333,7 @@ func pushOneRole(systemInfo *System_meta, client *cb.DevClient, name string) err
 	if err != nil {
 		return err
 	}
-	return updateRole(systemInfo.Key, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
+	return updateRole(systemInfo, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
 }
 
 func pushTriggers(systemInfo *System_meta, client *cb.DevClient) error {
@@ -1089,7 +1089,7 @@ func pushCollectionSchema(systemInfo *System_meta, collection map[string]interfa
 	if err != nil {
 		return err
 	}
-	collID, err := getCollectionIdByName(name, allCollectionsInfo)
+	collID, err := getCollectionIdByName(name, allCollectionsInfo, cli, systemInfo)
 	if err != nil {
 		return err
 	}
@@ -1249,11 +1249,11 @@ func isAssetMatch(assetA interface{}, assetB interface{}) bool {
 	return typedA["asset_class"].(string) == typedB["asset_class"].(string) && typedA["asset_id"].(string) == typedB["asset_id"].(string) && typedA["sync_to_edge"].(bool) == typedB["sync_to_edge"].(bool) && typedA["sync_to_platform"].(bool) == typedB["sync_to_platform"].(bool)
 }
 
-func createRole(systemKey string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
+func createRole(systemInfo *System_meta, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
 	var roleID string
 	if roleName != "Authenticated" && roleName != "Anonymous" && roleName != "Administrator" {
-		createIF, err := client.CreateRole(systemKey, role["Name"].(string))
+		createIF, err := client.CreateRole(systemInfo.Key, role["Name"].(string))
 		if err != nil {
 			return err
 		}
@@ -1268,11 +1268,11 @@ func createRole(systemKey string, role map[string]interface{}, collectionsInfo [
 	} else {
 		roleID = roleName // Administrator, Authorized, Anonymous
 	}
-	updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo)
+	updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo, client, systemInfo)
 	if err != nil {
 		return err
 	}
-	if err := client.UpdateRole(systemKey, role["Name"].(string), updateRoleBody); err != nil {
+	if err := client.UpdateRole(systemInfo.Key, role["Name"].(string), updateRoleBody); err != nil {
 		return err
 	}
 	if err := updateRoleNameToId(RoleInfo{ID: roleID, Name: roleName}); err != nil {
@@ -1281,22 +1281,59 @@ func createRole(systemKey string, role map[string]interface{}, collectionsInfo [
 	return nil
 }
 
-func packageRoleForUpdate(roleID string, role map[string]interface{}, collectionsInfo []CollectionInfo) (map[string]interface{}, error) {
+func packageRoleForUpdate(roleID string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient, systemInfo *System_meta) (map[string]interface{}, error) {
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Permissions for role do not exist or is not a map")
 	}
-	convertedPermissions := convertPermissionsStructure(permissions, collectionsInfo)
+	convertedPermissions := convertPermissionsStructure(permissions, collectionsInfo, client, systemInfo)
 	return map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}, nil
 }
 
-func getCollectionIdByName(theNameWeWant string, collectionsInfo []CollectionInfo) (string, error) {
+func lookupCollectionIdByName(theNameWeWant string, collectionsInfo []CollectionInfo) (string, bool) {
 	for i := 0; i < len(collectionsInfo); i++ {
 		if collectionsInfo[i].Name == theNameWeWant {
-			return collectionsInfo[i].ID, nil
+			return collectionsInfo[i].ID, true
 		}
 	}
+	return "", false
+}
+
+func getCollectionIdByName(theNameWeWant string, collectionsInfo []CollectionInfo, client *cb.DevClient, systemInfo *System_meta) (string, error) {
+	maybeCollectionId, maybeCollectionIdOk := lookupCollectionIdByName(theNameWeWant, collectionsInfo)
+	if maybeCollectionIdOk {
+		return maybeCollectionId, nil
+	}
+	fmt.Printf("Couldn't find ID for collection name '%s'. Fetching ID from platform...", theNameWeWant)
+	collections, err := getAllCollectionsInfo(client, systemInfo)
+	if err != nil {
+		return "", err
+	}
+	for i := 0; i < len(collections); i++ {
+		fmt.Println("update this guy", collections[i])
+		updateCollectionNameToId(collections[i])
+	}
+	maybeCollectionId, maybeCollmaybeCollectionIdOk := lookupCollectionIdByName(theNameWeWant, collections)
+	if maybeCollmaybeCollectionIdOk {
+		return maybeCollectionId, nil
+	}
+
 	return "", fmt.Errorf("Couldn't find ID for collection name '%s'\n", theNameWeWant)
+}
+
+func getAllCollectionsInfo(client *cb.DevClient, systemInfo *System_meta) ([]CollectionInfo, error) {
+	collections, err := client.GetAllCollections(systemInfo.Key)
+	if err != nil {
+		return nil, err
+	}
+	var infoList []CollectionInfo
+	for i := 0; i < len(collections); i++ {
+		infoList = append(infoList, CollectionInfo{
+			ID:   collections[i].(map[string]interface{})["collectionID"].(string),
+			Name: collections[i].(map[string]interface{})["name"].(string),
+		})
+	}
+	return infoList, nil
 }
 
 // it's possible that there are duplicate permissions
@@ -1323,7 +1360,7 @@ func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []
 //
 //  THis is a gigantic cluster. We need to fix and learn from this. -swm
 //
-func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []CollectionInfo) map[string]interface{} {
+func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient, systemInfo *System_meta) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -1353,7 +1390,7 @@ func convertPermissionsStructure(in map[string]interface{}, collectionsInfo []Co
 				cols := make([]map[string]interface{}, 0)
 				for _, mapVal := range collections {
 					collName := mapVal["Name"].(string)
-					id, err := getCollectionIdByName(collName, collectionsInfo)
+					id, err := getCollectionIdByName(collName, collectionsInfo, client, systemInfo)
 					if err != nil {
 						fmt.Printf("Skipping permissions for collection '%s'; Error is - %s", collName, err.Error())
 						continue
@@ -2460,17 +2497,17 @@ func createAdaptor(adap *models.Adaptor) error {
 	return adap.UploadAllInfo()
 }
 
-func updateRole(systemKey string, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
+func updateRole(systemInfo *System_meta, role map[string]interface{}, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
 
-	if _, err := pullRole(systemKey, roleName, client); err != nil {
+	if _, err := pullRole(systemInfo.Key, roleName, client); err != nil {
 		fmt.Printf("Could not find role '%s'. Error is - %s\n", roleName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new role named %s?", roleName))
 		if err != nil {
 			return err
 		} else {
 			if c {
-				if err := createRole(systemKey, role, collectionsInfo, client); err != nil {
+				if err := createRole(systemInfo, role, collectionsInfo, client); err != nil {
 					return fmt.Errorf("Could not create role %s: %s", roleName, err.Error())
 				} else {
 					fmt.Printf("Successfully created new role %s\n", roleName)
@@ -2484,11 +2521,11 @@ func updateRole(systemKey string, role map[string]interface{}, collectionsInfo [
 		if err != nil {
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
-		updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo)
+		updateRoleBody, err := packageRoleForUpdate(roleID, role, collectionsInfo, client, systemInfo)
 		if err != nil {
 			return err
 		}
-		if err := client.UpdateRole(systemKey, roleName, updateRoleBody); err != nil {
+		if err := client.UpdateRole(systemInfo.Key, roleName, updateRoleBody); err != nil {
 			if byts, err := json.Marshal(updateRoleBody); err == nil {
 				fmt.Printf("Failed to update role '%s'. Request body is - \n%s\n", roleName, string(byts))
 			}

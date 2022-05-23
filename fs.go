@@ -464,7 +464,7 @@ func getUserIdByEmail(email string) (string, error) {
 	}
 }
 
-func updateCollectionSchema(collectionName string, schema []interface{}) error {
+func updateCollectionSchema(collectionName string, schema []interface{}, client *cb.DevClient, systemInfo *System_meta) error {
 	collInfo, err := getCollection(collectionName)
 	if err != nil {
 		// if the collection file doesn't exist the user is probably trying to pull just the schema without pulling items
@@ -495,7 +495,7 @@ func updateCollectionSchema(collectionName string, schema []interface{}) error {
 			return err
 		}
 	}
-	id, err := getCollectionIdByName(collectionName, collsInfo)
+	id, err := getCollectionIdByName(collectionName, collsInfo, client, systemInfo)
 	if err != nil {
 		return err
 	}

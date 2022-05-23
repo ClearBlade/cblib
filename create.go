@@ -171,7 +171,7 @@ func createOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	if err != nil {
 		return err
 	}
-	return createRole(systemInfo.Key, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
+	return createRole(systemInfo, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
 }
 
 func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
