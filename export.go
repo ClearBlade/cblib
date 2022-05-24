@@ -102,7 +102,7 @@ func pullAndWriteCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name
 		return nil, err
 	}
 
-	err = updateCollectionSchema(name, columnsResp)
+	err = updateCollectionSchema(name, columnsResp, cli, sysMeta)
 	if err != nil {
 		return nil, err
 	}

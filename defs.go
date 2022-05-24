@@ -239,3 +239,15 @@ func systemMetaToMap(meta *System_meta) map[string]interface{} {
 	result["auth"] = true
 	return result
 }
+
+func systemMetaFromMap(theMap map[string]interface{}) *System_meta {
+	return &System_meta{
+		Name:        theMap["name"].(string),
+		Key:         theMap["system_key"].(string),
+		Secret:      theMap["system_secret"].(string),
+		Description: theMap["description"].(string),
+		PlatformUrl: theMap["platform_url"].(string),
+		MessageUrl:  theMap["messaging_url"].(string),
+		Services:    map[string]Service_meta{},
+	}
+}

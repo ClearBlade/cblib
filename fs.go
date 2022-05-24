@@ -464,7 +464,7 @@ func getUserIdByEmail(email string) (string, error) {
 	}
 }
 
-func updateCollectionSchema(collectionName string, schema []interface{}) error {
+func updateCollectionSchema(collectionName string, schema []interface{}, client *cb.DevClient, systemInfo *System_meta) error {
 	collInfo, err := getCollection(collectionName)
 	if err != nil {
 		// if the collection file doesn't exist the user is probably trying to pull just the schema without pulling items
@@ -480,22 +480,8 @@ func updateCollectionSchema(collectionName string, schema []interface{}) error {
 		}
 	}
 	collInfo["schema"] = schema
-	collsInfo, err := getCollectionNameToIdAsSlice()
-	if err != nil {
-		// if the collection map-name-to-id file doesn't exist the user probably used the skip-update-map-name-to-id flag
-		// just provide a list with this collection info without the collection id
-		if os.IsNotExist(err) {
-			collsInfo = []CollectionInfo{
-				{
-					ID:   "",
-					Name: collectionName,
-				},
-			}
-		} else {
-			return err
-		}
-	}
-	id, err := getCollectionIdByName(collectionName, collsInfo)
+
+	id, err := getCollectionIdByName(collectionName, client, systemInfo)
 	if err != nil {
 		return err
 	}
