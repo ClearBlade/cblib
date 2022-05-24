@@ -157,21 +157,13 @@ func createOneUser(systemInfo *System_meta, client *cb.DevClient) error {
 	return err
 }
 
-func getCollectionNameToIdAsSliceWithErrorCheck() []CollectionInfo {
-	collInfo, err := getCollectionNameToIdAsSlice()
-	if err != nil {
-		fmt.Printf("Warning: Unable to fetch collection info; Collection permissions will not be included: %+v\n", err.Error())
-	}
-	return collInfo
-}
-
 func createOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating role %s\n", RoleName)
 	role, err := getRole(RoleName)
 	if err != nil {
 		return err
 	}
-	return createRole(systemInfo, role, getCollectionNameToIdAsSliceWithErrorCheck(), client)
+	return createRole(systemInfo, role, client)
 }
 
 func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {

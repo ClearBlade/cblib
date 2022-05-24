@@ -173,7 +173,7 @@ func createSystem(config ImportConfig, system *System_meta, client *cb.DevClient
 	return system, nil
 }
 
-func createRoles(config ImportConfig, systemInfo *System_meta, collectionsInfo []CollectionInfo, client *cb.DevClient) error {
+func createRoles(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) error {
 
 	roles, err := getRoles()
 	if err != nil {
@@ -183,7 +183,7 @@ func createRoles(config ImportConfig, systemInfo *System_meta, collectionsInfo [
 		name := role["Name"].(string)
 		fmt.Printf(" %s", name)
 		//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
-		if err := createRole(systemInfo, role, collectionsInfo, client); err != nil {
+		if err := createRole(systemInfo, role, client); err != nil {
 			return err
 		}
 		//}
@@ -698,14 +698,14 @@ func importAllAssets(config ImportConfig, systemInfo *System_meta, users []map[s
 	// Common set of calls for a complete system import
 
 	logInfo("Importing collections...")
-	collectionsInfo, err := createCollections(config, systemInfo, cli)
+	_, err := createCollections(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create collections: %s", err.Error())
 	}
 
 	logInfo("Importing roles...")
-	err = createRoles(config, systemInfo, collectionsInfo, cli)
+	err = createRoles(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create roles: %s", err.Error())

@@ -480,22 +480,8 @@ func updateCollectionSchema(collectionName string, schema []interface{}, client 
 		}
 	}
 	collInfo["schema"] = schema
-	collsInfo, err := getCollectionNameToIdAsSlice()
-	if err != nil {
-		// if the collection map-name-to-id file doesn't exist the user probably used the skip-update-map-name-to-id flag
-		// just provide a list with this collection info without the collection id
-		if os.IsNotExist(err) {
-			collsInfo = []CollectionInfo{
-				{
-					ID:   "",
-					Name: collectionName,
-				},
-			}
-		} else {
-			return err
-		}
-	}
-	id, err := getCollectionIdByName(collectionName, collsInfo, client, systemInfo)
+
+	id, err := getCollectionIdByName(collectionName, client, systemInfo)
 	if err != nil {
 		return err
 	}
