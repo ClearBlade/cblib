@@ -1304,7 +1304,7 @@ func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInf
 	if found {
 		return maybeCollectionId, nil
 	}
-	fmt.Printf("Couldn't find ID for collection name '%s'. Fetching IDs from platform...", theNameWeWant)
+	fmt.Printf("Couldn't find ID for collection name '%s'. Fetching IDs from platform...\n", theNameWeWant)
 	collections, err := getAllCollectionsInfo(client, systemInfo)
 	if err != nil {
 		return "", err
