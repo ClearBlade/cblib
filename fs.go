@@ -762,6 +762,9 @@ func whitelistService(data map[string]interface{}) map[string]interface{} {
 		"name":              data["name"],
 		"params":            data["params"],
 		runUserKey:          data["run_user"],
+		"log_ttl_minutes":   data["log_ttl_minutes"],
+		"run_on_edge":       data["run_on_edge"],
+		"run_on_platform":   data["run_on_platform"],
 	}
 }
 

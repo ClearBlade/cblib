@@ -2123,6 +2123,9 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 		"concurrency":       0,
 		"dependencies":      "",
 		runUserKey:          "",
+		"log_ttl_minutes":   10080,
+		"run_on_edge":       true,
+		"run_on_platform":   true,
 	}
 	if loggingEnabled, ok := service["logging_enabled"]; ok {
 		ret["logging_enabled"] = loggingEnabled
@@ -2147,6 +2150,15 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	}
 	if runUser, ok := service[runUserKey].(string); ok {
 		ret[runUserKey] = runUser
+	}
+	if log_ttl_minutes, ok := service["log_ttl_minutes"].(float64); ok {
+		ret["log_ttl_minutes"] = log_ttl_minutes
+	}
+	if run_on_edge, ok := service["run_on_edge"].(bool); ok {
+		ret["run_on_edge"] = run_on_edge
+	}
+	if run_on_platform, ok := service["run_on_platform"].(bool); ok {
+		ret["run_on_platform"] = run_on_platform
 	}
 	return ret
 }
