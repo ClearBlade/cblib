@@ -426,5 +426,14 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 		fmt.Printf("\n")
 	}
 
+	if assets.AllBucketSetFiles || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling all files for all bucket sets")
+		if err := pullFilesForAllBucketSets(systemInfo, client); err != nil {
+			logError(fmt.Sprintf("Failed to pull all bucket set files. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
 	return didSomething, nil
 }

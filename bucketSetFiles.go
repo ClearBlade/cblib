@@ -9,6 +9,27 @@ import (
 	"github.com/clearblade/cblib/resourcetree"
 )
 
+func pullFilesForAllBucketSets(systemInfo *System_meta, client *cb.DevClient) error {
+	theBucketSets, err := client.GetBucketSets(systemInfo.Key)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(theBucketSets); i++ {
+		bucketSet, err := resourcetree.NewBucketSetFromMap(theBucketSets[i].(map[string]interface{}))
+		if err != nil {
+			return err
+		}
+		// empty string for boxName signifies all boxes
+		err = pullFiles(systemInfo, client, bucketSet.Name, "")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func pullFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
 	fileMetaMap, err := client.GetBucketSetFile(systemInfo.Key, bucketSetName, boxName, fileName)
 	if err != nil {

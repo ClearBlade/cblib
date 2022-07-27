@@ -56,7 +56,6 @@ var (
 	ExternalDatabaseName       string
 	BucketSetName              string
 	BucketSetFiles             string
-	AllBucketSetFiles          string
 	BucketSetBoxName           string
 	BucketSetFileName          string
 	Message                    bool
@@ -83,6 +82,7 @@ var (
 	AllWebhooks                bool
 	AllExternalDatabases       bool
 	AllBucketSets              bool
+	AllBucketSetFiles          bool
 	AutoApprove                bool
 	TempDir                    string
 	SkipUpdateMapNameToIdFiles bool
@@ -143,7 +143,7 @@ type AffectedAssets struct {
 	ExternalDatabaseName string
 	BucketSetName        string
 	BucketSetFiles       string
-	AllBucketSetFiles    string
+	AllBucketSetFiles    bool
 	BucketSetBoxName     string
 	BucketSetFileName    string
 	ExportUsers          bool
