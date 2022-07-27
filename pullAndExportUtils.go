@@ -399,11 +399,20 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 		fmt.Printf("\n")
 	}
 
-	if assets.BucketSetName != "" {
+	if assets.BucketSetName != "" && assets.BucketSetBoxName == "" && assets.BucketSetFileName == "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling bucket set %+s\n", BucketSetName))
 		if _, err := pullAndWriteBucketSet(systemInfo, client, BucketSetName); err != nil {
 			logError(fmt.Sprintf("Failed to pull bucket set. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
+	if assets.BucketSetName != "" && assets.BucketSetBoxName != "" && assets.BucketSetFileName != "" {
+		didSomething = true
+		logInfo(fmt.Sprintf("Pulling bucket set file %+s\n", BucketSetFileName))
+		if err := pullFile(systemInfo, client, BucketSetName, BucketSetBoxName, BucketSetFileName); err != nil {
+			logError(fmt.Sprintf("Failed to pull bucket set file. %s", err.Error()))
 		}
 		fmt.Printf("\n")
 	}

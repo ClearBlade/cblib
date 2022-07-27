@@ -55,6 +55,8 @@ var (
 	WebhookName                string
 	ExternalDatabaseName       string
 	BucketSetName              string
+	BucketSetBoxName           string
+	BucketSetFileName          string
 	Message                    bool
 	Topic                      string
 	Payload                    string
@@ -138,6 +140,8 @@ type AffectedAssets struct {
 	WebhookName          string
 	ExternalDatabaseName string
 	BucketSetName        string
+	BucketSetBoxName     string
+	BucketSetFileName    string
 	ExportUsers          bool
 	ExportRows           bool
 	ExportItemId         bool
@@ -187,6 +191,8 @@ func createAffectedAssets() AffectedAssets {
 		ExportUsers:          ExportUsers,
 		ExportRows:           ExportRows,
 		ExportItemId:         ExportItemId,
+		BucketSetBoxName:     BucketSetBoxName,
+		BucketSetFileName:    BucketSetFileName,
 	}
 }
 

@@ -77,6 +77,8 @@ func init() {
 	pullCommand.flags.StringVar(&WebhookName, "webhook", "", "Name of webhook to pull")
 	pullCommand.flags.StringVar(&ExternalDatabaseName, "external-database", "", "Name of external database to pull")
 	pullCommand.flags.StringVar(&BucketSetName, "bucket-set", "", "Name of bucket set to pull")
+	pullCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
+	pullCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to pull from bucket set box")
 
 	pullCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 

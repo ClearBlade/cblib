@@ -49,7 +49,8 @@ var (
 	bucketSetsDir        string
 	cliHiddenDir         string
 	mapNameToIdDir       string
-	arrDir               [20]string //this is used to set up the directory structure for a system
+	bucketSetFilesDir    string
+	arrDir               [21]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -77,6 +78,7 @@ func SetRootDir(theRootDir string) {
 	bucketSetsDir = rootDir + "/bucket-sets"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
+	bucketSetFilesDir = rootDir + "/bucket-set-files"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -97,6 +99,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[17] = serviceCachesDir
 	arrDir[18] = webhooksDir
 	arrDir[19] = externalDatabasesDir
+	arrDir[20] = bucketSetFilesDir
 }
 
 func setupDirectoryStructure() error {
