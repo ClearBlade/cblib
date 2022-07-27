@@ -399,7 +399,7 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 		fmt.Printf("\n")
 	}
 
-	if assets.BucketSetName != "" && assets.BucketSetBoxName == "" && assets.BucketSetFileName == "" {
+	if assets.BucketSetName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling bucket set %+s\n", BucketSetName))
 		if _, err := pullAndWriteBucketSet(systemInfo, client, BucketSetName); err != nil {
@@ -408,11 +408,20 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 		fmt.Printf("\n")
 	}
 
-	if assets.BucketSetName != "" && assets.BucketSetBoxName != "" && assets.BucketSetFileName != "" {
+	if assets.BucketSetFiles != "" {
 		didSomething = true
-		logInfo(fmt.Sprintf("Pulling bucket set file %+s\n", BucketSetFileName))
-		if err := pullFile(systemInfo, client, BucketSetName, BucketSetBoxName, BucketSetFileName); err != nil {
-			logError(fmt.Sprintf("Failed to pull bucket set file. %s", err.Error()))
+		if assets.BucketSetBoxName != "" && assets.BucketSetFileName != "" {
+			// pull individual file within bucket set's box
+			logInfo(fmt.Sprintf("Pulling bucket set file %+s\n", BucketSetFileName))
+			if err := pullFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
+				logError(fmt.Sprintf("Failed to pull bucket set file. %s", err.Error()))
+			}
+		} else {
+			// pull all files within bucket set
+			logInfo(fmt.Sprintf("Pulling bucket set files for %+s\n", BucketSetFileName))
+			if err := pullFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
+				logError(fmt.Sprintf("Failed to pull bucket set files. %s", err.Error()))
+			}
 		}
 		fmt.Printf("\n")
 	}

@@ -1,10 +1,6 @@
 package cblib
 
 import (
-	// "io/ioutil"
-	// "os"
-	// "path/filepath"
-
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,12 +15,12 @@ func pullFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName strin
 		return err
 	}
 
-	fileContents, err := client.ReadBucketSetFile(systemInfo.Key, bucketSetName, boxName, fileName)
+	fileMeta, err := resourcetree.NewFileMetaFromMap(fileMetaMap)
 	if err != nil {
 		return err
 	}
 
-	fileMeta, err := resourcetree.NewFileMetaFromMap(fileMetaMap)
+	fileContents, err := client.ReadBucketSetFile(systemInfo.Key, bucketSetName, fileMeta.BucketName, fileName)
 	if err != nil {
 		return err
 	}
@@ -32,25 +28,32 @@ func pullFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName strin
 	return writeBucketSetFile(bucketSetName, fileMeta, fileContents)
 }
 
-// func pullAllFiles(systemInfo *System_meta, client *cb.DevClient, bucketSetName string) error {
-// 	if files, err := client.GetBucketSetFiles(systemInfo.Key, bucketSetName, ""); err != nil {
-// 		return err
-// 	} else {
-// 		return writeBucketSetFiles(bucketSetName, files)
-// 	}
-// }
+func pullFiles(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string) error {
+	fileMetaDict, err := client.GetBucketSetFiles(systemInfo.Key, bucketSetName, boxName)
+	if err != nil {
+		return err
+	}
 
-// func writeBucketSetFiles(bucketSetName string, files map[string]interface{}) error {
-// 	myBucketSetDir := filepath.Join(bucketSetFilesDir, bucketSetName)
-// 	if err := os.MkdirAll(myBucketSetDir, 0777); err != nil {
-// 		return err
-// 	}
+	for _, v := range fileMetaDict {
+		fileMeta, err := resourcetree.NewFileMetaFromMap(v.(map[string]interface{}))
+		if err != nil {
+			return err
+		}
 
-// 	for k, v := range files {
+		fileContents, err := client.ReadBucketSetFile(systemInfo.Key, bucketSetName, fileMeta.BucketName, fileMeta.RelativeName)
+		if err != nil {
+			return err
+		}
 
-// 	}
+		err = writeBucketSetFile(bucketSetName, fileMeta, fileContents)
+		if err != nil {
+			return err
+		}
 
-// }
+	}
+
+	return nil
+}
 
 func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, fileContents string) error {
 	box := fileMeta.BucketName
@@ -68,8 +71,4 @@ func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, f
 	}
 
 	return nil
-}
-
-func whitelistFileMeta(fileMeta *resourcetree.FileMeta) {
-
 }
