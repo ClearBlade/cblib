@@ -10,6 +10,7 @@ import (
 
 	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
+	"github.com/clearblade/cblib/models/bucketSetFiles"
 )
 
 var (
@@ -817,6 +818,12 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 	if _, err := createBucketSets(config, systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create bucket sets: %s", err.Error())
+	}
+
+	logInfo("Importing bucket set files...")
+	if err := bucketSetFiles.PushFilesForAllBucketSets(systemInfo, cli); err != nil {
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not import bucket set files: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")
