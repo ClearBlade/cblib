@@ -82,6 +82,9 @@ func init() {
 	pushCommand.flags.StringVar(&WebhookName, "webhook", "", "Name of webhook to push")
 	pushCommand.flags.StringVar(&ExternalDatabaseName, "external-database", "", "Name of external database to push")
 	pushCommand.flags.StringVar(&BucketSetName, "bucket-set", "", "Name of bucket set to push")
+	pushCommand.flags.StringVar(&BucketSetFiles, "bucket-set-files", "", "Name of bucket set to push files to. Can be used in conjunction with -box and -file")
+	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
+	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -1069,6 +1072,21 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		if err := pushOneBucketSet(systemInfo, client, BucketSetName); err != nil {
 			return err
+		}
+	}
+
+	if BucketSetFiles != "" {
+		didSomething = true
+		if BucketSetBoxName != "" && BucketSetFileName != "" {
+			// push individual file within bucket set's box
+			if err := pushFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
+				return err
+			}
+		} else {
+			// push all files within bucket set
+			// if err := pullFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
+			// 	return err
+			// }
 		}
 	}
 

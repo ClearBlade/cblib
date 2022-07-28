@@ -99,3 +99,22 @@ func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, f
 
 	return nil
 }
+
+func readBucketSetFile(bucketSetName string, boxName string, fileName string) (string, error) {
+	file, err := ioutil.ReadFile(filepath.Join(bucketSetFilesDir, bucketSetName, boxName, fileName))
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(file), nil
+}
+
+func pushFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
+	fileContents, err := readBucketSetFile(bucketSetName, boxName, fileName)
+	if err != nil {
+		return err
+	}
+	_, err = client.CreateBucketSetFile(systemInfo.Key, bucketSetName, boxName, fileName, fileContents)
+
+	return err
+}
