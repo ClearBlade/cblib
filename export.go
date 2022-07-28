@@ -9,6 +9,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
+	"github.com/clearblade/cblib/internal/types"
 	rt "github.com/clearblade/cblib/resourcetree"
 )
 
@@ -70,7 +71,7 @@ func makeRoleNameToIdMap(roles []map[string]interface{}) map[string]interface{} 
 	return rtn
 }
 
-func PullAndWriteCollections(sysMeta *System_meta, cli *cb.DevClient, saveThem, shouldExportRows, shouldExportItemID bool) ([]map[string]interface{}, error) {
+func PullAndWriteCollections(sysMeta *types.System_meta, cli *cb.DevClient, saveThem, shouldExportRows, shouldExportItemID bool) ([]map[string]interface{}, error) {
 	colls, err := cli.GetAllCollections(sysMeta.Key)
 	if err != nil {
 		return nil, err
@@ -96,7 +97,7 @@ func PullAndWriteCollections(sysMeta *System_meta, cli *cb.DevClient, saveThem, 
 	return rval, nil
 }
 
-func pullAndWriteCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
+func pullAndWriteCollectionColumns(sysMeta *types.System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
 	columnsResp, err := pullCollectionColumns(sysMeta, cli, name)
 	if err != nil {
 		return nil, err
@@ -109,11 +110,11 @@ func pullAndWriteCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name
 	return columnsResp, nil
 }
 
-func pullCollectionColumns(sysMeta *System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
+func pullCollectionColumns(sysMeta *types.System_meta, cli *cb.DevClient, name string) ([]interface{}, error) {
 	return cli.GetColumnsByCollectionName(sysMeta.Key, name)
 }
 
-func pullCollectionIndexes(sysMeta *System_meta, cli *cb.DevClient, name string) (*rt.Indexes, error) {
+func pullCollectionIndexes(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*rt.Indexes, error) {
 
 	data, err := cli.ListIndexes(sysMeta.Key, name)
 	if err != nil {
@@ -128,7 +129,7 @@ func pullCollectionIndexes(sysMeta *System_meta, cli *cb.DevClient, name string)
 	return indexes, nil
 }
 
-func PullCollection(sysMeta *System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
+func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
 	fmt.Printf(" %s", co["name"].(string))
 
 	isConnect := isConnectCollection(co)
@@ -275,7 +276,7 @@ func PullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 	return services, nil
 }
 
-func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullLibraries(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	libs, err := cli.GetLibraries(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull libraries out of system %s: %s", sysMeta.Key, err.Error())
@@ -301,7 +302,7 @@ func PullLibraries(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interf
 	return libraries, nil
 }
 
-func pullAndWriteDeployment(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteDeployment(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	deploymentDetails, err := cli.GetDeploymentByName(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
@@ -312,7 +313,7 @@ func pullAndWriteDeployment(sysMeta *System_meta, cli *cb.DevClient, name string
 	return deploymentDetails, nil
 }
 
-func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullDeployments(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theDeployments, err := cli.GetAllDeployments(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull deployments out of system %s: %s", sysMeta.Key, err)
@@ -332,7 +333,7 @@ func pullDeployments(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]inte
 	return deployments, nil
 }
 
-func pullAndWriteServiceCache(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteServiceCache(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	cache, err := cli.GetServiceCacheMeta(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
@@ -343,7 +344,7 @@ func pullAndWriteServiceCache(sysMeta *System_meta, cli *cb.DevClient, name stri
 	return cache, nil
 }
 
-func pullServiceCaches(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullServiceCaches(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theCaches, err := cli.GetAllServiceCacheMeta(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull shared caches out of system %s: %s", sysMeta.Key, err)
@@ -359,7 +360,7 @@ func pullServiceCaches(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]in
 	return theCaches, nil
 }
 
-func pullWebhooks(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullWebhooks(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theHooks, err := cli.GetAllWebhooks(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull webhooks out of system %s: %s", sysMeta.Key, err)
@@ -375,7 +376,7 @@ func pullWebhooks(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfa
 	return theHooks, nil
 }
 
-func pullExternalDatabases(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullExternalDatabases(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theExternalDatabases, err := cli.GetAllExternalDBConnections(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull external databases out of system %s: %s", sysMeta.Key, err)
@@ -393,7 +394,7 @@ func pullExternalDatabases(sysMeta *System_meta, cli *cb.DevClient) ([]map[strin
 	return rtn, nil
 }
 
-func pullAndWriteExternalDatabase(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteExternalDatabase(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	fullDBMetadata, err := cli.GetExternalDBConnection(sysMeta.Key, name)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull external database metadata for '%s': %s", name, err.Error())
@@ -404,7 +405,7 @@ func pullAndWriteExternalDatabase(sysMeta *System_meta, cli *cb.DevClient, name 
 	return fullDBMetadata, nil
 }
 
-func pullBucketSets(sysMeta *System_meta, cli *cb.DevClient) ([]interface{}, error) {
+func pullBucketSets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{}, error) {
 	theBucketSets, err := cli.GetBucketSets(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull bucket sets out of system %s: %s", sysMeta.Key, err)
@@ -422,7 +423,7 @@ func pullBucketSets(sysMeta *System_meta, cli *cb.DevClient) ([]interface{}, err
 	return theBucketSets, nil
 }
 
-func pullAndWriteBucketSet(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	bs, err := cli.GetBucketSet(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
@@ -433,7 +434,7 @@ func pullAndWriteBucketSet(sysMeta *System_meta, cli *cb.DevClient, name string)
 	return bs, nil
 }
 
-func pullAndWriteWebhook(sysMeta *System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	hook, err := cli.GetWebhook(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
@@ -444,15 +445,15 @@ func pullAndWriteWebhook(sysMeta *System_meta, cli *cb.DevClient, name string) (
 	return hook, nil
 }
 
-func pullSystemMeta(systemKey string, cli *cb.DevClient) (*System_meta, error) {
+func pullSystemMeta(systemKey string, cli *cb.DevClient) (*types.System_meta, error) {
 	sys, err := cli.GetSystem(systemKey)
 	if err != nil {
 		return nil, err
 	}
 
-	serviceMetas := make(map[string]Service_meta)
+	serviceMetas := make(map[string]types.Service_meta)
 
-	sysMeta := &System_meta{
+	sysMeta := &types.System_meta{
 		Name:        sys.Name,
 		Key:         sys.Key,
 		Secret:      sys.Secret,
@@ -482,7 +483,7 @@ func pullAllEdges(systemKey string, cli *cb.DevClient) ([]interface{}, error) {
 	return paginateRequests(systemKey, DataPageSize, cli.GetEdgesCountWithQuery, cli.GetEdgesWithQuery)
 }
 
-func PullEdges(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullEdges(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allEdges, err := pullAllEdges(sysKey, cli)
 	if err != nil {
@@ -559,7 +560,7 @@ func pullAllDevices(systemKey string, cli *cb.DevClient) ([]interface{}, error) 
 	return paginateRequests(systemKey, DataPageSize, cli.GetDevicesCount, cli.GetDevices)
 }
 
-func PullDevices(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullDevices(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allDevices, err := pullAllDevices(sysKey, cli)
 	if err != nil {
@@ -589,7 +590,7 @@ func pullDeviceRoles(sysKey, name string, cli *cb.DevClient) ([]string, error) {
 	return cli.GetDeviceRoles(sysKey, name)
 }
 
-func pullEdgeDeployInfo(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func pullEdgeDeployInfo(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	deployList, err := cli.GetDeployResourcesForSystem(sysKey)
 	if err != nil {
@@ -598,7 +599,7 @@ func pullEdgeDeployInfo(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]i
 	return deployList, nil
 }
 
-func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullPortals(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allPortals, err := cli.GetPortals(sysKey)
 	if err != nil {
@@ -621,7 +622,7 @@ func PullPortals(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
-func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullPlugins(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	sysKey := sysMeta.Key
 	allPlugins, err := cli.GetPlugins(sysKey)
 	if err != nil {
@@ -640,7 +641,7 @@ func PullPlugins(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interfac
 	return list, nil
 }
 
-func PullAdaptors(sysMeta *System_meta, cli *cb.DevClient) error {
+func PullAdaptors(sysMeta *types.System_meta, cli *cb.DevClient) error {
 	sysKey := sysMeta.Key
 	allAdaptors, err := cli.GetAdaptors(sysKey)
 	if err != nil {
@@ -700,7 +701,7 @@ func exportOptionsExist() bool {
 
 func ExportSystem(cli *cb.DevClient, sysKey string) error {
 	fmt.Printf("\nExporting System Info...\n")
-	var sysMeta *System_meta
+	var sysMeta *types.System_meta
 	var err error
 	if inARepo {
 		sysMeta, err = getSysMeta()

@@ -7,6 +7,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/internal/remote"
+	"github.com/clearblade/cblib/internal/types"
 )
 
 var (
@@ -84,7 +85,7 @@ func reallyInit(cmd *SubCommand, cli *cb.DevClient, sysKey string) error {
 	return nil
 }
 
-func initRemote(cmd *SubCommand, systemMeta *System_meta, cli *cb.DevClient) error {
+func initRemote(cmd *SubCommand, systemMeta *types.System_meta, cli *cb.DevClient) error {
 	cmd.remotes = remote.NewRemotes()
 
 	initRemote := &remote.Remote{

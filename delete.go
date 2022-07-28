@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 )
 
 func init() {
@@ -140,52 +141,52 @@ func doDelete(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func deleteOneService(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneService(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting service %s\n", ServiceName)
 	return deleteService(systemInfo.Key, ServiceName, client)
 }
 
-func deleteOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneLibrary(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting library %s\n", LibraryName)
 	return deleteLibrary(systemInfo.Key, LibraryName, client)
 }
 
-func deleteOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneCollection(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting collection %s\n", CollectionId)
 	return deleteCollection(systemInfo.Key, CollectionId, client)
 }
 
-func deleteOneUser(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneUser(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting user %s\n", UserId)
 	return deleteUser(systemInfo.Key, UserId, client)
 }
 
-func deleteOneRole(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneRole(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting user %s\n", RoleName)
 	return deleteRole(systemInfo.Key, RoleName, client)
 }
 
-func deleteOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneTrigger(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting trigger %s\n", TriggerName)
 	return deleteTrigger(systemInfo.Key, TriggerName, client)
 }
 
-func deleteOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneTimer(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting timer %s\n", TimerName)
 	return deleteTimer(systemInfo.Key, TimerName, client)
 }
 
-func deleteOneEdge(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneEdge(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting edge %s\n", EdgeName)
 	return deleteEdge(systemInfo.Key, EdgeName, client)
 }
 
-func deleteOnePortal(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOnePortal(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting portal %s\n", PortalName)
 	return deletePortal(systemInfo.Key, PortalName, client)
 }
 
-func deleteOneDevice(systemInfo *System_meta, client *cb.DevClient) error {
+func deleteOneDevice(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting device %s\n", DeviceName)
 	return deleteDevice(systemInfo.Key, DeviceName, client)
 }

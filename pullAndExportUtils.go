@@ -5,9 +5,11 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/models/bucketSetFiles"
 )
 
-func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAssets) (bool, error) {
+func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets AffectedAssets) (bool, error) {
 
 	didSomething := false
 
@@ -413,13 +415,13 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 		if assets.BucketSetBoxName != "" && assets.BucketSetFileName != "" {
 			// pull individual file within bucket set's box
 			logInfo(fmt.Sprintf("Pulling bucket set file %+s\n", BucketSetFileName))
-			if err := pullFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
+			if err := bucketSetFiles.PullFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
 				logError(fmt.Sprintf("Failed to pull bucket set file. %s", err.Error()))
 			}
 		} else {
 			// pull all files within bucket set
 			logInfo(fmt.Sprintf("Pulling bucket set files for %+s\n", BucketSetFileName))
-			if err := pullFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
+			if err := bucketSetFiles.PullFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
 				logError(fmt.Sprintf("Failed to pull bucket set files. %s", err.Error()))
 			}
 		}
@@ -429,7 +431,7 @@ func pullAssets(systemInfo *System_meta, client *cb.DevClient, assets AffectedAs
 	if assets.AllBucketSetFiles || assets.AllAssets {
 		didSomething = true
 		logInfo("Pulling all files for all bucket sets")
-		if err := pullFilesForAllBucketSets(systemInfo, client); err != nil {
+		if err := bucketSetFiles.PullFilesForAllBucketSets(systemInfo, client); err != nil {
 			logError(fmt.Sprintf("Failed to pull all bucket set files. %s", err.Error()))
 		}
 		fmt.Printf("\n")

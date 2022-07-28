@@ -1,16 +1,24 @@
-package cblib
+package bucketSetFiles
 
 import (
 	"encoding/base64"
+	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/resourcetree"
 )
 
-func pullFilesForAllBucketSets(systemInfo *System_meta, client *cb.DevClient) error {
+var (
+	BucketSetFilesDir string
+)
+
+func PullFilesForAllBucketSets(systemInfo *types.System_meta, client *cb.DevClient) error {
 	theBucketSets, err := client.GetBucketSets(systemInfo.Key)
 	if err != nil {
 		return err
@@ -22,7 +30,7 @@ func pullFilesForAllBucketSets(systemInfo *System_meta, client *cb.DevClient) er
 			return err
 		}
 		// empty string for boxName signifies all boxes
-		err = pullFiles(systemInfo, client, bucketSet.Name, "")
+		err = PullFiles(systemInfo, client, bucketSet.Name, "")
 		if err != nil {
 			return err
 		}
@@ -31,7 +39,7 @@ func pullFilesForAllBucketSets(systemInfo *System_meta, client *cb.DevClient) er
 	return nil
 }
 
-func pullFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
+func PullFile(systemInfo *types.System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
 	fileMetaMap, err := client.GetBucketSetFile(systemInfo.Key, bucketSetName, boxName, fileName)
 	if err != nil {
 		return err
@@ -50,7 +58,7 @@ func pullFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName strin
 	return writeBucketSetFile(bucketSetName, fileMeta, fileContents)
 }
 
-func pullFiles(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string) error {
+func PullFiles(systemInfo *types.System_meta, client *cb.DevClient, bucketSetName string, boxName string) error {
 	fileMetaDict, err := client.GetBucketSetFiles(systemInfo.Key, bucketSetName, boxName)
 	if err != nil {
 		return err
@@ -82,7 +90,7 @@ func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, f
 	fileName := fileMeta.BaseName
 
 	relativeDirectory, _ := filepath.Split(fileMeta.RelativeName)
-	bucketSetFileDirectory := filepath.Join(bucketSetFilesDir, bucketSetName, box, relativeDirectory)
+	bucketSetFileDirectory := filepath.Join(BucketSetFilesDir, bucketSetName, box, relativeDirectory)
 
 	if err := os.MkdirAll(bucketSetFileDirectory, 0777); err != nil {
 		return err
@@ -101,7 +109,7 @@ func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, f
 }
 
 func readBucketSetFile(bucketSetName string, boxName string, fileName string) (string, error) {
-	file, err := ioutil.ReadFile(filepath.Join(bucketSetFilesDir, bucketSetName, boxName, fileName))
+	file, err := ioutil.ReadFile(filepath.Join(BucketSetFilesDir, bucketSetName, boxName, fileName))
 	if err != nil {
 		return "", err
 	}
@@ -109,7 +117,7 @@ func readBucketSetFile(bucketSetName string, boxName string, fileName string) (s
 	return base64.StdEncoding.EncodeToString(file), nil
 }
 
-func pushFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
+func PushFile(systemInfo *types.System_meta, client *cb.DevClient, bucketSetName string, boxName string, fileName string) error {
 	fileContents, err := readBucketSetFile(bucketSetName, boxName, fileName)
 	if err != nil {
 		return err
@@ -117,4 +125,55 @@ func pushFile(systemInfo *System_meta, client *cb.DevClient, bucketSetName strin
 	_, err = client.CreateBucketSetFile(systemInfo.Key, bucketSetName, boxName, fileName, fileContents)
 
 	return err
+}
+
+type pushFilesOptions struct {
+	logDoesNotExistMessage bool
+}
+
+func pushFilesForBox(systemInfo *types.System_meta, client *cb.DevClient, bucketSetName string, boxName string, options pushFilesOptions) error {
+	boxDirectory := path.Join(BucketSetFilesDir, bucketSetName, boxName)
+	if _, err := os.Stat(boxDirectory); os.IsNotExist(err) {
+		if options.logDoesNotExistMessage {
+			fmt.Printf("Box '%s' does not exist on local filesystem", boxName)
+		}
+		return nil
+	}
+	filepath.WalkDir(boxDirectory, func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			fileName, err := filepath.Rel(boxDirectory, path)
+			if err != nil {
+				return err
+			}
+			err = PushFile(systemInfo, client, bucketSetName, boxName, fileName)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return nil
+}
+
+func PushFiles(systemInfo *types.System_meta, client *cb.DevClient, bucketSetName string, boxName string) error {
+
+	if boxName != "" {
+		return pushFilesForBox(systemInfo, client, bucketSetName, boxName, pushFilesOptions{logDoesNotExistMessage: true})
+	} else {
+		// no box specified, push files that are in every box
+		err := pushFilesForBox(systemInfo, client, bucketSetName, "inbox", pushFilesOptions{logDoesNotExistMessage: false})
+		if err != nil {
+			return err
+		}
+		err = pushFilesForBox(systemInfo, client, bucketSetName, "outbox", pushFilesOptions{logDoesNotExistMessage: false})
+		if err != nil {
+			return err
+		}
+		err = pushFilesForBox(systemInfo, client, bucketSetName, "sandbox", pushFilesOptions{logDoesNotExistMessage: false})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

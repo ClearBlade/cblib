@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
+	"github.com/clearblade/cblib/models/bucketSetFiles"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -105,7 +107,7 @@ func checkPushArgsAndFlags(args []string) error {
 	return nil
 }
 
-func pushOneService(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneService(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing service %+s\n", name)
 	service, err := getService(name)
 	if err != nil {
@@ -114,7 +116,7 @@ func pushOneService(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return updateServiceWithRunAs(systemInfo.Key, name, service, client)
 }
 
-func pushUserSchema(systemInfo *System_meta, client *cb.DevClient) error {
+func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing user schema\n")
 	userschema, err := getUserSchema()
 	if err != nil {
@@ -157,7 +159,7 @@ func columnExists(colA interface{}, colB interface{}) bool {
 	return false
 }
 
-func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
+func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Println("Pushing edge schema")
 	edgeschema, err := getEdgesSchema()
 	if err != nil {
@@ -189,7 +191,7 @@ func pushEdgesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 
 }
 
-func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
+func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Println("Pushing device schema")
 	deviceSchema, err := getDevicesSchema()
 	if err != nil {
@@ -220,7 +222,7 @@ func pushDevicesSchema(systemInfo *System_meta, client *cb.DevClient) error {
 
 }
 
-func pushAllCollections(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllCollections(systemInfo *types.System_meta, client *cb.DevClient) error {
 	allColls, err := getCollections()
 	if err != nil {
 		return err
@@ -234,7 +236,7 @@ func pushAllCollections(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneCollectionSchema(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneCollectionSchema(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing collection schema %s\n", name)
 	collection, err := getCollection(name)
 	if err != nil {
@@ -249,7 +251,7 @@ func pushOneCollectionSchema(systemInfo *System_meta, client *cb.DevClient, name
 	return pushCollectionSchema(systemInfo, collection, client)
 }
 
-func pushOneCollection(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneCollection(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing collection %s\n", name)
 	collection, err := getCollection(name)
 	if err != nil {
@@ -259,7 +261,7 @@ func pushOneCollection(systemInfo *System_meta, client *cb.DevClient, name strin
 	return updateCollection(systemInfo, collection, client)
 }
 
-func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient, wantedId string) error {
+func pushOneCollectionById(systemInfo *types.System_meta, client *cb.DevClient, wantedId string) error {
 	fmt.Printf("Pushing collection with collectionID %s\n", wantedId)
 	collections, err := getCollections()
 	if err != nil {
@@ -277,7 +279,7 @@ func pushOneCollectionById(systemInfo *System_meta, client *cb.DevClient, wanted
 	return fmt.Errorf("Collection with collectionID %+s not found.", wantedId)
 }
 
-func pushUsers(systemInfo *System_meta, client *cb.DevClient) error {
+func pushUsers(systemInfo *types.System_meta, client *cb.DevClient) error {
 	users, err := getUsers()
 	if err != nil {
 		return err
@@ -291,7 +293,7 @@ func pushUsers(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneUser(systemInfo *System_meta, client *cb.DevClient, email string) error {
+func pushOneUser(systemInfo *types.System_meta, client *cb.DevClient, email string) error {
 	user, err := getFullUserObject(email)
 	if err != nil {
 		return err
@@ -299,7 +301,7 @@ func pushOneUser(systemInfo *System_meta, client *cb.DevClient, email string) er
 	return updateUser(systemInfo, user, client)
 }
 
-func pushOneUserById(systemInfo *System_meta, client *cb.DevClient, wantedId string) error {
+func pushOneUserById(systemInfo *types.System_meta, client *cb.DevClient, wantedId string) error {
 	fmt.Printf("Pushing user with user_id %s\n", wantedId)
 	users, err := getUsers()
 	if err != nil {
@@ -317,7 +319,7 @@ func pushOneUserById(systemInfo *System_meta, client *cb.DevClient, wantedId str
 	return fmt.Errorf("User with user_id %+s not found.", wantedId)
 }
 
-func pushRoles(systemInfo *System_meta, client *cb.DevClient) error {
+func pushRoles(systemInfo *types.System_meta, client *cb.DevClient) error {
 	allRoles, err := getRoles()
 	if err != nil {
 		return err
@@ -330,7 +332,7 @@ func pushRoles(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneRole(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneRole(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing role %s\n", name)
 	role, err := getRole(name)
 	if err != nil {
@@ -339,7 +341,7 @@ func pushOneRole(systemInfo *System_meta, client *cb.DevClient, name string) err
 	return updateRole(systemInfo, role, client)
 }
 
-func pushTriggers(systemInfo *System_meta, client *cb.DevClient) error {
+func pushTriggers(systemInfo *types.System_meta, client *cb.DevClient) error {
 	allTriggers, err := getTriggers()
 	if err != nil {
 		return err
@@ -352,7 +354,7 @@ func pushTriggers(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneTrigger(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing trigger %+s\n", name)
 	trigger, err := getTrigger(name)
 	if err != nil {
@@ -361,7 +363,7 @@ func pushOneTrigger(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return updateTriggerWithUpdatedInfo(systemInfo.Key, trigger, client)
 }
 
-func pushTimers(systemInfo *System_meta, client *cb.DevClient) error {
+func pushTimers(systemInfo *types.System_meta, client *cb.DevClient) error {
 	allTimers, err := getTimers()
 	if err != nil {
 		return err
@@ -374,7 +376,7 @@ func pushTimers(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneTimer(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneTimer(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing timer %+s\n", name)
 	timer, err := getTimer(name)
 	if err != nil {
@@ -383,7 +385,7 @@ func pushOneTimer(systemInfo *System_meta, client *cb.DevClient, name string) er
 	return updateTimer(systemInfo.Key, timer, client)
 }
 
-func pushOneDevice(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneDevice(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing device %+s\n", name)
 	device, err := getDevice(name)
 	if err != nil {
@@ -392,7 +394,7 @@ func pushOneDevice(systemInfo *System_meta, client *cb.DevClient, name string) e
 	return updateDevice(systemInfo.Key, device, client)
 }
 
-func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllDevices(systemInfo *types.System_meta, client *cb.DevClient) error {
 	devices, err := getDevices()
 	if err != nil {
 		return err
@@ -406,7 +408,7 @@ func pushAllDevices(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneEdge(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneEdge(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing edge %+s\n", name)
 	edge, err := getEdge(name)
 	if err != nil {
@@ -415,7 +417,7 @@ func pushOneEdge(systemInfo *System_meta, client *cb.DevClient, name string) err
 	return updateEdge(systemInfo.Key, edge, client)
 }
 
-func pushAllEdges(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllEdges(systemInfo *types.System_meta, client *cb.DevClient) error {
 	edges, err := getEdges()
 	if err != nil {
 		return err
@@ -430,7 +432,7 @@ func pushAllEdges(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOnePortal(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOnePortal(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing portal %+s\n", name)
 	compressedPortal, err := compressPortal(name)
 	if err != nil {
@@ -439,7 +441,7 @@ func pushOnePortal(systemInfo *System_meta, client *cb.DevClient, name string) e
 	return updatePortal(systemInfo.Key, compressedPortal, client)
 }
 
-func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllPortals(systemInfo *types.System_meta, client *cb.DevClient) error {
 	portals, err := getCompressedPortals()
 	if err != nil {
 		return err
@@ -454,7 +456,7 @@ func pushAllPortals(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOnePlugin(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOnePlugin(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing portal %+s\n", name)
 	plugin, err := getPlugin(name)
 	if err != nil {
@@ -463,7 +465,7 @@ func pushOnePlugin(systemInfo *System_meta, client *cb.DevClient, name string) e
 	return updatePlugin(systemInfo.Key, plugin, client)
 }
 
-func pushAllPlugins(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllPlugins(systemInfo *types.System_meta, client *cb.DevClient) error {
 	plugins, err := getPlugins()
 	if err != nil {
 		return err
@@ -477,7 +479,7 @@ func pushAllPlugins(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushAllServiceCaches(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllServiceCaches(systemInfo *types.System_meta, client *cb.DevClient) error {
 	caches, err := getServiceCaches()
 	if err != nil {
 		return err
@@ -491,7 +493,7 @@ func pushAllServiceCaches(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneServiceCache(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneServiceCache(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing shared cache %+s\n", name)
 	cache, err := getServiceCache(name)
 	if err != nil {
@@ -500,7 +502,7 @@ func pushOneServiceCache(systemInfo *System_meta, client *cb.DevClient, name str
 	return updateServiceCache(systemInfo.Key, cache, client)
 }
 
-func pushAllWebhooks(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllWebhooks(systemInfo *types.System_meta, client *cb.DevClient) error {
 	hooks, err := getWebhooks()
 	if err != nil {
 		return err
@@ -514,7 +516,7 @@ func pushAllWebhooks(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushAllExternalDatabases(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllExternalDatabases(systemInfo *types.System_meta, client *cb.DevClient) error {
 	extDBs, err := getExternalDatabases()
 	if err != nil {
 		return err
@@ -528,7 +530,7 @@ func pushAllExternalDatabases(systemInfo *System_meta, client *cb.DevClient) err
 	return nil
 }
 
-func pushAllBucketSets(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllBucketSets(systemInfo *types.System_meta, client *cb.DevClient) error {
 	bucketSets, err := getBucketSets()
 	if err != nil {
 		return err
@@ -542,7 +544,7 @@ func pushAllBucketSets(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneBucketSet(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneBucketSet(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing bucket set %+s\n", name)
 
 	bucketSet, err := getBucketSet(name)
@@ -553,7 +555,7 @@ func pushOneBucketSet(systemInfo *System_meta, client *cb.DevClient, name string
 	return updateBucketSet(systemInfo.Key, bucketSet, client)
 }
 
-func pushOneWebhook(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneWebhook(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing webhook %+s\n", name)
 	hook, err := getWebhook(name)
 	if err != nil {
@@ -562,7 +564,7 @@ func pushOneWebhook(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return updateWebhook(systemInfo.Key, hook, client)
 }
 
-func pushOneExternalDatabase(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneExternalDatabase(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing external database %+s\n", name)
 	db, err := getExternalDatabase(name)
 	if err != nil {
@@ -711,7 +713,7 @@ func updateBucketSet(systemKey string, obj map[string]interface{}, cli *cb.DevCl
 	return nil
 }
 
-func pushOneAdaptor(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneAdaptor(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing adaptor %+s\n", name)
 	sysKey := systemInfo.Key
 	adaptor, err := getAdaptor(sysKey, name, client)
@@ -721,7 +723,7 @@ func pushOneAdaptor(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return handleUpdateAdaptor(systemInfo.Key, adaptor, client)
 }
 
-func pushAllAdaptors(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllAdaptors(systemInfo *types.System_meta, client *cb.DevClient) error {
 	sysKey := systemInfo.Key
 	adaptors, err := getAdaptors(sysKey, client)
 	if err != nil {
@@ -737,7 +739,7 @@ func pushAllAdaptors(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushAllServices(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllServices(systemInfo *types.System_meta, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
 		return err
@@ -752,7 +754,7 @@ func pushAllServices(systemInfo *System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func pushOneLibrary(systemInfo *System_meta, client *cb.DevClient, name string) error {
+func pushOneLibrary(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing library %+s\n", name)
 
 	library, err := getLibrary(name)
@@ -762,7 +764,7 @@ func pushOneLibrary(systemInfo *System_meta, client *cb.DevClient, name string) 
 	return updateLibrary(systemInfo.Key, library, client)
 }
 
-func pushAllLibraries(systemInfo *System_meta, client *cb.DevClient) error {
+func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
 	libraries, err := getLibraries()
 	if err != nil {
 		return err
@@ -1079,14 +1081,14 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		didSomething = true
 		if BucketSetBoxName != "" && BucketSetFileName != "" {
 			// push individual file within bucket set's box
-			if err := pushFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
+			if err := bucketSetFiles.PushFile(systemInfo, client, BucketSetFiles, BucketSetBoxName, BucketSetFileName); err != nil {
 				return err
 			}
 		} else {
 			// push all files within bucket set
-			// if err := pullFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
-			// 	return err
-			// }
+			if err := bucketSetFiles.PushFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1097,7 +1099,7 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func pushCollectionSchema(systemInfo *System_meta, collection map[string]interface{}, cli *cb.DevClient) error {
+func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]interface{}, cli *cb.DevClient) error {
 	name, err := getCollectionName(collection)
 	if err != nil {
 		return err
@@ -1132,7 +1134,7 @@ func pushCollectionSchema(systemInfo *System_meta, collection map[string]interfa
 	return nil
 }
 
-func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name string) error {
+func pushCollectionIndexes(systemInfo *types.System_meta, cli *cb.DevClient, name string) error {
 
 	fmt.Printf("Pushing collection indexes for '%s'\n", name)
 
@@ -1185,7 +1187,7 @@ func pushCollectionIndexes(systemInfo *System_meta, cli *cb.DevClient, name stri
 	return nil
 }
 
-func pushDeployments(systemInfo *System_meta, cli *cb.DevClient) error {
+func pushDeployments(systemInfo *types.System_meta, cli *cb.DevClient) error {
 	deps, err := getDeployments()
 	if err != nil {
 		return err
@@ -1199,7 +1201,7 @@ func pushDeployments(systemInfo *System_meta, cli *cb.DevClient) error {
 	return nil
 }
 
-func pushDeployment(systemInfo *System_meta, cli *cb.DevClient, name string) error {
+func pushDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name string) error {
 	dep, err := getDeployment(name)
 	if err != nil {
 		return err
@@ -1207,7 +1209,7 @@ func pushDeployment(systemInfo *System_meta, cli *cb.DevClient, name string) err
 	return updateDeployment(systemInfo, cli, name, dep)
 }
 
-func updateDeployment(systemInfo *System_meta, cli *cb.DevClient, name string, dep map[string]interface{}) error {
+func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name string, dep map[string]interface{}) error {
 	// fetch deployment
 	backendDep, err := cli.GetDeploymentByName(systemInfo.Key, name)
 	if err != nil {
@@ -1263,7 +1265,7 @@ func isAssetMatch(assetA interface{}, assetB interface{}) bool {
 	return typedA["asset_class"].(string) == typedB["asset_class"].(string) && typedA["asset_id"].(string) == typedB["asset_id"].(string) && typedA["sync_to_edge"].(bool) == typedB["sync_to_edge"].(bool) && typedA["sync_to_platform"].(bool) == typedB["sync_to_platform"].(bool)
 }
 
-func createRole(systemInfo *System_meta, role map[string]interface{}, client *cb.DevClient) error {
+func createRole(systemInfo *types.System_meta, role map[string]interface{}, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
 	var roleID string
 	if roleName != "Authenticated" && roleName != "Anonymous" && roleName != "Administrator" {
@@ -1295,7 +1297,7 @@ func createRole(systemInfo *System_meta, role map[string]interface{}, client *cb
 	return nil
 }
 
-func packageRoleForUpdate(roleID string, role map[string]interface{}, client *cb.DevClient, systemInfo *System_meta) (map[string]interface{}, error) {
+func packageRoleForUpdate(roleID string, role map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) (map[string]interface{}, error) {
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Permissions for role do not exist or is not a map")
@@ -1313,7 +1315,7 @@ func lookupCollectionIdByName(theNameWeWant string, collectionsInfo []Collection
 	return "", false
 }
 
-func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInfo *System_meta) (string, error) {
+func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInfo *types.System_meta) (string, error) {
 	collectionsInfo, err := getCollectionNameToIdAsSlice()
 	if os.IsNotExist(err) {
 		collectionsInfo = make([]CollectionInfo, 0)
@@ -1338,7 +1340,7 @@ func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInf
 	return "", fmt.Errorf("Couldn't find ID for collection name '%s'\n", theNameWeWant)
 }
 
-func getAllCollectionsInfo(client *cb.DevClient, systemInfo *System_meta) ([]CollectionInfo, error) {
+func getAllCollectionsInfo(client *cb.DevClient, systemInfo *types.System_meta) ([]CollectionInfo, error) {
 	collections, err := client.GetAllCollections(systemInfo.Key)
 	if err != nil {
 		return nil, err
@@ -1377,7 +1379,7 @@ func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []
 //
 //  THis is a gigantic cluster. We need to fix and learn from this. -swm
 //
-func convertPermissionsStructure(in map[string]interface{}, client *cb.DevClient, systemInfo *System_meta) map[string]interface{} {
+func convertPermissionsStructure(in map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -1609,7 +1611,7 @@ func getMap(val interface{}) map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-func updateUser(meta *System_meta, user map[string]interface{}, client *cb.DevClient) error {
+func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb.DevClient) error {
 	delete(user, "cb_token")
 	if email, ok := user["email"].(string); !ok {
 		return fmt.Errorf("Missing user email %+v", user)
@@ -2248,7 +2250,7 @@ func createLibrary(systemKey string, library map[string]interface{}, client *cb.
 	return nil
 }
 
-func updateCollection(meta *System_meta, collection map[string]interface{}, client *cb.DevClient) error {
+func updateCollection(meta *types.System_meta, collection map[string]interface{}, client *cb.DevClient) error {
 	out, err := createCollectionIfNecessary(meta, collection, client, CreateCollectionIfNecessaryOptions{pullItems: true, pushItems: true})
 	if err != nil {
 		return err
@@ -2526,7 +2528,7 @@ func createAdaptor(adap *models.Adaptor) error {
 	return adap.UploadAllInfo()
 }
 
-func updateRole(systemInfo *System_meta, role map[string]interface{}, client *cb.DevClient) error {
+func updateRole(systemInfo *types.System_meta, role map[string]interface{}, client *cb.DevClient) error {
 	roleName := role["Name"].(string)
 
 	if _, err := pullRole(systemInfo.Key, roleName, client); err != nil {

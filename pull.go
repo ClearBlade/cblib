@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
 )
 
@@ -243,7 +244,7 @@ func PullAndWriteUsers(systemKey string, userName string, client *cb.DevClient, 
 	}
 }
 
-func PullAndWriteCollection(systemInfo *System_meta, collectionName string, client *cb.DevClient, shouldExportRows, shouldExportItemId bool) error {
+func PullAndWriteCollection(systemInfo *types.System_meta, collectionName string, client *cb.DevClient, shouldExportRows, shouldExportItemId bool) error {
 	if allColls, err := client.GetAllCollections(systemInfo.Key); err != nil {
 		return err
 	} else {
@@ -308,7 +309,7 @@ func PullAndWriteTrigger(systemKey, trigName string, client *cb.DevClient) error
 	return nil
 }
 
-func PullAndWriteTriggers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullAndWriteTriggers(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	trigs, err := cli.GetEventHandlers(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull triggers out of system %s: %s", sysMeta.Key, err.Error())
@@ -339,7 +340,7 @@ func PullAndWriteTimer(systemKey, timerName string, client *cb.DevClient) error 
 	return nil
 }
 
-func PullAndWriteTimers(sysMeta *System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
+func PullAndWriteTimers(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	theTimers, err := cli.GetTimers(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull timers out of system %s: %s", sysMeta.Key, err.Error())
@@ -439,7 +440,7 @@ func pullAdaptor(systemKey, adaptorName string, client *cb.DevClient) (*models.A
 	return currentAdaptor, nil
 }
 
-func updateMapNameToIDFiles(systemInfo *System_meta, client *cb.DevClient) {
+func updateMapNameToIDFiles(systemInfo *types.System_meta, client *cb.DevClient) {
 	logInfo("Updating roles...")
 	if data, err := PullAndWriteRoles(systemInfo.Key, client, false); err != nil {
 		logError(fmt.Sprintf("Failed to update %s. %s", getRoleNameToIdFullFilePath(), err.Error()))

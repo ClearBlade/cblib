@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 )
 
 func init() {
@@ -116,7 +117,7 @@ func doCreate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return nil
 }
 
-func createOneService(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneService(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating service %s\n", ServiceName)
 	service, err := getService(ServiceName)
 	if err != nil {
@@ -125,7 +126,7 @@ func createOneService(systemInfo *System_meta, client *cb.DevClient) error {
 	return createService(systemInfo.Key, service, client)
 }
 
-func createOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneCollection(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating collection %s\n", CollectionName)
 	collection, err := getCollection(CollectionName)
 	if err != nil {
@@ -138,7 +139,7 @@ func createOneCollection(systemInfo *System_meta, client *cb.DevClient) error {
 	return updateCollectionNameToId(info)
 }
 
-func createOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneLibrary(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating library %s\n", LibraryName)
 	library, err := getLibrary(LibraryName)
 	if err != nil {
@@ -147,7 +148,7 @@ func createOneLibrary(systemInfo *System_meta, client *cb.DevClient) error {
 	return createLibrary(systemInfo.Key, library, client)
 }
 
-func createOneUser(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneUser(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating user %s\n", User)
 	user, err := getUser(User)
 	if err != nil {
@@ -157,7 +158,7 @@ func createOneUser(systemInfo *System_meta, client *cb.DevClient) error {
 	return err
 }
 
-func createOneRole(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneRole(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating role %s\n", RoleName)
 	role, err := getRole(RoleName)
 	if err != nil {
@@ -166,7 +167,7 @@ func createOneRole(systemInfo *System_meta, client *cb.DevClient) error {
 	return createRole(systemInfo, role, client)
 }
 
-func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneTrigger(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating trigger %s\n", TriggerName)
 	trigger, err := getTrigger(TriggerName)
 	if err != nil {
@@ -176,7 +177,7 @@ func createOneTrigger(systemInfo *System_meta, client *cb.DevClient) error {
 	return err
 }
 
-func createOneTimer(systemInfo *System_meta, client *cb.DevClient) error {
+func createOneTimer(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Creating timer %s\n", TimerName)
 	timer, err := getTimer(TimerName)
 	if err != nil {

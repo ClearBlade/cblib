@@ -8,6 +8,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
+	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
 )
 
@@ -156,7 +157,7 @@ type ImportResult struct {
 // --------------------------------
 // Functions that focus on the creation of the system and other assets.
 
-func createSystem(config ImportConfig, system *System_meta, client *cb.DevClient) (*System_meta, error) {
+func createSystem(config ImportConfig, system *types.System_meta, client *cb.DevClient) (*types.System_meta, error) {
 	name := system.Name
 	desc := system.Description
 	auth := true
@@ -173,7 +174,7 @@ func createSystem(config ImportConfig, system *System_meta, client *cb.DevClient
 	return system, nil
 }
 
-func createRoles(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) error {
+func createRoles(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
 
 	roles, err := getRoles()
 	if err != nil {
@@ -198,7 +199,7 @@ func createRoles(config ImportConfig, systemInfo *System_meta, client *cb.DevCli
 	return nil
 }
 
-func createUsers(config ImportConfig, systemInfo *System_meta, users []map[string]interface{}, client *cb.DevClient) ([]UserInfo, error) {
+func createUsers(config ImportConfig, systemInfo *types.System_meta, users []map[string]interface{}, client *cb.DevClient) ([]UserInfo, error) {
 	//  Create user columns first -- if any
 	userCols := []interface{}{}
 	userSchema, err := getUserSchema()
@@ -298,7 +299,7 @@ func createTriggerWithUpdatedInfo(config ImportConfig, sysKey string, trigger ma
 	return createTrigger(sysKey, trigger, client)
 }
 
-func createTriggers(config ImportConfig, systemInfo *System_meta, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTriggers(config ImportConfig, systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
 	triggers, err := getTriggers()
 	if err != nil {
 		return nil, err
@@ -315,7 +316,7 @@ func createTriggers(config ImportConfig, systemInfo *System_meta, usersInfo []Us
 	return triggersRval, nil
 }
 
-func createTimers(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTimers(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	timers, err := getTimers()
 	if err != nil {
 		return nil, err
@@ -332,7 +333,7 @@ func createTimers(config ImportConfig, systemInfo *System_meta, client *cb.DevCl
 	return timersRval, nil
 }
 
-func createDeployments(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDeployments(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	deployments, err := getDeployments()
 	if err != nil {
 		return nil, err
@@ -349,7 +350,7 @@ func createDeployments(config ImportConfig, systemInfo *System_meta, client *cb.
 	return deploymentsRval, nil
 }
 
-func createServiceCaches(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createServiceCaches(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	caches, err := getServiceCaches()
 	if err != nil {
 		return nil, err
@@ -364,7 +365,7 @@ func createServiceCaches(config ImportConfig, systemInfo *System_meta, client *c
 	return caches, nil
 }
 
-func createWebhooks(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createWebhooks(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	hooks, err := getWebhooks()
 	if err != nil {
 		return nil, err
@@ -379,7 +380,7 @@ func createWebhooks(config ImportConfig, systemInfo *System_meta, client *cb.Dev
 	return hooks, nil
 }
 
-func createExternalDatabases(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createExternalDatabases(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	externalDatabases, err := getExternalDatabases()
 	if err != nil {
 		return nil, err
@@ -394,7 +395,7 @@ func createExternalDatabases(config ImportConfig, systemInfo *System_meta, clien
 	return externalDatabases, nil
 }
 
-func createBucketSets(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createBucketSets(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	bucketSets, err := getBucketSets()
 	if err != nil {
 		return nil, err
@@ -409,7 +410,7 @@ func createBucketSets(config ImportConfig, systemInfo *System_meta, client *cb.D
 	return bucketSets, nil
 }
 
-func createServices(config ImportConfig, systemInfo *System_meta, usersInfo []UserInfo, client *cb.DevClient) error {
+func createServices(config ImportConfig, systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
 		fmt.Printf("getServices Failed: %s\n", err)
@@ -425,7 +426,7 @@ func createServices(config ImportConfig, systemInfo *System_meta, usersInfo []Us
 	return nil
 }
 
-func createLibraries(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) error {
+func createLibraries(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
 	libraries, err := getLibraries()
 	if err != nil {
 		fmt.Printf("getLibraries Failed: %s\n", err)
@@ -441,7 +442,7 @@ func createLibraries(config ImportConfig, systemInfo *System_meta, client *cb.De
 	return nil
 }
 
-func createAdaptors(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) error {
+func createAdaptors(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
 	adaptors, err := getAdaptors(systemInfo.Key, client)
 	if err != nil {
 		return err
@@ -455,7 +456,7 @@ func createAdaptors(config ImportConfig, systemInfo *System_meta, client *cb.Dev
 	return nil
 }
 
-func createCollections(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]CollectionInfo, error) {
+func createCollections(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]CollectionInfo, error) {
 	collections, err := getCollections()
 	rtn := make([]CollectionInfo, 0)
 	if err != nil {
@@ -475,7 +476,7 @@ func createCollections(config ImportConfig, systemInfo *System_meta, client *cb.
 
 // Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
 // Note: Edge schemas are optional, so if it is not found, we log an error and continue
-func createEdges(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) error {
+func createEdges(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
 	edgesSchema, err := getEdgesSchema()
 	if err != nil {
 		// To ensure backwards-compatibility, we do not require
@@ -514,7 +515,7 @@ func createEdges(config ImportConfig, systemInfo *System_meta, client *cb.DevCli
 	return nil
 }
 
-func createDevices(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDevices(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	schemaPresent := true
 	devicesSchema, err := getDevicesSchema()
 	if err != nil {
@@ -594,7 +595,7 @@ func createDevices(config ImportConfig, systemInfo *System_meta, client *cb.DevC
 	return devicesRval, nil
 }
 
-func createPortals(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPortals(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	var portals []map[string]interface{}
 	var err error
 	if hasLegacyPortalDirectory() {
@@ -643,7 +644,7 @@ func createEdgeDeployInfo(config ImportConfig, systemInfo, deployInfo map[string
 	return nil
 }
 
-func createPlugins(config ImportConfig, systemInfo *System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPlugins(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	plugins, err := getPlugins()
 	if err != nil {
 		return nil, err
@@ -693,7 +694,7 @@ func enableLogs(service map[string]interface{}) bool {
 // TODO Handle more specific error for if folder doesnt exist
 // i.e. plugins folder not found vs plugins import failed due to syntax error
 // https://clearblade.atlassian.net/browse/CBCOMM-227
-func importAllAssets(config ImportConfig, systemInfo *System_meta, users []map[string]interface{}, cli *cb.DevClient) error {
+func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users []map[string]interface{}, cli *cb.DevClient) error {
 
 	// Common set of calls for a complete system import
 
@@ -831,7 +832,7 @@ func importAllAssets(config ImportConfig, systemInfo *System_meta, users []map[s
 // importSystem will import the system rooted at the given path using the given
 // config. Please that we assume that the given clearblade client is already
 // authorized an ready to use.
-func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (*System_meta, error) {
+func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (*types.System_meta, error) {
 
 	// points the root directory to the system folder
 	// WARNING: side-effect (changes globals)
@@ -891,7 +892,7 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (*S
 	return systemInfo, nil
 }
 
-func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (*System_meta, error) {
+func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (*types.System_meta, error) {
 
 	// authorizes the client BEFORE going into the import process. The import
 	// process SHOULD NOT care about authorization
@@ -922,7 +923,7 @@ func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]inte
 // ImportSystemUsingConfig imports the system rooted at the given path, using the
 // given config for different values. The given client should already be
 // authenticated and ready to go.
-func ImportSystemUsingConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (*System_meta, error) {
+func ImportSystemUsingConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (*types.System_meta, error) {
 
 	systemInfo, err := importSystem(config, systemPath, cli)
 	if err != nil {

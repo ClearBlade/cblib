@@ -11,7 +11,9 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
+	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
+	"github.com/clearblade/cblib/models/bucketSetFiles"
 )
 
 const SORT_KEY_CODE_SERVICE = "Name"
@@ -49,7 +51,6 @@ var (
 	bucketSetsDir        string
 	cliHiddenDir         string
 	mapNameToIdDir       string
-	bucketSetFilesDir    string
 	arrDir               [21]string //this is used to set up the directory structure for a system
 )
 
@@ -78,7 +79,7 @@ func SetRootDir(theRootDir string) {
 	bucketSetsDir = rootDir + "/bucket-sets"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
-	bucketSetFilesDir = rootDir + "/bucket-set-files"
+	bucketSetFiles.BucketSetFilesDir = rootDir + "/bucket-set-files"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -99,7 +100,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[17] = serviceCachesDir
 	arrDir[18] = webhooksDir
 	arrDir[19] = externalDatabasesDir
-	arrDir[20] = bucketSetFilesDir
+	arrDir[20] = bucketSetFiles.BucketSetFilesDir
 }
 
 func setupDirectoryStructure() error {
@@ -131,7 +132,7 @@ func getNameToIdFullFilePath(fileName string) string {
 	return mapNameToIdDir + "/" + fileName
 }
 
-func cleanUpDirectories(sys *System_meta) error {
+func cleanUpDirectories(sys *types.System_meta) error {
 	fmt.Printf("CleaningUp Directories\n")
 	for i := 0; i < len(arrDir); i++ {
 		if err := os.RemoveAll(arrDir[i]); err != nil {
@@ -467,7 +468,7 @@ func getUserIdByEmail(email string) (string, error) {
 	}
 }
 
-func updateCollectionSchema(collectionName string, schema []interface{}, client *cb.DevClient, systemInfo *System_meta) error {
+func updateCollectionSchema(collectionName string, schema []interface{}, client *cb.DevClient, systemInfo *types.System_meta) error {
 	collInfo, err := getCollection(collectionName)
 	if err != nil {
 		// if the collection file doesn't exist the user is probably trying to pull just the schema without pulling items
@@ -1327,7 +1328,7 @@ func getLibrary(name string) (map[string]interface{}, error) {
 	return libMap, nil
 }
 
-func getSysMeta() (*System_meta, error) {
+func getSysMeta() (*types.System_meta, error) {
 	dict, err := getDict("system.json")
 	if err != nil {
 		return nil, err
@@ -1345,7 +1346,7 @@ func getSysMeta() (*System_meta, error) {
 		system_secret = dict["system_secret"].(string)
 	}
 
-	rval := &System_meta{
+	rval := &types.System_meta{
 		Name:        dict["name"].(string),
 		Key:         system_key,
 		Secret:      system_secret,

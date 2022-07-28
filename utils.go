@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 )
 
 const BACKUP_DIRECTORY_SUFFIX = "_cb_bak"
@@ -574,7 +575,7 @@ type CreateCollectionIfNecessaryOutput struct {
 	collectionExistsOrWasCreated bool
 }
 
-func createCollectionIfNecessary(meta *System_meta, collection map[string]interface{}, client *cb.DevClient, options CreateCollectionIfNecessaryOptions) (CreateCollectionIfNecessaryOutput, error) {
+func createCollectionIfNecessary(meta *types.System_meta, collection map[string]interface{}, client *cb.DevClient, options CreateCollectionIfNecessaryOptions) (CreateCollectionIfNecessaryOutput, error) {
 	collection_name, err := getCollectionName(collection)
 	if err != nil {
 		return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, err

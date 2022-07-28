@@ -1,5 +1,9 @@
 package cblib
 
+import (
+	"github.com/clearblade/cblib/internal/types"
+)
+
 //
 //  These are variables that can be used as
 //  flags to a main package using this library, or
@@ -223,24 +227,7 @@ type User_meta struct {
 	Columns []Column
 }
 
-type Service_meta struct {
-	Name    string
-	Version int
-	Hash    string
-	Params  []string
-}
-
-type System_meta struct {
-	Name        string
-	Key         string
-	Secret      string
-	Description string
-	Services    map[string]Service_meta
-	PlatformUrl string
-	MessageUrl  string
-}
-
-func systemMetaToMap(meta *System_meta) map[string]interface{} {
+func systemMetaToMap(meta *types.System_meta) map[string]interface{} {
 	result := make(map[string]interface{})
 	result["platform_url"] = meta.PlatformUrl
 	result["messaging_url"] = meta.MessageUrl
@@ -252,14 +239,14 @@ func systemMetaToMap(meta *System_meta) map[string]interface{} {
 	return result
 }
 
-func systemMetaFromMap(theMap map[string]interface{}) *System_meta {
-	return &System_meta{
+func systemMetaFromMap(theMap map[string]interface{}) *types.System_meta {
+	return &types.System_meta{
 		Name:        theMap["name"].(string),
 		Key:         theMap["system_key"].(string),
 		Secret:      theMap["system_secret"].(string),
 		Description: theMap["description"].(string),
 		PlatformUrl: theMap["platform_url"].(string),
 		MessageUrl:  theMap["messaging_url"].(string),
-		Services:    map[string]Service_meta{},
+		Services:    map[string]types.Service_meta{},
 	}
 }
