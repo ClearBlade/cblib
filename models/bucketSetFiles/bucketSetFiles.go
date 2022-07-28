@@ -177,3 +177,19 @@ func PushFiles(systemInfo *types.System_meta, client *cb.DevClient, bucketSetNam
 
 	return nil
 }
+
+func PushFilesForAllBucketSets(systemInfo *types.System_meta, client *cb.DevClient) error {
+	files, err := ioutil.ReadDir(BucketSetFilesDir)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if f.IsDir() {
+			err := PushFiles(systemInfo, client, f.Name(), "")
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

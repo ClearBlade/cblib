@@ -62,6 +62,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "push all of the local webhooks")
 	pushCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "push all of the local external databases")
 	pushCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "push all of the local bucket sets")
+	pushCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "push all files from all local bucket sets")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
@@ -1089,6 +1090,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 			if err := bucketSetFiles.PushFiles(systemInfo, client, BucketSetFiles, BucketSetBoxName); err != nil {
 				return err
 			}
+		}
+	}
+
+	if AllBucketSetFiles || AllAssets {
+		didSomething = true
+		if err := bucketSetFiles.PushFilesForAllBucketSets(systemInfo, client); err != nil {
+			return err
 		}
 	}
 
