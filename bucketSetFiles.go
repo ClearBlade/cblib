@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -87,7 +88,12 @@ func writeBucketSetFile(bucketSetName string, fileMeta *resourcetree.FileMeta, f
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(bucketSetFileDirectory, fileName), []byte(fileContents), 0666); err != nil {
+	data, err := base64.StdEncoding.DecodeString(fileContents)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(bucketSetFileDirectory, fileName), data, 0666); err != nil {
 		return err
 	}
 
