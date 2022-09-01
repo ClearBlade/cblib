@@ -1867,6 +1867,14 @@ func createBucketSet(systemKey string, bucketSet map[string]interface{}, client 
 	return nil
 }
 
+func createSecret(systemKey string, secret map[string]interface{}, client *cb.DevClient) error {
+	secretName := secret["name"].(string)
+	if _, err := client.AddSecret(systemKey, secretName, secret); err != nil {
+		return fmt.Errorf("Could not add secret %s: %s", secretName, err.Error())
+	}
+	return nil
+}
+
 func updateDevice(systemKey string, device map[string]interface{}, client *cb.DevClient) error {
 	deviceName := device["name"].(string)
 	delete(device, "last_active_date")

@@ -411,6 +411,21 @@ func createBucketSets(config ImportConfig, systemInfo *types.System_meta, client
 	return bucketSets, nil
 }
 
+func createSecrets(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+	secrets, err := getSecrets()
+	if err != nil {
+		return nil, err
+	}
+	for _, secret := range secrets {
+		fmt.Printf(" %s", secret["name"].(string))
+		err := createSecret(systemInfo.Key, secret, client)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return secrets, nil
+}
+
 func createServices(config ImportConfig, systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
@@ -824,6 +839,12 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 	if err := bucketSetFiles.PushFilesForAllBucketSets(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not import bucket set files: %s", err.Error())
+	}
+
+	logInfo("Importing secrets...")
+	if _, err := createSecrets(config, systemInfo, cli); err != nil {
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create secrets: %s", err.Error())
 	}
 
 	fmt.Printf(" Done\n")
