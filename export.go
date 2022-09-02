@@ -434,17 +434,17 @@ func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name s
 	return bs, nil
 }
 
-func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{}, error) {
+func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) (map[string]interface{}, error) {
 	theSecrets, err := cli.GetSecrets(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not pull secrets out of system %s: %s", sysMeta.Key, err)
 	}
 
-	for _, secret := range theSecrets {
-		secretMap := secret.(map[string]interface{})
-		secretName := secretMap["name"].(string)
-		fmt.Printf(" %s", secretName)
-		err := writeSecret(secretName, secretMap)
+	for secretName, secret := range theSecrets {
+		err := writeSecret(secretName, map[string]interface{}{
+			"name":   secretName,
+			"secret": secret,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -452,16 +452,16 @@ func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{}, 
 	return theSecrets, nil
 }
 
-func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name string) (interface{}, error) {
 	sec, err := cli.GetSecret(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	secretMap := sec.(map[string]interface{})
-	if err = writeSecret(secretMap["name"].(string), secretMap); err != nil {
+
+	if err = writeSecret(name, map[string]interface{}{"name": name, "secret": sec}); err != nil {
 		return nil, err
 	}
-	return secretMap, nil
+	return sec, nil
 }
 
 func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {

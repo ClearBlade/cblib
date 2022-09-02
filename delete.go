@@ -35,6 +35,7 @@ func init() {
 	deleteCommand.flags.StringVar(&EdgeName, "edge", "", "Name of edge to delete")
 	deleteCommand.flags.StringVar(&PortalName, "portal", "", "Name of portal to delete")
 	deleteCommand.flags.StringVar(&DeviceName, "device", "", "Name of device to delete")
+	deleteCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to delete")
 	AddCommand("delete", deleteCommand)
 }
 
@@ -134,6 +135,13 @@ func doDelete(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if SecretName != "" {
+		didSomething = true
+		if err := deleteOneSecret(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if !didSomething {
 		fmt.Printf("Nothing to delete -- you must specify something to delete (ie, -service=<svc_name>)\n")
 	}
@@ -189,6 +197,11 @@ func deleteOnePortal(systemInfo *types.System_meta, client *cb.DevClient) error 
 func deleteOneDevice(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Deleting device %s\n", DeviceName)
 	return deleteDevice(systemInfo.Key, DeviceName, client)
+}
+
+func deleteOneSecret(systemInfo *types.System_meta, client *cb.DevClient) error {
+	fmt.Printf("Deleting user secret %s\n", SecretName)
+	return deleteSecret(systemInfo.Key, SecretName, client)
 }
 
 func deleteService(systemKey string, name string, client *cb.DevClient) error {
@@ -267,6 +280,14 @@ func deleteDevice(systemKey string, name string, client *cb.DevClient) error {
 	err := client.DeleteDevice(systemKey, name)
 	if err != nil {
 		return fmt.Errorf("Unable to delete device %s : %s", name, err)
+	}
+	return nil
+}
+
+func deleteSecret(systemKey string, name string, client *cb.DevClient) error {
+	_, err := client.DeleteSecret(systemKey, name)
+	if err != nil {
+		return fmt.Errorf("Unable to delete user secret %s : %s", name, err)
 	}
 	return nil
 }

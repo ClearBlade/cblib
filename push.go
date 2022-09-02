@@ -64,6 +64,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "push all of the local bucket sets")
 	pushCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "push all files from all local bucket sets")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
+	pushCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "push all user secrets")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
@@ -88,6 +89,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetFiles, "bucket-set-files", "", "Name of bucket set to push files to. Can be used in conjunction with -box and -file")
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
+	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -556,6 +558,31 @@ func pushOneBucketSet(systemInfo *types.System_meta, client *cb.DevClient, name 
 	return updateBucketSet(systemInfo.Key, bucketSet, client)
 }
 
+func pushAllSecrets(systemInfo *types.System_meta, client *cb.DevClient) error {
+	secrets, err := getSecrets()
+	if err != nil {
+		return err
+	}
+	for _, secret := range secrets {
+		fmt.Printf("Pushing user secret %+s\n", secret)
+		if err := updateSecret(systemInfo.Key, secret, client); err != nil {
+			return fmt.Errorf("Error updating user secret '%+v': %s\n", secret, err.Error())
+		}
+	}
+	return nil
+}
+
+func pushOneSecret(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
+	fmt.Printf("Pushing user secret %+s\n", name)
+
+	secret, err := getSecret(name)
+	if err != nil {
+		return err
+	}
+
+	return updateSecret(systemInfo.Key, secret, client)
+}
+
 func pushOneWebhook(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing webhook %+s\n", name)
 	hook, err := getWebhook(name)
@@ -709,6 +736,42 @@ func updateBucketSet(systemKey string, obj map[string]interface{}, cli *cb.DevCl
 		}
 
 		return createBucketSet(systemKey, obj, cli)
+	}
+
+	return nil
+}
+
+func updateSecret(systemKey string, obj map[string]interface{}, cli *cb.DevClient) error {
+	secret, err := cli.GetSecret(systemKey, obj["name"].(string))
+	if err != nil {
+		// secret DNE
+		fmt.Printf("Could not find user secret %s\n", obj["name"].(string))
+		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new user secret named %s?", obj["name"].(string)))
+		if err != nil {
+			return err
+		} else {
+			if c {
+				if err := createSecret(systemKey, obj, cli); err != nil {
+					return fmt.Errorf("Could not create user secret %s: %s", obj["name"].(string), err.Error())
+				} else {
+					fmt.Printf("Successfully created new user secret %s\n", obj["name"].(string))
+				}
+			} else {
+				fmt.Printf("User secret will not be created.\n")
+			}
+		}
+	} else {
+		if obj["secret"].(string) == secret {
+			fmt.Println("User secret hasn't changed, not updating")
+			// no changes have been made, exit
+			return nil
+		}
+
+		//Update the secret since there are changes
+		_, err = cli.UpdateSecret(systemKey, obj["name"].(string), obj["secret"].(string))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1096,6 +1159,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if AllBucketSetFiles || AllAssets {
 		didSomething = true
 		if err := bucketSetFiles.PushFilesForAllBucketSets(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if AllSecrets || AllAssets {
+		didSomething = true
+		if err := pushAllSecrets(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if SecretName != "" {
+		didSomething = true
+		if err := pushOneSecret(systemInfo, client, SecretName); err != nil {
 			return err
 		}
 	}
@@ -1868,9 +1945,8 @@ func createBucketSet(systemKey string, bucketSet map[string]interface{}, client 
 }
 
 func createSecret(systemKey string, secret map[string]interface{}, client *cb.DevClient) error {
-	secretName := secret["name"].(string)
-	if _, err := client.AddSecret(systemKey, secretName, secret); err != nil {
-		return fmt.Errorf("Could not add secret %s: %s", secretName, err.Error())
+	if _, err := client.AddSecret(systemKey, secret["name"].(string), secret["secret"].(string)); err != nil {
+		return fmt.Errorf("Could not add secret %s: %s", secret["name"].(string), err.Error())
 	}
 	return nil
 }
