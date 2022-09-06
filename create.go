@@ -32,6 +32,7 @@ func init() {
 	createCommand.flags.StringVar(&RoleName, "role", "", "Name of role to create")
 	createCommand.flags.StringVar(&TriggerName, "trigger", "", "Name of trigger to create")
 	createCommand.flags.StringVar(&TimerName, "timer", "", "Name of timer to create")
+	createCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to create")
 	AddCommand("create", createCommand)
 }
 
@@ -110,6 +111,13 @@ func doCreate(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if SecretName != "" {
+		didSomething = true
+		if err := createOneSecret(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if !didSomething {
 		fmt.Printf("Nothing to update -- you must specify something to update (ie, -service=<svc_name>)\n")
 	}
@@ -184,5 +192,15 @@ func createOneTimer(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return err
 	}
 	_, err = createTimer(systemInfo.Key, timer, client)
+	return err
+}
+
+func createOneSecret(systemInfo *types.System_meta, client *cb.DevClient) error {
+	fmt.Printf("Creating user secret %s\n", SecretName)
+	secret, err := getSecret(SecretName)
+	if err != nil {
+		return err
+	}
+	err = createSecret(systemInfo.Key, secret, client)
 	return err
 }

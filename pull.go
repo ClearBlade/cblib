@@ -58,6 +58,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "pull all external databases from system")
 	pullCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "pull all bucket sets from system")
 	pullCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "pull all files from all bucket sets from system")
+	pullCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "pull all user secrets from system")
 
 	pullCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to pull")
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
@@ -82,6 +83,7 @@ func init() {
 	pullCommand.flags.StringVar(&BucketSetFiles, "bucket-set-files", "", "Name of bucket set to pull files from. Can be used in conjunction with -box and -file")
 	pullCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pullCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to pull from bucket set box")
+	pullCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to pull")
 
 	pullCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 

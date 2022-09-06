@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/clearblade/Go-SDK v0.0.0-20211214012803-af8b77726b31
+	github.com/clearblade/Go-SDK v0.0.0-20220902152954-2c7ead174ea4
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.3

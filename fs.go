@@ -49,9 +49,10 @@ var (
 	webhooksDir          string
 	externalDatabasesDir string
 	bucketSetsDir        string
+	secretsDir           string
 	cliHiddenDir         string
 	mapNameToIdDir       string
-	arrDir               [21]string //this is used to set up the directory structure for a system
+	arrDir               [22]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -80,6 +81,7 @@ func SetRootDir(theRootDir string) {
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	bucketSetFiles.BucketSetFilesDir = rootDir + "/bucket-set-files"
+	secretsDir = rootDir + "/secrets"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -101,6 +103,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[18] = webhooksDir
 	arrDir[19] = externalDatabasesDir
 	arrDir[20] = bucketSetFiles.BucketSetFilesDir
+	arrDir[21] = secretsDir
 }
 
 func setupDirectoryStructure() error {
@@ -794,6 +797,13 @@ func writeBucketSet(name string, data map[string]interface{}) error {
 	return writeEntity(bucketSetsDir, name, whitelistBucketSet(data))
 }
 
+func writeSecret(name string, data map[string]interface{}) error {
+	if err := os.MkdirAll(secretsDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(secretsDir, name, data)
+}
+
 func whitelistBucketSet(data map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"edge_config":      data["edge_config"],
@@ -1098,6 +1108,14 @@ func getBucketSets() ([]map[string]interface{}, error) {
 
 func getBucketSet(name string) (map[string]interface{}, error) {
 	return getObject(bucketSetsDir, name+".json")
+}
+
+func getSecrets() ([]map[string]interface{}, error) {
+	return getObjectList(secretsDir, []string{})
+}
+
+func getSecret(name string) (map[string]interface{}, error) {
+	return getObject(secretsDir, name+".json")
 }
 
 func getDeployment(name string) (map[string]interface{}, error) {

@@ -434,6 +434,36 @@ func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name s
 	return bs, nil
 }
 
+func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) (map[string]interface{}, error) {
+	theSecrets, err := cli.GetSecrets(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull secrets out of system %s: %s", sysMeta.Key, err)
+	}
+
+	for secretName, secret := range theSecrets {
+		err := writeSecret(secretName, map[string]interface{}{
+			"name":   secretName,
+			"secret": secret,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return theSecrets, nil
+}
+
+func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name string) (interface{}, error) {
+	sec, err := cli.GetSecret(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = writeSecret(name, map[string]interface{}{"name": name, "secret": sec}); err != nil {
+		return nil, err
+	}
+	return sec, nil
+}
+
 func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	hook, err := cli.GetWebhook(sysMeta.Key, name)
 	if err != nil {

@@ -437,5 +437,23 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		fmt.Printf("\n")
 	}
 
+	if assets.AllSecrets || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling all user secrets")
+		if _, err := pullSecrets(systemInfo, client); err != nil {
+			logError(fmt.Sprintf("Failed to pull all user secrets. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
+	if assets.SecretName != "" {
+		didSomething = true
+		logInfo(fmt.Sprintf("Pulling user secret %+s\n", SecretName))
+		if _, err := pullAndWriteSecret(systemInfo, client, SecretName); err != nil {
+			logError(fmt.Sprintf("Failed to pull user secret. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
 	return didSomething, nil
 }
