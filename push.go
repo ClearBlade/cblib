@@ -1457,13 +1457,11 @@ func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []
 	return rtn
 }
 
+// The roles structure we get back when we retrieve roles is different from
+// the format accepted for updating a role. Thus, we have this beauty of a
+// conversion function. -swm
 //
-//  The roles structure we get back when we retrieve roles is different from
-//  the format accepted for updating a role. Thus, we have this beauty of a
-//  conversion function. -swm
-//
-//  THis is a gigantic cluster. We need to fix and learn from this. -swm
-//
+// THis is a gigantic cluster. We need to fix and learn from this. -swm
 func convertPermissionsStructure(in map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, valIF := range in {
@@ -1656,6 +1654,16 @@ func convertPermissionsStructure(in map[string]interface{}, client *cb.DevClient
 					}
 				}
 				out["files"] = removeDuplicatePermissions(theFiles, "name")
+			}
+		case "usersecrets":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["usersecrets"] = map[string]interface{}{"permissions": val["Level"]}
+			}
+		case "adapters":
+			if valIF != nil {
+				val := getMap(valIF)
+				out["adapters"] = map[string]interface{}{"permissions": val["Level"]}
 			}
 		default:
 
