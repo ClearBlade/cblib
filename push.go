@@ -861,20 +861,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	didSomething := false
 
-	if AllServices || AllAssets {
-		didSomething = true
-		if err := pushAllServices(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if ServiceName != "" {
-		didSomething = true
-		if err := pushOneService(systemInfo, client, ServiceName); err != nil {
-			return err
-		}
-	}
-
 	if AllLibraries || AllAssets {
 		didSomething = true
 		if err := pushAllLibraries(systemInfo, client); err != nil {
@@ -885,6 +871,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if LibraryName != "" {
 		didSomething = true
 		if err := pushOneLibrary(systemInfo, client, LibraryName); err != nil {
+			return err
+		}
+	}
+
+	if AllServices || AllAssets {
+		didSomething = true
+		if err := pushAllServices(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if ServiceName != "" {
+		didSomething = true
+		if err := pushOneService(systemInfo, client, ServiceName); err != nil {
 			return err
 		}
 	}
