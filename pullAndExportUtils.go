@@ -455,5 +455,14 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		fmt.Printf("\n")
 	}
 
+	if assets.MessageHistoryStorage || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling message history storage")
+		if err := pullMessageHistoryStorage(systemInfo, client); err != nil {
+			logError(fmt.Sprintf("Failed to pull message history storage. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
 	return didSomething, nil
 }

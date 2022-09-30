@@ -29,30 +29,31 @@ const runUserKey = "run_user"
 var (
 	RootDirIsSet bool
 
-	rootDir              string
-	dataDir              string
-	svcDir               string
-	libDir               string
-	usersDir             string
-	usersRolesDir        string
-	timersDir            string
-	triggersDir          string
-	rolesDir             string
-	edgesDir             string
-	devicesDir           string
-	devicesRolesDir      string
-	portalsDir           string
-	pluginsDir           string
-	adaptorsDir          string
-	deploymentsDir       string
-	serviceCachesDir     string
-	webhooksDir          string
-	externalDatabasesDir string
-	bucketSetsDir        string
-	secretsDir           string
-	cliHiddenDir         string
-	mapNameToIdDir       string
-	arrDir               [22]string //this is used to set up the directory structure for a system
+	rootDir                  string
+	dataDir                  string
+	svcDir                   string
+	libDir                   string
+	messageHistoryStorageDir string
+	usersDir                 string
+	usersRolesDir            string
+	timersDir                string
+	triggersDir              string
+	rolesDir                 string
+	edgesDir                 string
+	devicesDir               string
+	devicesRolesDir          string
+	portalsDir               string
+	pluginsDir               string
+	adaptorsDir              string
+	deploymentsDir           string
+	serviceCachesDir         string
+	webhooksDir              string
+	externalDatabasesDir     string
+	bucketSetsDir            string
+	secretsDir               string
+	cliHiddenDir             string
+	mapNameToIdDir           string
+	arrDir                   [22]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -82,6 +83,7 @@ func SetRootDir(theRootDir string) {
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	bucketSetFiles.BucketSetFilesDir = rootDir + "/bucket-set-files"
 	secretsDir = rootDir + "/secrets"
+	messageHistoryStorageDir = rootDir + "/message-history-storage"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -795,6 +797,53 @@ func writeBucketSet(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(bucketSetsDir, name, whitelistBucketSet(data))
+}
+
+func whitelistMessageHistoryStorageEntry(entry cb.GetMessageHistoryStorageEntry) cb.MessageHistoryStorageEntry {
+	return cb.MessageHistoryStorageEntry{
+		Edge:     entry.Edge,
+		MaxRows:  entry.MaxRows,
+		MaxTime:  entry.MaxTime,
+		Platform: entry.Platform,
+		Topic:    entry.Topic,
+	}
+}
+
+func writeMessageHistoryStorage(entries []cb.GetMessageHistoryStorageEntry) error {
+	whitelistedEntries := make([]cb.MessageHistoryStorageEntry, 0)
+	for i := 0; i < len(entries); i++ {
+		whitelistedEntries = append(whitelistedEntries, whitelistMessageHistoryStorageEntry(entries[i]))
+	}
+
+	if err := os.MkdirAll(messageHistoryStorageDir, 0777); err != nil {
+		return err
+	}
+
+	return writeEntity(messageHistoryStorageDir, "storage", whitelistedEntries)
+}
+
+func getMessageHistoryStorage() ([]cb.MessageHistoryStorageEntry, error) {
+	entries, err := getArray(messageHistoryStorageDir + "/storage.json")
+	if err != nil {
+		return nil, err
+	}
+
+	typedEntries := make([]cb.MessageHistoryStorageEntry, 0)
+	for i := range entries {
+		if m, ok := entries[i].(map[string]interface{}); ok {
+			typedEntries = append(typedEntries, cb.MessageHistoryStorageEntry{
+				Edge:     m["edge"].(bool),
+				Platform: m["platform"].(bool),
+				MaxRows:  int(m["max_rows"].(float64)),
+				MaxTime:  int(m["max_time"].(float64)),
+				Topic:    m["topic"].(string),
+			})
+		} else {
+			return nil, fmt.Errorf("Unexpected type from storage.json")
+		}
+	}
+
+	return typedEntries, nil
 }
 
 func writeSecret(name string, data map[string]interface{}) error {

@@ -452,6 +452,20 @@ func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) (map[string]inte
 	return theSecrets, nil
 }
 
+func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) error {
+	storageEntries, err := cli.GetMessageHistoryStorage(sysMeta.Key)
+	if err != nil {
+		return fmt.Errorf("Could not pull message history storage out of system %s: %s", sysMeta.Key, err)
+	}
+
+	err = writeMessageHistoryStorage(storageEntries)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name string) (interface{}, error) {
 	sec, err := cli.GetSecret(sysMeta.Key, name)
 	if err != nil {

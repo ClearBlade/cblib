@@ -847,6 +847,11 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 		fmt.Printf("Could not create secrets: %s", err.Error())
 	}
 
+	logInfo("Importing message history storage...")
+	if err := pushMessageHistoryStorage(systemInfo, cli); err != nil {
+		fmt.Printf("Could not import message history storage: %s", err.Error())
+	}
+
 	fmt.Printf(" Done\n")
 	logInfo(fmt.Sprintf("Success! New system key is: %s", systemInfo.Key))
 	logInfo(fmt.Sprintf("New system secret is: %s", systemInfo.Secret))

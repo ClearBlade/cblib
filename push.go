@@ -65,6 +65,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "push all files from all local bucket sets")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 	pushCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "push all user secrets")
+	pushCommand.flags.BoolVar(&MessageHistoryStorage, "message-history-storage", false, "push message history storage")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
@@ -828,6 +829,19 @@ func pushOneLibrary(systemInfo *types.System_meta, client *cb.DevClient, name st
 	return updateLibrary(systemInfo.Key, library, client)
 }
 
+func pushMessageHistoryStorage(systemInfo *types.System_meta, client *cb.DevClient) error {
+	storage, err := getMessageHistoryStorage()
+	if err != nil {
+		return err
+	}
+
+	err = client.UpdateMessageHistoryStorage(systemInfo.Key, storage)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
 	libraries, err := getLibraries()
 	if err != nil {
@@ -1173,6 +1187,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if SecretName != "" {
 		didSomething = true
 		if err := pushOneSecret(systemInfo, client, SecretName); err != nil {
+			return err
+		}
+	}
+
+	if MessageHistoryStorage || AllAssets {
+		didSomething = true
+		if err := pushMessageHistoryStorage(systemInfo, client); err != nil {
 			return err
 		}
 	}
