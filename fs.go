@@ -529,6 +529,10 @@ func writeCollection(collectionName string, data map[string]interface{}) error {
 }
 
 func blacklistUser(data map[string]interface{}) {
+	delete(data, "two_factor_enabled")
+	delete(data, "two_factor_method")
+	delete(data, "phone_validated")
+	delete(data, "email_validated")
 	delete(data, "creation_date")
 	delete(data, "user_id")
 }

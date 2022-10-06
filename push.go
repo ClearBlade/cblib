@@ -1759,7 +1759,8 @@ func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb
 		return err
 	}
 
-	backendUserRoles, err := client.GetUserRoles(meta.Key, user["user_id"].(string))
+	userID := user["user_id"].(string)
+	backendUserRoles, err := client.GetUserRoles(meta.Key, userID)
 	if err != nil {
 		return err
 	}
@@ -1768,7 +1769,9 @@ func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb
 		"add":    convertInterfaceSliceToStringSlice(roleDiff.Added),
 		"delete": convertInterfaceSliceToStringSlice(roleDiff.Removed),
 	}
-	return client.UpdateUser(meta.Key, user["user_id"].(string), user)
+
+	delete(user, "user_id")
+	return client.UpdateUser(meta.Key, userID, user)
 }
 
 func createUser(systemKey string, systemSecret string, user map[string]interface{}, client *cb.DevClient) (string, error) {
