@@ -157,7 +157,7 @@ func getDiffForColumns(localSchemaInterfaces, backendSchemaInterfaces []interfac
 }
 
 func columnExists(colA interface{}, colB interface{}) bool {
-	if colA.(map[string]interface{})["ColumnName"].(string) == colB.(map[string]interface{})["ColumnName"].(string) {
+	if colA.(map[string]interface{})["ColumnName"].(string) == colB.(map[string]interface{})["ColumnName"].(string) && colA.(map[string]interface{})["ColumnType"].(string) == colB.(map[string]interface{})["ColumnType"].(string) {
 		return true
 	}
 	return false
