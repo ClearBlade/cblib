@@ -875,6 +875,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	didSomething := false
 
+	if AllRoles || AllAssets {
+		didSomething = true
+		if err := pushRoles(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if RoleName != "" {
+		didSomething = true
+		if err := pushOneRole(systemInfo, client, RoleName); err != nil {
+			return err
+		}
+	}
+
 	if AllLibraries || AllAssets {
 		didSomething = true
 		if err := pushAllLibraries(systemInfo, client); err != nil {
@@ -955,20 +969,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if UserId != "" {
 		didSomething = true
 		if err := pushOneUserById(systemInfo, client, UserId); err != nil {
-			return err
-		}
-	}
-
-	if AllRoles || AllAssets {
-		didSomething = true
-		if err := pushRoles(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if RoleName != "" {
-		didSomething = true
-		if err := pushOneRole(systemInfo, client, RoleName); err != nil {
 			return err
 		}
 	}
