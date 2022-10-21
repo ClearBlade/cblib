@@ -81,7 +81,7 @@ func reallyInit(cmd *SubCommand, cli *cb.DevClient, sysKey string) error {
 		updateMapNameToIDFiles(systemMeta, cli)
 	}
 
-	fmt.Printf("System '%s' has been initialized in the current directory.\n", systemMeta.Name)
+	fmt.Printf("\nSystem '%s' has been initialized in the current directory.\n", systemMeta.Name)
 	return nil
 }
 

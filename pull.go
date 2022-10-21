@@ -445,36 +445,82 @@ func pullAdaptor(systemKey, adaptorName string, client *cb.DevClient) (*models.A
 
 func updateMapNameToIDFiles(systemInfo *types.System_meta, client *cb.DevClient) {
 	logInfo("Updating roles...")
-	if data, err := PullAndWriteRoles(systemInfo.Key, client, false); err != nil {
-		logError(fmt.Sprintf("Failed to update %s. %s", getRoleNameToIdFullFilePath(), err.Error()))
+	if roles, err := getRoles(); err != nil {
+		logError(fmt.Sprintf("Failed to get roles %s", err.Error()))
 	} else {
-		for i := 0; i < len(data); i++ {
-			updateRoleNameToId(RoleInfo{
-				ID:   data[i]["ID"].(string),
-				Name: data[i]["Name"].(string),
-			})
+		for i := 0; i < len(roles); i++ {
+			roleName := roles[i]["Name"].(string)
+			fmt.Printf(" %s", roleName)
+			role, err := pullRole(systemInfo.Key, roleName, client)
+			if err != nil {
+				logError(fmt.Sprintf("Failed to pull role '%s'. %s", roleName, err.Error()))
+			} else {
+				updateRoleNameToId(RoleInfo{
+					ID:   role["ID"].(string),
+					Name: role["Name"].(string),
+				})
+			}
 		}
 	}
+
 	logInfo("\nUpdating collections...")
-	if data, err := PullAndWriteCollections(systemInfo, client, false, false, false); err != nil {
-		logError(fmt.Sprintf("Failed to update %s. %s", getCollectionNameToIdFullFilePath(), err.Error()))
+	if collections, err := getCollections(); err != nil {
+		logError(fmt.Sprintf("Failed to get collections %s", err.Error()))
 	} else {
-		for i := 0; i < len(data); i++ {
-			updateCollectionNameToId(CollectionInfo{
-				ID:   data[i]["collection_id"].(string),
-				Name: data[i]["name"].(string),
-			})
+		if data, err := client.GetAllCollections(systemInfo.Key); err != nil {
+			logError(fmt.Sprintf("Failed to get all collections metadata. %s", err.Error()))
+		} else {
+			for i := 0; i < len(collections); i++ {
+				collectionName := collections[i]["name"].(string)
+				fmt.Printf(" %s", collectionName)
+				if found, collectionID := findCollectionID(data, collectionName); found {
+					updateCollectionNameToId(CollectionInfo{
+						ID:   collectionID,
+						Name: collectionName,
+					})
+				} else {
+					logWarning(fmt.Sprintf("Could not find collection '%s'", collectionName))
+				}
+			}
 		}
 	}
+
 	logInfo("Updating users...")
-	if data, err := PullAndWriteUsers(systemInfo.Key, PULL_ALL_USERS, client, false); err != nil {
-		logError(fmt.Sprintf("Failed to update %s. %s", getUserEmailToIdFullFilePath(), err.Error()))
-	} else {
-		for i := 0; i < len(data); i++ {
-			updateUserEmailToId(UserInfo{
-				Email:  data[i]["email"].(string),
-				UserID: data[i]["user_id"].(string),
-			})
+	if users, err := getUsers(); err != nil {
+		logError(fmt.Sprintf("Failed to get users %s", err.Error()))
+	} else if len(users) > 0 {
+		query := cb.NewQuery()
+		query.Columns = []string{"user_id"}
+		userEmails := []string{}
+		for i := 0; i < len(users); i++ {
+			userEmails = append(userEmails, users[i]["email"].(string))
+		}
+		query.Filters[0] = append(query.Filters[0], cb.Filter{
+			Field:    "email",
+			Value:    userEmails,
+			Operator: "IN",
+		})
+		client.GetUsersWithQuery(systemInfo.Key, query)
+		for i := 0; i < len(users); i++ {
+			userEmail := users[i]["email"].(string)
+			data, err := PullAndWriteUsers(systemInfo.Key, userEmail, client, false)
+			if err != nil {
+				logError(fmt.Sprintf("Failed to pull user '%s'. %s", userEmail, err.Error()))
+			} else {
+				updateUserEmailToId(UserInfo{
+					Email:  userEmail,
+					UserID: data[0]["user_id"].(string),
+				})
+			}
 		}
 	}
+}
+
+func findCollectionID(collections []interface{}, collectionName string) (bool, string) {
+	for i := 0; i < len(collections); i++ {
+		if collections[i].(map[string]interface{})["name"] == collectionName {
+			return true, collections[i].(map[string]interface{})["collectionID"].(string)
+		}
+	}
+	return false, ""
 }
