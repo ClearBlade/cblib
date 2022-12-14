@@ -105,7 +105,7 @@ var (
 var (
 	DefaultUserColumns       = []string{"user_id", "creation_date", "email", "cb_service_account", "cb_ttl_override", "cb_token", "email_validated", "phone", "phone_validated", "two_factor_enabled", "two_factor_method"}
 	DefaultEdgeColumns       = []string{"edge_key", "novi_system_key", "system_key", "system_secret", "token", "name", "description", "location", "mac_address", "public_addr", "public_port", "local_addr", "local_port", "broker_port", "broker_tls_port", "broker_ws_port", "broker_wss_port", "broker_auth_port", "broker_ws_auth_port", "first_talked", "last_talked", "communication_style", "last_seen_version", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_architecture", "last_seen_os"}
-	DefaultDeviceColumns     = []string{"device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt", "cb_token", "cb_service_account", "cb_ttl_override"}
+	DefaultDeviceColumns     = []string{"device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt", "cb_token", "cb_service_account", "cb_ttl_override", "is_device_proxy", "proxy_authentication_method", "bound_devices"}
 	DefaultCollectionColumns = []string{"item_id"}
 )
 
