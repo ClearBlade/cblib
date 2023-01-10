@@ -1,10 +1,12 @@
 package cblib
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/alitto/pond"
 	cb "github.com/clearblade/Go-SDK"
@@ -486,19 +488,28 @@ func createCollections(config ImportConfig, systemInfo *types.System_meta, clien
 	if err != nil {
 		return rtn, err
 	}
-	pool := pond.New(10, 100)
+
+	pool := pond.New(10, 1000)
+	defer pool.StopAndWait()
+
+	// Create a task group associated to a context
+	group, _ := pool.GroupContext(context.Background())
 
 	for _, collection := range collections {
+		collection := collection
 		fmt.Printf(" %s\n", collection["name"].(string))
-		pool.Submit(func() {
-			if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err == nil {
+		group.Submit(func() error {
+			if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err != nil {
+				return err
+			} else {
 				rtn = append(rtn, info)
 				fmt.Printf(" %d\n", pool.CompletedTasks())
+				return nil
 			}
 		})
 	}
-	pool.StopAndWait()
-	return rtn, nil
+	err = group.Wait()
+	return rtn, err
 }
 
 // Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
@@ -725,12 +736,19 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 
 	// Common set of calls for a complete system import
 
+	logInfo(fmt.Sprintf("Success! New system key is: %s", systemInfo.Key))
+	logInfo(fmt.Sprintf("New system secret is: %s", systemInfo.Secret))
+
 	logInfo("Importing collections...")
+	time.Sleep(8 * time.Second)
+	fmt.Println("after sleeping for 8 seconds")
 	_, err := createCollections(config, systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create collections: %s", err.Error())
 	}
+
+	return nil
 
 	logInfo("Importing roles...")
 	err = createRoles(config, systemInfo, cli)

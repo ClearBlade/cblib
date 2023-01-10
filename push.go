@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -2435,6 +2436,13 @@ type RoleInfo struct {
 }
 
 func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
+	fmt.Println("before sleeping for 3 seconds", collection["name"].(string))
+	time.Sleep(3 * time.Second)
+	fmt.Println("after sleeping for 3 seconds", collection["name"].(string))
+	if collection["name"].(string) == "registry_settings" {
+		fmt.Println("returning an error manually for registry_settings")
+		return CollectionInfo{}, errors.New("failed to create registry_settings. SIKE")
+	}
 	collectionName := collection["name"].(string)
 	isConnect := isConnectCollection(collection)
 	var colId string
