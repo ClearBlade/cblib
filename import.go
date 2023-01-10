@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/alitto/pond"
 	cb "github.com/clearblade/Go-SDK"
 
 	"github.com/clearblade/cblib/internal/types"
@@ -181,15 +182,22 @@ func createRoles(config ImportConfig, systemInfo *types.System_meta, client *cb.
 	if err != nil {
 		return err
 	}
+	pool := pond.New(10, 100)
+	defer pool.StopAndWait()
+	group := pool.Group()
 	for _, role := range roles {
-		name := role["Name"].(string)
-		fmt.Printf(" %s", name)
-		//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
-		if err := createRole(systemInfo, role, client); err != nil {
-			return err
-		}
-		//}
+		group.Submit(func() {
+
+			name := role["Name"].(string)
+			fmt.Printf(" %s", name)
+			//if name != "Authenticated" && name != "Administrator" && name != "Anonymous" {
+			if err := createRole(systemInfo, role, client); err == nil {
+				logError(fmt.Sprintf("Could not create %s", name))
+			}
+			//}
+		})
 	}
+	group.Wait()
 	fmt.Println("\nUpdating local roles with newly created role IDs... ")
 	// ids were created on import for the new roles, grab those
 	_, err = PullAndWriteRoles(systemInfo.Key, client, true)
@@ -478,15 +486,18 @@ func createCollections(config ImportConfig, systemInfo *types.System_meta, clien
 	if err != nil {
 		return rtn, err
 	}
+	pool := pond.New(10, 100)
 
 	for _, collection := range collections {
 		fmt.Printf(" %s\n", collection["name"].(string))
-		if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err != nil {
-			return rtn, err
-		} else {
-			rtn = append(rtn, info)
-		}
+		pool.Submit(func() {
+			if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err == nil {
+				rtn = append(rtn, info)
+				fmt.Printf(" %d\n", pool.CompletedTasks())
+			}
+		})
 	}
+	pool.StopAndWait()
 	return rtn, nil
 }
 

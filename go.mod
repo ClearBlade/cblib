@@ -3,6 +3,7 @@ module github.com/clearblade/cblib
 go 1.14
 
 require (
+	github.com/alitto/pond v1.8.2 // indirect
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/clearblade/Go-SDK v0.0.0-20220930214825-fe624346c6cd
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
