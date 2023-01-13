@@ -29,31 +29,30 @@ const runUserKey = "run_user"
 var (
 	RootDirIsSet bool
 
-	rootDir                  string
-	dataDir                  string
-	svcDir                   string
-	libDir                   string
-	messageHistoryStorageDir string
-	usersDir                 string
-	usersRolesDir            string
-	timersDir                string
-	triggersDir              string
-	rolesDir                 string
-	edgesDir                 string
-	devicesDir               string
-	devicesRolesDir          string
-	portalsDir               string
-	pluginsDir               string
-	adaptorsDir              string
-	deploymentsDir           string
-	serviceCachesDir         string
-	webhooksDir              string
-	externalDatabasesDir     string
-	bucketSetsDir            string
-	secretsDir               string
-	cliHiddenDir             string
-	mapNameToIdDir           string
-	arrDir                   [22]string //this is used to set up the directory structure for a system
+	rootDir              string
+	dataDir              string
+	svcDir               string
+	libDir               string
+	usersDir             string
+	usersRolesDir        string
+	timersDir            string
+	triggersDir          string
+	rolesDir             string
+	edgesDir             string
+	devicesDir           string
+	devicesRolesDir      string
+	portalsDir           string
+	pluginsDir           string
+	adaptorsDir          string
+	deploymentsDir       string
+	serviceCachesDir     string
+	webhooksDir          string
+	externalDatabasesDir string
+	bucketSetsDir        string
+	secretsDir           string
+	cliHiddenDir         string
+	mapNameToIdDir       string
+	arrDir               [23]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -104,8 +103,9 @@ func SetRootDir(theRootDir string) {
 	arrDir[17] = serviceCachesDir
 	arrDir[18] = webhooksDir
 	arrDir[19] = externalDatabasesDir
-	arrDir[20] = bucketSetFiles.BucketSetFilesDir
-	arrDir[21] = secretsDir
+	arrDir[20] = bucketSetsDir
+	arrDir[21] = bucketSetFiles.BucketSetFilesDir
+	arrDir[22] = secretsDir
 }
 
 func setupDirectoryStructure() error {
