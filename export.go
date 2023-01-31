@@ -307,10 +307,51 @@ func pullAndWriteDeployment(sysMeta *types.System_meta, cli *cb.DevClient, name 
 	if err != nil {
 		return nil, err
 	}
+
+	//sort the deployment "assets" array so that the deployment assets are always
+	//returned in a predictable mannner
+	sort.Slice(deploymentDetails["assets"], func(i, j int) bool {
+		//deploymentDetails["assets"] = []interface{}
+		return getAssetSortKey(deploymentDetails["assets"].([]interface{})[i].(map[string]interface{})["asset_class"].(string),
+			deploymentDetails["assets"].([]interface{})[i].(map[string]interface{})["asset_id"].(string)) <
+			getAssetSortKey(deploymentDetails["assets"].([]interface{})[j].(map[string]interface{})["asset_class"].(string),
+				deploymentDetails["assets"].([]interface{})[j].(map[string]interface{})["asset_id"].(string))
+	})
+
 	if err = writeDeployment(deploymentDetails["name"].(string), deploymentDetails); err != nil {
 		return nil, err
 	}
 	return deploymentDetails, nil
+}
+
+func getAssetSortKey(assetClass string, asset_id string) string {
+	//
+	//asset_id will be empty for collections
+	//asset_id will contain the item_id for item_level sync with a collection
+	//
+	// From {"clearblade" repo}/registry/constants
+	// Adaptors          = "adaptors"
+	// BucketSets        = "bucketsets"
+	// Devices           = "devices"
+	// Users             = "users"
+	// Services          = "services"
+	// Libraries         = "libraries"
+	// ServiceCaches     = "servicecaches"
+	// Timers            = "timers"
+	// Triggers          = "triggers"
+	// Webhooks          = "webhooks"
+	// Portals           = "portals"
+	// Plugins           = "plugins"
+	// RolesPerms        = "rolesperms"
+	// UserSecrets       = "usersecrets"
+	// Collections       = "collections" // This is just a placeholder. The actual asset class will be the collection name
+	//
+	switch assetClass {
+	case "adaptors", "bucketsets", "devices", "users", "services", "libraries", "servicecaches", "timers", "triggers", "webhooks", "portals", "plugins", "usersecrets":
+		return assetClass + asset_id
+	default:
+		return "collection" + assetClass + asset_id
+	}
 }
 
 func pullDeployments(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
