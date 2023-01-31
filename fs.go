@@ -29,30 +29,31 @@ const runUserKey = "run_user"
 var (
 	RootDirIsSet bool
 
-	rootDir              string
-	dataDir              string
-	svcDir               string
-	libDir               string
-	usersDir             string
-	usersRolesDir        string
-	timersDir            string
-	triggersDir          string
-	rolesDir             string
-	edgesDir             string
-	devicesDir           string
-	devicesRolesDir      string
-	portalsDir           string
-	pluginsDir           string
-	adaptorsDir          string
-	deploymentsDir       string
-	serviceCachesDir     string
-	webhooksDir          string
-	externalDatabasesDir string
-	bucketSetsDir        string
-	secretsDir           string
-	cliHiddenDir         string
-	mapNameToIdDir       string
-	arrDir               [23]string //this is used to set up the directory structure for a system
+	rootDir                  string
+	dataDir                  string
+	svcDir                   string
+	libDir                   string
+	messageHistoryStorageDir string
+	usersDir                 string
+	usersRolesDir            string
+	timersDir                string
+	triggersDir              string
+	rolesDir                 string
+	edgesDir                 string
+	devicesDir               string
+	devicesRolesDir          string
+	portalsDir               string
+	pluginsDir               string
+	adaptorsDir              string
+	deploymentsDir           string
+	serviceCachesDir         string
+	webhooksDir              string
+	externalDatabasesDir     string
+	bucketSetsDir            string
+	secretsDir               string
+	cliHiddenDir             string
+	mapNameToIdDir           string
+	arrDir                   [23]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
