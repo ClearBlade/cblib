@@ -889,6 +889,34 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if UserSchema || AllAssets {
+		didSomething = true
+		if err := pushUserSchema(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if AllUsers || AllAssets {
+		didSomething = true
+		if err := pushUsers(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if User != "" {
+		didSomething = true
+		if err := pushOneUser(systemInfo, client, User); err != nil {
+			return err
+		}
+	}
+
+	if UserId != "" {
+		didSomething = true
+		if err := pushOneUserById(systemInfo, client, UserId); err != nil {
+			return err
+		}
+	}
+
 	if AllLibraries || AllAssets {
 		didSomething = true
 		if err := pushAllLibraries(systemInfo, client); err != nil {
@@ -941,34 +969,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if CollectionId != "" {
 		didSomething = true
 		if err := pushOneCollectionById(systemInfo, client, CollectionId); err != nil {
-			return err
-		}
-	}
-
-	if UserSchema || AllAssets {
-		didSomething = true
-		if err := pushUserSchema(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if AllUsers || AllAssets {
-		didSomething = true
-		if err := pushUsers(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if User != "" {
-		didSomething = true
-		if err := pushOneUser(systemInfo, client, User); err != nil {
-			return err
-		}
-	}
-
-	if UserId != "" {
-		didSomething = true
-		if err := pushOneUserById(systemInfo, client, UserId); err != nil {
 			return err
 		}
 	}
