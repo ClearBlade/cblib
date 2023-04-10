@@ -2206,14 +2206,14 @@ func findService(systemKey, serviceName string) (map[string]interface{}, error) 
 }
 
 func updateServiceWithRunAs(systemKey, name string, service map[string]interface{}, client *cb.DevClient) error {
-	if savedRunAs, ok := service[runUserKey].(string); ok {
-		if id, err := getUserIdByEmail(savedRunAs); err == nil {
-			service[runUserKey] = id
-		} else if savedRunAs != "" {
-			service[runUserKey] = ""
-			logWarning(fmt.Sprintf("Failed to retrieve run_user ID for email '%s'. Please check to make sure that the user exists and that there is a matching entry in .cb-cli/map-name-to-id/users.json. Empty value will be used for run_user", savedRunAs))
-		}
-	}
+	// if savedRunAs, ok := service[runUserKey].(string); ok {
+	// 	if id, err := getUserIdByEmail(savedRunAs); err == nil {
+	// 		service[runUserKey] = id
+	// 	} else if savedRunAs != "" {
+	// 		service[runUserKey] = ""
+	// 		logWarning(fmt.Sprintf("Failed to retrieve run_user ID for email '%s'. Please check to make sure that the user exists and that there is a matching entry in .cb-cli/map-name-to-id/users.json. Empty value will be used for run_user", savedRunAs))
+	// 	}
+	// }
 
 	return updateService(systemKey, name, service, client)
 }
@@ -2266,7 +2266,7 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 		"auto_restart":      false,
 		"concurrency":       0,
 		"dependencies":      "",
-		runUserKey:          "",
+		"run_user":          "",
 		"log_ttl_minutes":   10080,
 		"run_on_edge":       true,
 		"run_on_platform":   true,
@@ -2292,8 +2292,8 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	if concurrency, ok := service["concurrency"].(float64); ok {
 		ret["concurrency"] = concurrency
 	}
-	if runUser, ok := service[runUserKey].(string); ok {
-		ret[runUserKey] = runUser
+	if runUser, ok := service["run_user"].(string); ok {
+		ret["run_user"] = runUser
 	}
 	if log_ttl_minutes, ok := service["log_ttl_minutes"].(float64); ok {
 		ret["log_ttl_minutes"] = log_ttl_minutes
@@ -2305,11 +2305,6 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 		ret["run_on_platform"] = run_on_platform
 	}
 	return ret
-}
-
-func createServiceWithUpdatedInfo(systemKey string, service map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) error {
-	replaceEmailWithUserIdForServiceRunAs(service, usersInfo)
-	return createService(systemKey, service, client)
 }
 
 func createService(systemKey string, service map[string]interface{}, client *cb.DevClient) error {

@@ -267,7 +267,7 @@ func PullServices(systemKey string, cli *cb.DevClient) ([]map[string]interface{}
 			return nil, err
 		} else {
 			services[i] = s
-			err = writeService(s["name"].(string), getRunUserEmail(s), s)
+			err = writeService(s["name"].(string), s)
 			if err != nil {
 				return nil, err
 			}

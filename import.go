@@ -426,7 +426,7 @@ func createSecrets(config ImportConfig, systemInfo *types.System_meta, client *c
 	return secrets, nil
 }
 
-func createServices(config ImportConfig, systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) error {
+func createServices(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
 		fmt.Printf("getServices Failed: %s\n", err)
@@ -434,7 +434,7 @@ func createServices(config ImportConfig, systemInfo *types.System_meta, usersInf
 	}
 	for _, service := range services {
 		fmt.Printf(" %s", service["name"].(string))
-		if err := createServiceWithUpdatedInfo(systemInfo.Key, service, usersInfo, client); err != nil {
+		if err := createService(systemInfo.Key, service, client); err != nil {
 			fmt.Printf("createService Failed: %s\n", err)
 			return err
 		}
@@ -748,7 +748,7 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 
 	logInfo("Importing code services...")
 	// Additonal modifications to the ImportIt functions
-	if err := createServices(config, systemInfo, usersInfo, cli); err != nil {
+	if err := createServices(config, systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err

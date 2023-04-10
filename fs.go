@@ -24,7 +24,6 @@ const collectionNameToIdFileName = "collections.json"
 const roleNameToIdFileName = "roles.json"
 const userEmailToIdFileName = "users.json"
 const portalsDirSuffix = "portals"
-const runUserKey = "run_user"
 
 var (
 	RootDirIsSet bool
@@ -775,14 +774,14 @@ func whitelistService(data map[string]interface{}) map[string]interface{} {
 		"logging_enabled":   data["logging_enabled"],
 		"name":              data["name"],
 		"params":            data["params"],
-		runUserKey:          data["run_user"],
+		"run_user":          data["run_user"],
 		"log_ttl_minutes":   data["log_ttl_minutes"],
 		"run_on_edge":       data["run_on_edge"],
 		"run_on_platform":   data["run_on_platform"],
 	}
 }
 
-func writeService(name, runUser string, data map[string]interface{}) error {
+func writeService(name string, data map[string]interface{}) error {
 	mySvcDir := svcDir + "/" + name
 	if err := os.MkdirAll(mySvcDir, 0777); err != nil {
 		return err
@@ -793,7 +792,6 @@ func writeService(name, runUser string, data map[string]interface{}) error {
 	}
 
 	serv := whitelistService(data)
-	serv[runUserKey] = runUser
 	return writeEntity(mySvcDir, name, serv)
 }
 
