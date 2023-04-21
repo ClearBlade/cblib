@@ -462,17 +462,6 @@ func paginateRequests(systemKey string, pageSize int, cf countRequestFunc, df da
 	return rtn, nil
 }
 
-func getRunUserEmail(service map[string]interface{}) string {
-	if runUserID, ok := service[runUserKey].(string); ok {
-		if email, err := getUserEmailByID(runUserID); err != nil {
-			return runUserID
-		} else {
-			return email
-		}
-	}
-	return ""
-}
-
 func getUserEmailByID(id string) (string, error) {
 	u, err := getUserEmailToId()
 	if err != nil {
@@ -543,16 +532,6 @@ func replaceEmailWithUserIdInTriggerKeyValuePairs(trig map[string]interface{}, u
 				if usersInfo[i].Email == userEmail {
 					kv["userId"] = usersInfo[i].UserID
 				}
-			}
-		}
-	}
-}
-
-func replaceEmailWithUserIdForServiceRunAs(service map[string]interface{}, usersInfo []UserInfo) {
-	if email, ok := service[runUserKey]; ok {
-		for i := 0; i < len(usersInfo); i++ {
-			if usersInfo[i].Email == email {
-				service[runUserKey] = usersInfo[i].UserID
 			}
 		}
 	}
