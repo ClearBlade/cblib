@@ -10,6 +10,7 @@ import (
 	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -843,15 +844,22 @@ func pushMessageHistoryStorage(systemInfo *types.System_meta, client *cb.DevClie
 }
 
 func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
-	libraries, err := getLibraries()
+	rawLibraries, err := getLibraries()
 	if err != nil {
 		return err
 	}
-	for _, library := range libraries {
-		name := library["name"].(string)
-		fmt.Printf("Pushing library %+s\n", name)
-		if err := updateLibrary(systemInfo.Key, library, client); err != nil {
-			return fmt.Errorf("Error updating library '%s': %s\n", name, err.Error())
+
+	libraries := make([]libPkg.Library, 0)
+	for _, rawLib := range rawLibraries {
+		libraries = append(libraries, libPkg.NewLibraryFromMap(rawLib))
+	}
+
+	orderedLibraries := libPkg.PostorderLibraries(libraries)
+
+	for _, library := range orderedLibraries {
+		fmt.Printf("Pushing library %+s\n", library.GetName())
+		if err := updateLibrary(systemInfo.Key, library.GetMap(), client); err != nil {
+			return fmt.Errorf("Error updating library '%s': %s\n", library.GetName(), err.Error())
 		}
 	}
 	return nil

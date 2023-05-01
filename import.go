@@ -11,6 +11,7 @@ import (
 	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	libPkg "github.com/clearblade/cblib/models/libraries"
 )
 
 var (
@@ -443,14 +444,21 @@ func createServices(config ImportConfig, systemInfo *types.System_meta, client *
 }
 
 func createLibraries(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
-	libraries, err := getLibraries()
+	rawLibraries, err := getLibraries()
 	if err != nil {
-		fmt.Printf("getLibraries Failed: %s\n", err)
 		return err
 	}
-	for _, library := range libraries {
-		fmt.Printf(" %s", library["name"].(string))
-		if err := createLibrary(systemInfo.Key, library, client); err != nil {
+
+	libraries := make([]libPkg.Library, 0)
+	for _, rawLib := range rawLibraries {
+		libraries = append(libraries, libPkg.NewLibraryFromMap(rawLib))
+	}
+
+	orderedLibraries := libPkg.PostorderLibraries(libraries)
+
+	for _, library := range orderedLibraries {
+		fmt.Printf(" %s", library.GetName())
+		if err := createLibrary(systemInfo.Key, library.GetMap(), client); err != nil {
 			fmt.Printf("createLibrary Failed: %s\n", err)
 			return err
 		}
