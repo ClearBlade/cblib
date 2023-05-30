@@ -859,6 +859,24 @@ func writeMessageTypeTriggers(entries []map[string]interface{}) error {
 	return writeEntity(messageTypeTriggersDir, "triggers", entries)
 }
 
+func getMessageTypeTriggers() ([]map[string]interface{}, error) {
+	entries, err := getArray(messageTypeTriggersDir + "/triggers.json")
+	if err != nil {
+		return nil, err
+	}
+
+	typedEntries := make([]map[string]interface{}, 0)
+	for i := range entries {
+		if m, ok := entries[i].(map[string]interface{}); ok {
+			typedEntries = append(typedEntries, m)
+		} else {
+			return nil, fmt.Errorf("Unexpected type from triggers.json")
+		}
+	}
+
+	return typedEntries, nil
+}
+
 func writeSecret(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(secretsDir, 0777); err != nil {
 		return err

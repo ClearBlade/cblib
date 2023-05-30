@@ -67,6 +67,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 	pushCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "push all user secrets")
 	pushCommand.flags.BoolVar(&MessageHistoryStorage, "message-history-storage", false, "push message history storage")
+	pushCommand.flags.BoolVar(&MessageTypeTriggers, "message-type-triggers", false, "push message type triggers")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
@@ -843,6 +844,24 @@ func pushMessageHistoryStorage(systemInfo *types.System_meta, client *cb.DevClie
 	return nil
 }
 
+func pushMessageTypeTriggers(systemInfo *types.System_meta, client *cb.DevClient) error {
+	msgTypeTriggers, err := getMessageTypeTriggers()
+	if err != nil {
+		return err
+	}
+
+	err = client.DeleteMessageTypeTriggers(systemInfo.Key)
+	if err != nil {
+		return err
+	}
+
+	err = client.AddMessageTypeTriggers(systemInfo.Key, msgTypeTriggers)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
 	rawLibraries, err := getLibraries()
 	if err != nil {
@@ -1203,6 +1222,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if MessageHistoryStorage || AllAssets {
 		didSomething = true
 		if err := pushMessageHistoryStorage(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if MessageTypeTriggers || AllAssets {
+		didSomething = true
+		if err := pushMessageTypeTriggers(systemInfo, client); err != nil {
 			return err
 		}
 	}
