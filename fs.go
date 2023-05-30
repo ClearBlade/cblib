@@ -33,6 +33,7 @@ var (
 	svcDir                   string
 	libDir                   string
 	messageHistoryStorageDir string
+	messageTypeTriggersDir   string
 	usersDir                 string
 	usersRolesDir            string
 	timersDir                string
@@ -83,6 +84,7 @@ func SetRootDir(theRootDir string) {
 	bucketSetFiles.BucketSetFilesDir = rootDir + "/bucket-set-files"
 	secretsDir = rootDir + "/secrets"
 	messageHistoryStorageDir = rootDir + "/message-history-storage"
+	messageTypeTriggersDir = rootDir + "/message-type-triggers"
 	arrDir[0] = svcDir
 	arrDir[1] = libDir
 	arrDir[2] = dataDir
@@ -843,6 +845,32 @@ func getMessageHistoryStorage() ([]cb.MessageHistoryStorageEntry, error) {
 			})
 		} else {
 			return nil, fmt.Errorf("Unexpected type from storage.json")
+		}
+	}
+
+	return typedEntries, nil
+}
+
+func writeMessageTypeTriggers(entries []map[string]interface{}) error {
+	if err := os.MkdirAll(messageTypeTriggersDir, 0777); err != nil {
+		return err
+	}
+
+	return writeEntity(messageTypeTriggersDir, "triggers", entries)
+}
+
+func getMessageTypeTriggers() ([]map[string]interface{}, error) {
+	entries, err := getArray(messageTypeTriggersDir + "/triggers.json")
+	if err != nil {
+		return nil, err
+	}
+
+	typedEntries := make([]map[string]interface{}, 0)
+	for i := range entries {
+		if m, ok := entries[i].(map[string]interface{}); ok {
+			typedEntries = append(typedEntries, m)
+		} else {
+			return nil, fmt.Errorf("Unexpected type from triggers.json")
 		}
 	}
 

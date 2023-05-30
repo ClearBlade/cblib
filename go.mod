@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/clearblade/Go-SDK v0.0.0-20221107230829-978006772314 // indirect
+	github.com/clearblade/Go-SDK v0.0.0-20230530165621-5c715d833523
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
 	github.com/clearblade/go-utils v1.1.4 // indirect
 	github.com/clearblade/mqtt_parsing v0.0.0-20160301165118-6ae49eac0961 // indirect

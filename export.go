@@ -507,6 +507,20 @@ func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) er
 	return nil
 }
 
+func pullMessageTypeTriggers(sysMeta *types.System_meta, cli *cb.DevClient) error {
+	msgTypeTriggers, err := cli.GetMessageTypeTriggers(sysMeta.Key)
+	if err != nil {
+		return fmt.Errorf("Could not pull message type triggers out of system %s: %s", sysMeta.Key, err.Error())
+	}
+
+	err = writeMessageTypeTriggers(msgTypeTriggers)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name string) (interface{}, error) {
 	sec, err := cli.GetSecret(sysMeta.Key, name)
 	if err != nil {
