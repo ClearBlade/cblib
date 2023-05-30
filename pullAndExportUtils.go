@@ -464,5 +464,15 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		fmt.Printf("\n")
 	}
 
+	if assets.MessageTypeTriggers || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling message type triggers")
+		err := pullMessageTypeTriggers(systemInfo, client)
+		if err != nil {
+			logError(fmt.Sprintf("Failed to pull message type triggers. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
 	return didSomething, nil
 }

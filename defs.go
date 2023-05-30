@@ -90,6 +90,7 @@ var (
 	AllBucketSetFiles          bool
 	AllSecrets                 bool
 	MessageHistoryStorage      bool
+	MessageTypeTriggers        bool
 	AutoApprove                bool
 	TempDir                    string
 	SkipUpdateMapNameToIdFiles bool
@@ -129,6 +130,7 @@ type AffectedAssets struct {
 	AllExternalDatabases  bool
 	AllBucketSets         bool
 	AllSecrets            bool
+	MessageTypeTriggers   bool
 	DeviceSchema          bool
 	UserSchema            bool
 	EdgeSchema            bool
@@ -212,6 +214,7 @@ func createAffectedAssets() AffectedAssets {
 		BucketSetBoxName:      BucketSetBoxName,
 		BucketSetFileName:     BucketSetFileName,
 		MessageHistoryStorage: MessageHistoryStorage,
+		MessageTypeTriggers:   MessageTypeTriggers,
 	}
 }
 

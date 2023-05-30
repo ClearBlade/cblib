@@ -60,6 +60,7 @@ func init() {
 	pullCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "pull all files from all bucket sets from system")
 	pullCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "pull all user secrets from system")
 	pullCommand.flags.BoolVar(&MessageHistoryStorage, "message-history-storage", false, "pull message history storage from system")
+	pullCommand.flags.BoolVar(&MessageTypeTriggers, "message-type-triggers", false, "pull message type triggers from system")
 
 	pullCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to pull")
 	pullCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to pull")
