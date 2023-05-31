@@ -845,6 +845,7 @@ func pushMessageHistoryStorage(systemInfo *types.System_meta, client *cb.DevClie
 }
 
 func pushMessageTypeTriggers(systemInfo *types.System_meta, client *cb.DevClient) error {
+	fmt.Println("Pushing message type triggers")
 	msgTypeTriggers, err := getMessageTypeTriggers()
 	if err != nil {
 		return err
