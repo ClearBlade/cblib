@@ -855,6 +855,11 @@ func pushMessageTypeTriggers(systemInfo *types.System_meta, client *cb.DevClient
 		return err
 	}
 
+	if len(msgTypeTriggers) == 0 {
+		// if there aren't any message type triggers, just return. the platform returns an error an empty array is POSTed
+		return nil
+	}
+
 	err = client.AddMessageTypeTriggers(systemInfo.Key, msgTypeTriggers)
 	if err != nil {
 		return err

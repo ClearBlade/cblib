@@ -53,7 +53,7 @@ var (
 	secretsDir               string
 	cliHiddenDir             string
 	mapNameToIdDir           string
-	arrDir                   [23]string //this is used to set up the directory structure for a system
+	arrDir                   [24]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -108,6 +108,7 @@ func SetRootDir(theRootDir string) {
 	arrDir[20] = bucketSetsDir
 	arrDir[21] = bucketSetFiles.BucketSetFilesDir
 	arrDir[22] = secretsDir
+	arrDir[23] = messageTypeTriggersDir
 }
 
 func setupDirectoryStructure() error {
