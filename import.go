@@ -754,6 +754,12 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 		}
 	}
 
+	logInfo("Importing shared caches...")
+	if _, err := createServiceCaches(config, systemInfo, cli); err != nil {
+		//  Don't return an err, just warn -- so we keep back compat with old systems
+		fmt.Printf("Could not create shared caches: %s", err.Error())
+	}
+
 	logInfo("Importing code services...")
 	// Additonal modifications to the ImportIt functions
 	if err := createServices(config, systemInfo, cli); err != nil {
@@ -819,11 +825,6 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
 
-	logInfo("Importing shared caches...")
-	if _, err := createServiceCaches(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create shared caches: %s", err.Error())
-	}
 
 	logInfo("Importing webhooks...")
 	if _, err := createWebhooks(config, systemInfo, cli); err != nil {
