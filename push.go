@@ -138,7 +138,18 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	diff := getDiffForColumns(localSchema, userColumns, DefaultUserColumns)
+	var defaultUserColumns []string
+	for col := range userColumns {
+
+		if !userColumns[col].(map[string]interface{})["UserDefined"].(bool) {
+
+			defaultUserColumns = append(defaultUserColumns, userColumns[col].(map[string]interface{})["ColumnName"].(string))
+
+		}
+
+	}
+
+	diff := getDiffForColumns(localSchema, userColumns, defaultUserColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
