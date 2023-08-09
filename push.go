@@ -1299,7 +1299,18 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := getDiffForColumns(localSchema, backendSchema, DefaultCollectionColumns)
+	var defaultCollectionColumns []string
+	for col := range backendSchema {
+
+		if !backendSchema[col].(map[string]interface{})["UserDefined"].(bool) {
+
+			defaultCollectionColumns = append(defaultCollectionColumns, backendSchema[col].(map[string]interface{})["ColumnName"].(string))
+
+		}
+
+	}
+
+	diff := getDiffForColumns(localSchema, backendSchema, defaultCollectionColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := cli.DeleteColumn(collID, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
