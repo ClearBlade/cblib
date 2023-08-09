@@ -192,7 +192,18 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	diff := getDiffForColumns(typedLocalSchema, allEdgeColumns, DefaultEdgeColumns)
+	var defaultEdgeColumns []string
+	for col := range allEdgeColumns {
+
+		if !allEdgeColumns[col].(map[string]interface{})["UserDefined"].(bool) {
+
+			defaultEdgeColumns = append(defaultEdgeColumns, allEdgeColumns[col].(map[string]interface{})["ColumnName"].(string))
+
+		}
+
+	}
+
+	diff := getDiffForColumns(typedLocalSchema, allEdgeColumns, defaultEdgeColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
