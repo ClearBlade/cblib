@@ -223,7 +223,18 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := getDiffForColumns(localSchema, allDeviceColumns, DefaultDeviceColumns)
+	var defaultDeviceColumns []string
+	for col := range allDeviceColumns {
+
+		if !allDeviceColumns[col].(map[string]interface{})["UserDefined"].(bool) {
+
+			defaultDeviceColumns = append(defaultDeviceColumns, allDeviceColumns[col].(map[string]interface{})["ColumnName"].(string))
+
+		}
+
+	}
+
+	diff := getDiffForColumns(localSchema, allDeviceColumns, defaultDeviceColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
