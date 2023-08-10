@@ -138,7 +138,6 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	var defaultUserColumns []string
 	for col := range userColumns {
 
 		if !userColumns[col].(map[string]interface{})["UserDefined"].(bool) {
@@ -192,7 +191,6 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	var defaultEdgeColumns []string
 	for col := range allEdgeColumns {
 
 		if !allEdgeColumns[col].(map[string]interface{})["UserDefined"].(bool) {
@@ -234,7 +232,6 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	var defaultDeviceColumns []string
 	for col := range allDeviceColumns {
 
 		if !allDeviceColumns[col].(map[string]interface{})["UserDefined"].(bool) {
@@ -1299,7 +1296,6 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	var defaultCollectionColumns []string
 	for col := range backendSchema {
 
 		if !backendSchema[col].(map[string]interface{})["UserDefined"].(bool) {

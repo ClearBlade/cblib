@@ -20,6 +20,13 @@ const (
 )
 
 var (
+	defaultUserColumns       []string
+	defaultCollectionColumns []string
+	defaultDeviceColumns     []string
+	defaultEdgeColumns       []string
+)
+
+var (
 	URL                        string
 	MsgURL                     string
 	SystemKey                  string

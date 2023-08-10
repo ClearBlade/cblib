@@ -608,10 +608,10 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 		return nil, err
 	}
 	columns := []map[string]interface{}{}
-	sort.Strings(DefaultEdgeColumns)
+	sort.Strings(defaultEdgeColumns)
 	for _, colIF := range resp {
 		col := colIF.(map[string]interface{})
-		if isDefaultColumn(DefaultEdgeColumns, col["ColumnName"].(string)) {
+		if isDefaultColumn(defaultEdgeColumns, col["ColumnName"].(string)) {
 			continue
 		} else {
 			columns = append(columns, col)
@@ -634,7 +634,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 		return nil, err
 	}
 	columns := []map[string]interface{}{}
-	sort.Strings(DefaultDeviceColumns)
+	sort.Strings(defaultDeviceColumns)
 	for _, colIF := range deviceCustomColumns {
 		col := colIF.(map[string]interface{})
 		switch strings.ToLower(col["ColumnName"].(string)) {
