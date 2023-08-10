@@ -2098,7 +2098,15 @@ func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevCli
 	for columnName, value := range edge {
 		switch strings.ToLower(columnName) {
 		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
-			originalColumns[columnName] = value
+
+			//We need to make sure there are valid values in the JSON to prevent an error when creating or updating edges:
+			//
+			//[[message:Create Edge: Bad type for key 'resolver_func'] statusCode:500]
+			if value == nil || value == "null" {
+				originalColumns[columnName] = ""
+			} else {
+				originalColumns[columnName] = value
+			}
 			break
 		default:
 			customColumns[columnName] = value
@@ -2583,7 +2591,15 @@ func createEdge(systemKey, name string, edge map[string]interface{}, client *cb.
 	for columnName, value := range edge {
 		switch strings.ToLower(columnName) {
 		case "system_key", "system_secret", "token", "description", "location", "mac_address", "policy_name", "resolver_func", "sync_edge_tables", "last_seen_version":
-			originalColumns[columnName] = value
+			//We need to make sure there are valid values in the JSON to prevent an error when creating or updating edges:
+			//
+			//[[message:Create Edge: Bad type for key 'resolver_func'] statusCode:500]
+			if value == nil || value == "null" {
+				originalColumns[columnName] = ""
+			} else {
+				originalColumns[columnName] = value
+			}
+			break
 		default:
 			if value != nil {
 				customColumns[columnName] = value

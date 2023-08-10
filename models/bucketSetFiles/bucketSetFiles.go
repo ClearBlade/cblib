@@ -70,16 +70,25 @@ func PullFiles(systemInfo *types.System_meta, client *cb.DevClient, bucketSetNam
 			return err
 		}
 
-		fileContents, err := client.ReadBucketSetFile(systemInfo.Key, bucketSetName, fileMeta.BucketName, fileMeta.RelativeName)
-		if err != nil {
-			return err
-		}
+		//the fileMeta structure contains entries for folders. These cause the client.ReadBucketSetFile API call to fail with an error:
+		//
+		//[ERROR] Failed to pull all bucket set files. map[error:map[detail:storage: object doesn't exist id:5a65c441-e7f1-47bc-8e07-753ea81dc9e2
+		// line:clearblade/bucket_sets/api.go:171 message:storage: object doesn't exist] statusCode:500]
+		//
+		//We therefore need to ensure we are dealing with a file (size > 0).
+		//
+		//We need to ensure all other fields are not empty to avoid a panic: panic: interface conversion: interface {} is nil, not string
+		if bucketSetName != "" && fileMeta.BucketName != "" && fileMeta.RelativeName != "" && fileMeta.Size > 0 {
+			fileContents, err := client.ReadBucketSetFile(systemInfo.Key, bucketSetName, fileMeta.BucketName, fileMeta.RelativeName)
+			if err != nil {
+				return err
+			}
 
-		err = writeBucketSetFile(bucketSetName, fileMeta, fileContents)
-		if err != nil {
-			return err
+			err = writeBucketSetFile(bucketSetName, fileMeta, fileContents)
+			if err != nil {
+				return err
+			}
 		}
-
 	}
 
 	return nil
