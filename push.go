@@ -122,6 +122,22 @@ func pushOneService(systemInfo *types.System_meta, client *cb.DevClient, name st
 	return updateServiceWithRunAs(systemInfo.Key, name, service, client)
 }
 
+func getDefaultColumns(allColumns []interface{}) []string {
+
+	var defaultColumns []string
+	for col := range allColumns {
+
+		if !allColumns[col].(map[string]interface{})["UserDefined"].(bool) {
+
+			defaultColumns = append(defaultColumns, allColumns[col].(map[string]interface{})["ColumnName"].(string))
+
+		}
+
+	}
+
+	return defaultColumns
+}
+
 func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing user schema\n")
 	userschema, err := getUserSchema()
@@ -138,17 +154,7 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	for col := range userColumns {
-
-		if !userColumns[col].(map[string]interface{})["UserDefined"].(bool) {
-
-			defaultUserColumns = append(defaultUserColumns, userColumns[col].(map[string]interface{})["ColumnName"].(string))
-
-		}
-
-	}
-
-	diff := getDiffForColumns(localSchema, userColumns, defaultUserColumns)
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, userColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
@@ -162,9 +168,15 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	return nil
 }
 
-func getDiffForColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *UnsafeDiff {
+func getDiffForColumnsWithStaticListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *UnsafeDiff {
 	return compareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
 		return !isDefaultColumn(defaultColumns, a.(map[string]interface{})["ColumnName"].(string))
+	})
+}
+
+func getDiffForColumnsWithDynamicListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}) *UnsafeDiff {
+	return compareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
+		return a.(map[string]interface{})["UserDefined"].(bool)
 	})
 }
 
@@ -191,17 +203,7 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	for col := range allEdgeColumns {
-
-		if !allEdgeColumns[col].(map[string]interface{})["UserDefined"].(bool) {
-
-			defaultEdgeColumns = append(defaultEdgeColumns, allEdgeColumns[col].(map[string]interface{})["ColumnName"].(string))
-
-		}
-
-	}
-
-	diff := getDiffForColumns(typedLocalSchema, allEdgeColumns, defaultEdgeColumns)
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, allEdgeColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
@@ -232,17 +234,7 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	for col := range allDeviceColumns {
-
-		if !allDeviceColumns[col].(map[string]interface{})["UserDefined"].(bool) {
-
-			defaultDeviceColumns = append(defaultDeviceColumns, allDeviceColumns[col].(map[string]interface{})["ColumnName"].(string))
-
-		}
-
-	}
-
-	diff := getDiffForColumns(localSchema, allDeviceColumns, defaultDeviceColumns)
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, allDeviceColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
@@ -1296,17 +1288,7 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	for col := range backendSchema {
-
-		if !backendSchema[col].(map[string]interface{})["UserDefined"].(bool) {
-
-			defaultCollectionColumns = append(defaultCollectionColumns, backendSchema[col].(map[string]interface{})["ColumnName"].(string))
-
-		}
-
-	}
-
-	diff := getDiffForColumns(localSchema, backendSchema, defaultCollectionColumns)
+	diff := getDiffForColumnsWithStaticListOfDefaultColumns(localSchema, backendSchema, DefaultCollectionColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := cli.DeleteColumn(collID, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())

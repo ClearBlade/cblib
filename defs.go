@@ -19,12 +19,7 @@ const (
 	DataPageSizeDefault    = 100
 )
 
-var (
-	defaultUserColumns       []string
-	defaultCollectionColumns []string
-	defaultDeviceColumns     []string
-	defaultEdgeColumns       []string
-)
+var DefaultCollectionColumns = []string{"item_id"}
 
 var (
 	URL                        string
