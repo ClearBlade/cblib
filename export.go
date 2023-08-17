@@ -617,15 +617,6 @@ func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[s
 		return nil, err
 	}
 	columns := getUserDefinedColumns(resp)
-	/*sort.Strings(defaultEdgeColumns)
-	for _, colIF := range resp {
-		col := colIF.(map[string]interface{})
-		if isDefaultColumn(defaultEdgeColumns, col["ColumnName"].(string)) {
-			continue
-		} else {
-			columns = append(columns, col)
-		}
-	}*/
 	schema := map[string]interface{}{
 		"columns": columns,
 	}
@@ -643,16 +634,6 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 		return nil, err
 	}
 	columns := getUserDefinedColumns(deviceCustomColumns)
-	/*sort.Strings(defaultDeviceColumns)
-	for _, colIF := range deviceCustomColumns {
-		col := colIF.(map[string]interface{})
-		switch strings.ToLower(col["ColumnName"].(string)) {
-		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt", "cb_service_account", "cb_token", "cb_ttl_override":
-			continue
-		default:
-			columns = append(columns, col)
-		}
-	}*/
 	schema := map[string]interface{}{
 		"columns": columns,
 	}

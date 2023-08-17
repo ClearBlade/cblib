@@ -271,10 +271,6 @@ func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
 	}
 	local := []interface{}{}
 
-	//diff := getDiffForColumns(local, backend, DefaultEdgeColumns)
-
-	//var defaultEdgeColumns =
-
 	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 
 	if len(diff.Removed) != 0 {
