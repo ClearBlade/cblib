@@ -155,24 +155,27 @@ func TestFindDiff_NoDefaultColumns(test *testing.T) {
 	removeColName := "test2"
 	local := []interface{}{
 		map[string]interface{}{
-			"ColumnName": "test",
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  "test",
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 	}
 	backend := []interface{}{
 		map[string]interface{}{
-			"ColumnName": "test",
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  "test",
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 		map[string]interface{}{
-			"ColumnName": removeColName,
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  removeColName,
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 	}
-	diff := getDiffForColumns(local, backend, []string{})
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 	if len(diff.Removed) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.Removed))
 	}
@@ -189,45 +192,51 @@ func TestFindDiff_WithDefaultColumns(test *testing.T) {
 	addColName := "test3"
 	local := []interface{}{
 		map[string]interface{}{
-			"ColumnName": "user_id",
-			"ColumnType": "string",
-			"PK":         true,
+			"ColumnName":  "user_id",
+			"ColumnType":  "string",
+			"PK":          true,
+			"UserDefined": false,
 		},
 		map[string]interface{}{
-			"ColumnName": "test",
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  "test",
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 		map[string]interface{}{
-			"ColumnName": addColName,
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  addColName,
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 	}
 	backend := []interface{}{
 		map[string]interface{}{
-			"ColumnName": "user_id",
-			"ColumnType": "string",
-			"PK":         true,
+			"ColumnName":  "user_id",
+			"ColumnType":  "string",
+			"PK":          true,
+			"UserDefined": false,
 		},
 		map[string]interface{}{
-			"ColumnName": "creation_date",
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  "creation_date",
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": false,
 		},
 		map[string]interface{}{
-			"ColumnName": "test",
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  "test",
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 		map[string]interface{}{
-			"ColumnName": removeColName,
-			"ColumnType": "string",
-			"PK":         false,
+			"ColumnName":  removeColName,
+			"ColumnType":  "string",
+			"PK":          false,
+			"UserDefined": true,
 		},
 	}
-	defaultColumns := []string{"user_id", "creation_date"}
-	diff := getDiffForColumns(local, backend, defaultColumns)
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 	if len(diff.Removed) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.Removed))
 	}
@@ -258,11 +267,11 @@ func Test_IsDefaultColumn(t *testing.T) {
 
 func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
 	backend := []interface{}{
-		map[string]interface{}{"ColumnName": "edge_key", "ColumnType": "string", "PK": true}, map[string]interface{}{"ColumnName": "novi_system_key", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "system_key", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "system_secret", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "token", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "name", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "description", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "location", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "mac_address", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "public_addr", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "public_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "local_addr", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "local_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_tls_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_ws_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_wss_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_auth_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "broker_ws_auth_port", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "first_talked", "ColumnType": "bigint", "PK": false}, map[string]interface{}{"ColumnName": "last_talked", "ColumnType": "bigint", "PK": false}, map[string]interface{}{"ColumnName": "communication_style", "ColumnType": "int", "PK": false}, map[string]interface{}{"ColumnName": "last_seen_version", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "policy_name", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "resolver_func", "ColumnType": "string", "PK": false}, map[string]interface{}{"ColumnName": "sync_edge_tables", "ColumnType": "string", "PK": false},
+		map[string]interface{}{"ColumnName": "edge_key", "ColumnType": "string", "PK": true, "UserDefined": false}, map[string]interface{}{"ColumnName": "novi_system_key", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "system_key", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "system_secret", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "token", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "name", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "description", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "location", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "mac_address", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "public_addr", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "public_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "local_addr", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "local_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_tls_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_ws_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_wss_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_auth_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_ws_auth_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "first_talked", "ColumnType": "bigint", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "last_talked", "ColumnType": "bigint", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "communication_style", "ColumnType": "int", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "last_seen_version", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "policy_name", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "resolver_func", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "sync_edge_tables", "ColumnType": "string", "PK": false, "UserDefined": false},
 	}
 	local := []interface{}{}
 
-	diff := getDiffForColumns(local, backend, DefaultEdgeColumns)
+	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 
 	if len(diff.Removed) != 0 {
 		t.Errorf("Expected to remove 0 elements but got %d elements", len(diff.Removed))

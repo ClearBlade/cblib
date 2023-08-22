@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
 
@@ -602,21 +601,22 @@ func PullEdges(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]inte
 	return list, nil
 }
 
+func getUserDefinedColumns(columns []interface{}) []interface{} {
+	var userDefinedColumns []interface{}
+	for col := range columns {
+		if columns[col].(map[string]interface{})["UserDefined"].(bool) {
+			userDefinedColumns = append(userDefinedColumns, columns[col].(map[string]interface{}))
+		}
+	}
+	return userDefinedColumns
+}
+
 func pullEdgesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map[string]interface{}, error) {
 	resp, err := cli.GetEdgeColumns(systemKey)
 	if err != nil {
 		return nil, err
 	}
-	columns := []map[string]interface{}{}
-	sort.Strings(DefaultEdgeColumns)
-	for _, colIF := range resp {
-		col := colIF.(map[string]interface{})
-		if isDefaultColumn(DefaultEdgeColumns, col["ColumnName"].(string)) {
-			continue
-		} else {
-			columns = append(columns, col)
-		}
-	}
+	columns := getUserDefinedColumns(resp)
 	schema := map[string]interface{}{
 		"columns": columns,
 	}
@@ -633,17 +633,7 @@ func pullDevicesSchema(systemKey string, cli *cb.DevClient, writeThem bool) (map
 	if err != nil {
 		return nil, err
 	}
-	columns := []map[string]interface{}{}
-	sort.Strings(DefaultDeviceColumns)
-	for _, colIF := range deviceCustomColumns {
-		col := colIF.(map[string]interface{})
-		switch strings.ToLower(col["ColumnName"].(string)) {
-		case "device_key", "name", "system_key", "type", "state", "description", "enabled", "allow_key_auth", "active_key", "keys", "allow_certificate_auth", "certificate", "created_date", "last_active_date", "salt", "cb_service_account", "cb_token", "cb_ttl_override":
-			continue
-		default:
-			columns = append(columns, col)
-		}
-	}
+	columns := getUserDefinedColumns(deviceCustomColumns)
 	schema := map[string]interface{}{
 		"columns": columns,
 	}

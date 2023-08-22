@@ -138,14 +138,7 @@ func pullUserSchemaInfo(systemKey string, cli *cb.DevClient, writeThem bool) (ma
 	if err != nil {
 		return nil, err
 	}
-	columns := []map[string]interface{}{}
-	for _, colIF := range resp {
-		col := colIF.(map[string]interface{})
-		if isInList(userColumnsToSkip, col["ColumnName"].(string)) {
-			continue
-		}
-		columns = append(columns, col)
-	}
+	columns := getUserDefinedColumns(resp)
 	schema := map[string]interface{}{
 		"columns": columns,
 	}
