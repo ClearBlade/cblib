@@ -93,6 +93,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
+	pushCommand.flags.StringVar(&Path, "diff", "", "Path of the diff.json file to be used for pushing code services and libraries")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -1025,6 +1026,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if CollectionId != "" {
 		didSomething = true
 		if err := pushOneCollectionById(systemInfo, client, CollectionId); err != nil {
+			return err
+		}
+	}
+
+	if Path != "" {
+		didSomething = true
+		if err := pushDiffServices(systemInfo, Path, client); err != nil {
 			return err
 		}
 	}
@@ -2746,4 +2754,46 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		}
 	}
 	return nil
+}
+
+func pushServicesFromSlice(systemInfo *types.System_meta, services []string, client *cb.DevClient) error {
+	for _, service := range services {
+		if err := pushOneService(systemInfo, client, service); err != nil {
+			return err;
+		}
+	}
+
+	return nil;
+}
+
+func pushLibrariesFromSlice(systemInfo *types.System_meta, libraries []string, client *cb.DevClient) error {
+	for _, library := range libraries {
+		if err := pushOneLibrary(systemInfo, client, library); err != nil {
+			return err;
+		}
+	}
+
+	return nil;
+}
+
+func pushDiffServices(systemInfo *types.System_meta, diffPath string, client *cb.DevClient) error {
+	var mp map[string][]string;
+
+	mp = readDataFromJSONDiffFile(diffPath);
+
+	logInfo("Pushing services")
+
+	if err := pushServicesFromSlice(systemInfo, mp["services"], client); err != nil {
+		return err;
+	}
+
+	logInfo("Pushing libraries")
+
+	if err := pushLibrariesFromSlice(systemInfo, mp["libraries"], client); err != nil {
+		return err;
+	}
+
+	logInfo("Successfully pushed the services and libraries")
+
+	return nil;
 }
