@@ -1497,3 +1497,25 @@ func fileExists(name string) bool {
 	}
 	return true
 }
+
+func storeDataInJSONFile(data map[string]interface{}, path string, fileName string) error {
+	marshalled, err := json.MarshalIndent(data, "", "  ");
+
+	if err != nil {
+		fmt.Println("Error marshalling data ", err);
+		return err;
+	}
+
+	relativePath := ".";
+
+	if len(path) > 0 {
+		relativePath = path;
+	}
+
+	if err = ioutil.WriteFile(relativePath+"/"+fileName, marshalled, 0666); err != nil {
+		fmt.Println("Could not write to json file");
+		return err;
+	}
+
+	return nil;
+}

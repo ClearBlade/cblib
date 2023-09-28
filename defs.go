@@ -96,6 +96,7 @@ var (
 	AutoApprove                bool
 	TempDir                    string
 	SkipUpdateMapNameToIdFiles bool
+	Path                       string
 )
 
 var (
