@@ -3,6 +3,7 @@ package cblib
 import (
 	"fmt"
 	"io/ioutil"
+	"reflect"
 
 	cb "github.com/clearblade/Go-SDK"
 )
@@ -83,26 +84,35 @@ func getDiffEntity(systemKey string, entityType string, client *cb.DevClient) ([
 
 	for _, entity := range entities {
 		fmt.Print(entity.Name() + " ");
-		entityPath := rootPath+"/"+entity.Name()+"/"+entity.Name()
 
-		localEntityCode, err := ioutil.ReadFile(entityPath+".js");
-		if err != nil {
-			return nil,err;
-		}
-
-		var remoteEntityCode map[string]interface{}
+		var localEntityObj map[string]interface{}
+		var err error
 
 		if(entityType == "libraries") {
-			remoteEntityCode, err = pullLibrary(systemKey, entity.Name(), client)
+			localEntityObj, err = getLibrary(entity.Name());
 		} else {
-			remoteEntityCode, err = pullService(systemKey, entity.Name(), client)
+			localEntityObj, err = getService(entity.Name())
 		}
 
 		if err != nil {
 			return nil, err;
 		}
 
-		if string(localEntityCode) != remoteEntityCode["code"] {
+		var remoteEntityObj map[string]interface{}
+
+		if(entityType == "libraries") {
+			remoteEntityObj, err = pullLibrary(systemKey, entity.Name(), client)
+		} else {
+			remoteEntityObj, err = pullService(systemKey, entity.Name(), client)
+		}
+
+		if err != nil {
+			return nil, err;
+		}
+
+		localEntityObj, remoteEntityObj = keepCommonKeysFromMaps(localEntityObj, remoteEntityObj)
+
+		if !reflect.DeepEqual(localEntityObj, remoteEntityObj) {
 			diffEntities = append(diffEntities, entity.Name())
 		}
 
