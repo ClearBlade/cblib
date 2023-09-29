@@ -27,7 +27,7 @@ func init() {
 		example:   example,
 	}
 	
-	generateDiffCommand.flags.StringVar(&Path, "path", "", "Path where diff file will be created")
+	generateDiffCommand.flags.StringVar(&PathForDiffFile, "path", "", "Relative path where diff file will be created")
 	AddCommand("diff", generateDiffCommand)
 }
 
@@ -60,7 +60,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
 
-	err = storeDataInJSONFile(dataMap, Path, "diff.json");
+	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
 
 	if err != nil {
 		return err
@@ -107,7 +107,9 @@ func getDiffEntity(systemKey string, entityType string, client *cb.DevClient) ([
 		}
 
 		if err != nil {
-			return nil, err;
+			// this entity is not present in the system, but is present locally. Therefore, adding this entity to the diff
+			diffEntities = append(diffEntities, entity.Name());
+			continue;
 		}
 
 		localEntityObj, remoteEntityObj = keepCommonKeysFromMaps(localEntityObj, remoteEntityObj)

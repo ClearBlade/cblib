@@ -93,7 +93,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
-	pushCommand.flags.StringVar(&Path, "diff", "", "Path of the diff.json file to be used for pushing code services and libraries")
+	pushCommand.flags.StringVar(&PathForDiffFile, "diff", "", "Relative path of the diff.json file to be used for pushing code services and libraries")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -1030,9 +1030,9 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if Path != "" {
+	if PathForDiffFile != "" {
 		didSomething = true
-		if err := pushDiffServices(systemInfo, Path, client); err != nil {
+		if err := pushDiffServices(systemInfo, PathForDiffFile, client); err != nil {
 			return err
 		}
 	}
