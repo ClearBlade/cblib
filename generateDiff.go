@@ -2,7 +2,6 @@ package cblib
 
 import (
 	"fmt"
-	"io/ioutil"
 	"reflect"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -43,14 +42,14 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	}
 
 	logInfo("Diffing libraries:");
-	diffLibraries, err := getDiffEntity(systemInfo.Key, "libraries", client);
+	diffLibraries, err := getLibrariesDiff(systemInfo.Key, client);
 
 	if err != nil {
 		return err;
 	}
 
 	logInfo("Diffing services:");
-	diffServices, err := getDiffEntity(systemInfo.Key, "services", client);
+	diffServices, err := getServicesDiff(systemInfo.Key, client);
 
 	if err != nil {
 		return err;
@@ -70,56 +69,69 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	return nil;
 }
 
-func getDiffEntity(systemKey string, entityType string, client *cb.DevClient) ([]string, error) {
-	diffEntities := []string{}
+func getLibrariesDiff(systemKey string, client *cb.DevClient) ([]string, error) {
+	librariesDiff := []string{}
 
-	rootPath := "./code/" + entityType;
-
-	entities, err := ioutil.ReadDir(rootPath);
+	localLibraries, err := getLibraries()
 
 	if err != nil {
-		fmt.Println("error reading directory ", err);
-		return  nil,err;
+		return nil, err
 	}
 
-	for _, entity := range entities {
-		fmt.Print(entity.Name() + " ");
+	for _, localLibrary := range localLibraries {
+		localLibraryName := localLibrary["name"].(string)
 
-		var localEntityObj map[string]interface{}
-		var err error
+		fmt.Printf(localLibraryName + " ");
 
-		if(entityType == "libraries") {
-			localEntityObj, err = getLibrary(entity.Name());
-		} else {
-			localEntityObj, err = getService(entity.Name())
-		}
+		remoteLibrary, err := pullLibrary(systemKey, localLibraryName, client)
 
 		if err != nil {
-			return nil, err;
+			librariesDiff = append(librariesDiff, localLibraryName)
+			continue
 		}
 
-		var remoteEntityObj map[string]interface{}
+		localLibrary, remoteLibrary = keepCommonKeysFromMaps(localLibrary, remoteLibrary)
 
-		if(entityType == "libraries") {
-			remoteEntityObj, err = pullLibrary(systemKey, entity.Name(), client)
-		} else {
-			remoteEntityObj, err = pullService(systemKey, entity.Name(), client)
+		if !reflect.DeepEqual(localLibrary, remoteLibrary) {
+			librariesDiff = append(librariesDiff, localLibraryName)
 		}
-
-		if err != nil {
-			// this entity is not present in the system, but is present locally. Therefore, adding this entity to the diff
-			diffEntities = append(diffEntities, entity.Name());
-			continue;
-		}
-
-		localEntityObj, remoteEntityObj = keepCommonKeysFromMaps(localEntityObj, remoteEntityObj)
-
-		if !reflect.DeepEqual(localEntityObj, remoteEntityObj) {
-			diffEntities = append(diffEntities, entity.Name())
-		}
-
 	}
+
+	fmt.Println(librariesDiff)
+
 	fmt.Printf("\n")
+	return librariesDiff, nil
+}
 
-	return diffEntities, nil;
+func getServicesDiff(systemKey string, client *cb.DevClient) ([]string, error) {
+	servicesDiff := []string{}
+
+	localServices, err := getServices()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, localService := range localServices {
+		localServiceName := localService["name"].(string)
+
+		fmt.Printf(localServiceName + " ");
+
+		remoteService, err := pullService(systemKey, localServiceName, client)
+
+		if err != nil {
+			servicesDiff = append(servicesDiff, localServiceName)
+			continue
+		}
+
+		localService, remoteService = keepCommonKeysFromMaps(localService, remoteService)
+
+		if !reflect.DeepEqual(localService, remoteService) {
+			servicesDiff = append(servicesDiff, localServiceName)
+		}
+	}
+
+	fmt.Println(servicesDiff)
+	fmt.Printf("\n")
+	return servicesDiff, nil
 }
