@@ -55,8 +55,15 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
-	logInfo("Diffing devices and deviceRoles:");
+	logInfo("Diffing devices, deviceRoles and deviceSchema:");
 	diffDevices, diffDeviceRoles, diffDeviceSchema, err := getDevicesDiff(systemInfo.Key, client);
+
+	if err != nil {
+		return err;
+	}
+
+	logInfo("Diffing edges:");
+	diffEdges, diffEdgesSchema, err := getEdgesDiff(systemInfo.Key, client);
 
 	if err != nil {
 		return err;
@@ -68,6 +75,8 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["devices"] = diffDevices;
 	dataMap["devicesRoles"] = diffDeviceRoles;
 	dataMap["deviceSchema"] = diffDeviceSchema;
+	dataMap["edges"] = diffEdges;
+	dataMap["edgesSchema"] = diffEdgesSchema;
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
 
@@ -200,20 +209,80 @@ func getDevicesDiff(systemKey string, client *cb.DevClient) ([]string, []string,
 		return nil, nil, false, err;
 	}
 
-	if !areLocalAndRemoteDeviceSchemaEqual(localDeviceSchema, remoteDeviceSchema) {
+	if !areLocalAndRemoteSchemaEqual(localDeviceSchema, remoteDeviceSchema) {
 		return devicesDiff, deviceRolesDiff, true, nil;
 	} else {
 		return devicesDiff, deviceRolesDiff, false, err
 	}
 }
 
-func areLocalAndRemoteDeviceSchemaEqual(localDeviceSchema map[string]interface{}, remoteDeviceSchema map[string]interface{}) bool {
-	// we need this util function because localDeviceSchema has entry like map[columns:<nil>] to show that there are no columns
-  // whereas remoteDeviceSchema has entry like map[columns:[]] to show that there are no columns
+func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error) {
+	edgesDiff := []string{}
 
-	if localDeviceSchema["columns"] == nil && len(remoteDeviceSchema["columns"].([]interface{})) == 0 {
+	localEdges, err := getEdges()
+	if err != nil {
+		return nil, false, err;
+	}
+
+	// had to use pullAllEdges instead of pullEdge inside the for loop because pullEdge lacked some information
+	// like last_connect, last_disconnect
+	remoteEdges, err := pullAllEdges(systemKey, client)
+	if err != nil {
+		return nil, false, err;
+	}
+
+	for _, localEdge := range localEdges {
+		localEdgeName := localEdge["name"].(string);
+
+		remoteEdge := getCorrespondingRemoteEdge(localEdgeName, remoteEdges)
+
+		if remoteEdge == nil {
+			// remoteEdge not present. Add this into diff
+			edgesDiff = append(edgesDiff, localEdgeName);
+			continue;
+		}
+
+		localEdge, remoteEdge = keepCommonKeysFromMaps(localEdge, remoteEdge.(map[string]interface{}))
+
+		if !reflect.DeepEqual(localEdge, remoteEdge) {
+			edgesDiff = append(edgesDiff, localEdgeName)
+		}
+	}
+
+	localEdgesSchema, err := getEdgesSchema()
+	if err != nil {
+		return nil, false, err;
+	}
+
+	remoteEdgesSchema, err := pullEdgesSchema(systemKey, client, false)
+	if err != nil {
+		return nil, false, err;
+	}
+
+	if !areLocalAndRemoteSchemaEqual(localEdgesSchema, remoteEdgesSchema) {
+		return edgesDiff, true, nil;
+	} else {
+		return edgesDiff, false, err
+	}
+}
+
+func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {
+	// we need this util function because localSchema has entry like map[columns:<nil>] to show that there are no columns
+  // whereas remoteSchema has entry like map[columns:[]] to show that there are no columns
+
+	if localSchema["columns"] == nil && len(remoteSchema["columns"].([]interface{})) == 0 {
 		return true;
 	} else {
-		return reflect.DeepEqual(localDeviceSchema["columns"], remoteDeviceSchema["columns"])
+		return reflect.DeepEqual(localSchema["columns"], remoteSchema["columns"])
 	}
+}
+
+func getCorrespondingRemoteEdge(name string, arr []interface{}) interface{} {
+	for _, val := range arr {
+		if val.(map[string]interface{})["name"] == name {
+			return val;
+		}
+	}
+
+	return nil;
 }
