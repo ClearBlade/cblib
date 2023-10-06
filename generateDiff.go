@@ -91,6 +91,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err
 	}
 
+	logInfo("Diffing webhooks:");
+	diffWebhooks, err := getWebhooksDiff(systemInfo, client)
+
+	if err != nil {
+		return err
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -104,6 +111,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["users"] = diffUsers;
 	dataMap["userRoles"] = diffUserRoles;
 	dataMap["userSchema"] = diffUserSchema;
+	dataMap["webhooks"] = diffWebhooks;
 
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
@@ -420,6 +428,37 @@ func getUsersDiff(systemKey string, client *cb.DevClient) ([]string, []string, b
 	diffUserSchema := !areLocalAndRemoteSchemaEqual(localUserSchema, remoteUserSchema)
 
 	return usersDiff, userRolesDiff, diffUserSchema, nil;
+}
+
+func getWebhooksDiff(systemInfo *types.System_meta, client *cb.DevClient) ([]string, error) {
+	webhooksDiff := []string{}
+	localWebhooks, err := getWebhooks()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, localWebhook := range localWebhooks {
+		localWebhookName := localWebhook["name"].(string)
+		
+		fmt.Printf(localWebhookName + " ");
+		
+		remoteWebhook, err := pullAndWriteWebhook(systemInfo, client, localWebhookName, false)
+
+		if err != nil {
+			// this webhook is not present in the remote system. Add it to the diff
+			webhooksDiff = append(webhooksDiff, localWebhookName)
+			continue;
+		}
+
+		localWebhook, remoteWebhook = keepCommonKeysFromMaps(localWebhook, remoteWebhook)
+
+		if !reflect.DeepEqual(localWebhook, remoteWebhook) {
+			webhooksDiff = append(webhooksDiff, localWebhookName)
+		}
+	}
+
+	return webhooksDiff, nil;
 }
 
 func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {

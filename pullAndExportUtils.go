@@ -368,7 +368,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.WebhookName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling webhook %+s\n", WebhookName))
-		if _, err := pullAndWriteWebhook(systemInfo, client, WebhookName); err != nil {
+		if _, err := pullAndWriteWebhook(systemInfo, client, WebhookName, true); err != nil {
 			logError(fmt.Sprintf("Failed to pull webhook. %s", err.Error()))
 		}
 		fmt.Printf("\n")

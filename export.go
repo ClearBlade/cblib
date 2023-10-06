@@ -534,13 +534,15 @@ func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name stri
 	return sec, nil
 }
 
-func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string, write bool) (map[string]interface{}, error) {
 	hook, err := cli.GetWebhook(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	if err = writeWebhook(hook["name"].(string), hook); err != nil {
-		return nil, err
+	if write {
+		if err = writeWebhook(hook["name"].(string), hook); err != nil {
+			return nil, err
+		}
 	}
 	return hook, nil
 }
