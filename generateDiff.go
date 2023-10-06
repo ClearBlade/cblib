@@ -77,6 +77,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
+	logInfo("Diffing timers:");
+	diffTimers, err := getTimersDiff(systemInfo.Key, client)
+
+	if err != nil {
+		return err;
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -86,6 +93,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["edges"] = diffEdges;
 	dataMap["edgesSchema"] = diffEdgesSchema;
 	dataMap["sharedCaches"] = diffSharedCaches;
+	dataMap["timers"] = diffTimers
 
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
@@ -306,6 +314,37 @@ func getSharedCacheDiff(systemInfo *types.System_meta, client *cb.DevClient) ([]
 	}
 
 	return sharedCacheDiff, nil;
+}
+
+func getTimersDiff(systemKey string, client *cb.DevClient) ([]string, error) {
+	timersDiff := []string{}
+	localTimers, err := getTimers()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, localTimer := range localTimers {
+		localTimerName := localTimer["name"].(string)
+		
+		fmt.Printf(localTimerName + " ");
+		
+		remoteTimer, err := pullTimer(systemKey, localTimerName, client)
+
+		if err != nil {
+			// this timer is not present in the remote system. Add it to the diff
+			timersDiff = append(timersDiff, localTimerName)
+			continue;
+		}
+
+		localTimer, remoteTimer = keepCommonKeysFromMaps(localTimer, remoteTimer)
+
+		if !reflect.DeepEqual(localTimer, remoteTimer) {
+			timersDiff = append(timersDiff, localTimerName)
+		}
+	}
+
+	return timersDiff, nil;
 }
 
 func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {
