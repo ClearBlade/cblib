@@ -373,13 +373,15 @@ func pullDeployments(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[strin
 	return deployments, nil
 }
 
-func pullAndWriteServiceCache(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteServiceCache(sysMeta *types.System_meta, cli *cb.DevClient, name string, write bool) (map[string]interface{}, error) {
 	cache, err := cli.GetServiceCacheMeta(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	if err = writeServiceCache(cache["name"].(string), cache); err != nil {
-		return nil, err
+	if write {
+		if err = writeServiceCache(cache["name"].(string), cache); err != nil {
+			return nil, err
+		}
 	}
 	return cache, nil
 }

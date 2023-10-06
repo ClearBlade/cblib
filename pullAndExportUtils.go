@@ -350,7 +350,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.ServiceCacheName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling shared cache %+s\n", ServiceCacheName))
-		if _, err := pullAndWriteServiceCache(systemInfo, client, ServiceCacheName); err != nil {
+		if _, err := pullAndWriteServiceCache(systemInfo, client, ServiceCacheName, true); err != nil {
 			logError(fmt.Sprintf("Failed to pull shared cache. %s", err.Error()))
 		}
 		fmt.Printf("\n")

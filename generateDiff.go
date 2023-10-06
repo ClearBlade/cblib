@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/internal/types"
 )
 
 func init() {
@@ -69,6 +70,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
+	logInfo("Diffing service caches: ");
+	diffSharedCaches, err := getSharedCacheDiff(systemInfo, client)
+	
+	if err != nil {
+		return err;
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -77,6 +85,8 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["deviceSchema"] = diffDeviceSchema;
 	dataMap["edges"] = diffEdges;
 	dataMap["edgesSchema"] = diffEdgesSchema;
+	dataMap["sharedCaches"] = diffSharedCaches;
+
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
 
@@ -233,6 +243,7 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 
 	for _, localEdge := range localEdges {
 		localEdgeName := localEdge["name"].(string);
+		fmt.Printf(localEdgeName + " ");
 
 		remoteEdge := getCorrespondingRemoteEdge(localEdgeName, remoteEdges)
 
@@ -264,6 +275,37 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 	} else {
 		return edgesDiff, false, err
 	}
+}
+
+func getSharedCacheDiff(systemInfo *types.System_meta, client *cb.DevClient) ([]string, error) {
+	sharedCacheDiff := []string{}
+	localSharedCaches, err := getServiceCaches()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, localSharedCache := range localSharedCaches {
+		localSharedCacheName := localSharedCache["name"].(string)
+		
+		fmt.Printf(localSharedCacheName + " ");
+		
+		remoteSharedCache, err := pullAndWriteServiceCache(systemInfo, client, localSharedCacheName, false)
+
+		if err != nil {
+			// this service cache is not present in the remote system. Add it to the diff
+			sharedCacheDiff = append(sharedCacheDiff, localSharedCacheName)
+			continue;
+		}
+
+		localSharedCache, remoteSharedCache = keepCommonKeysFromMaps(localSharedCache, remoteSharedCache)
+
+		if !reflect.DeepEqual(localSharedCache, remoteSharedCache) {
+			sharedCacheDiff = append(sharedCacheDiff, localSharedCacheName)
+		}
+	}
+
+	return sharedCacheDiff, nil;
 }
 
 func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {
