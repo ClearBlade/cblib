@@ -84,6 +84,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
+	logInfo("Diffing users:");
+	diffUsers, diffUserRoles, diffUserSchema, err := getUsersDiff(systemInfo.Key, client)
+
+	if err != nil {
+		return err
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -94,6 +101,9 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["edgesSchema"] = diffEdgesSchema;
 	dataMap["sharedCaches"] = diffSharedCaches;
 	dataMap["timers"] = diffTimers
+	dataMap["users"] = diffUsers;
+	dataMap["userRoles"] = diffUserRoles;
+	dataMap["userSchema"] = diffUserSchema;
 
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
@@ -253,7 +263,7 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 		localEdgeName := localEdge["name"].(string);
 		fmt.Printf(localEdgeName + " ");
 
-		remoteEdge := getCorrespondingRemoteEdge(localEdgeName, remoteEdges)
+		remoteEdge := getCorrespondingRemoteMap("name", localEdgeName, remoteEdges)
 
 		if remoteEdge == nil {
 			// remoteEdge not present. Add this into diff
@@ -347,6 +357,71 @@ func getTimersDiff(systemKey string, client *cb.DevClient) ([]string, error) {
 	return timersDiff, nil;
 }
 
+func getUsersDiff(systemKey string, client *cb.DevClient) ([]string, []string, bool, error) {
+	// does diffing for users, userRoles as well as userSchema
+
+	usersDiff := []string{}
+	userRolesDiff := []string{}
+	localUsers, err := getUsers()
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	remoteUsers, err := pullAllUsers(systemKey, client)
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	for _, localUser := range localUsers {
+		localUserEmail := localUser["email"].(string)
+		remoteUser := getCorrespondingRemoteMap("email", localUserEmail, remoteUsers)
+		userId := remoteUser.(map[string]interface{})["user_id"].(string)
+
+		fmt.Printf(userId + " ");
+
+		localUser, remoteUser = keepCommonKeysFromMaps(localUser, remoteUser.(map[string]interface{}))
+
+		if !reflect.DeepEqual(localUser, remoteUser) {
+			usersDiff = append(usersDiff, localUserEmail)
+		}
+
+		localUserRoles, err := getUserRoles(localUserEmail)
+
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		convertedLocalUserRoles := convertInterfaceSliceToStringSlice(localUserRoles)
+
+		remoteUserRoles, err := pullUserRoles(systemKey, userId, client)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		if !reflect.DeepEqual(convertedLocalUserRoles, remoteUserRoles) {
+			userRolesDiff = append(userRolesDiff, localUserEmail)
+		}
+	}
+
+	localUserSchema, err := getUserSchema()
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	remoteUserSchema, err := pullUserSchemaInfo(systemKey, client, false)
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	diffUserSchema := !areLocalAndRemoteSchemaEqual(localUserSchema, remoteUserSchema)
+
+	return usersDiff, userRolesDiff, diffUserSchema, nil;
+}
+
 func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {
 	// we need this util function because localSchema has entry like map[columns:<nil>] to show that there are no columns
   // whereas remoteSchema has entry like map[columns:[]] to show that there are no columns
@@ -358,9 +433,9 @@ func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSche
 	}
 }
 
-func getCorrespondingRemoteEdge(name string, arr []interface{}) interface{} {
+func getCorrespondingRemoteMap(property string, value string, arr []interface{}) interface{} {
 	for _, val := range arr {
-		if val.(map[string]interface{})["name"] == name {
+		if val.(map[string]interface{})[property] == value {
 			return val;
 		}
 	}
