@@ -98,6 +98,14 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err
 	}
 
+	logInfo("Diffing messageHistoryStorage:");
+
+	diffMessageHistoryStorage, err := getMessageHistoryStorageDiff(systemInfo, client);
+
+	if err != nil {
+		return err;
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -112,6 +120,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["userRoles"] = diffUserRoles;
 	dataMap["userSchema"] = diffUserSchema;
 	dataMap["webhooks"] = diffWebhooks;
+	dataMap["messageHistoryStorage"] = diffMessageHistoryStorage
 
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
@@ -301,6 +310,29 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 	} else {
 		return edgesDiff, false, err
 	}
+}
+
+func getMessageHistoryStorageDiff(systemInfo *types.System_meta, client *cb.DevClient) (bool, error) {
+	localMessageHistoryStorage, err := getMessageHistoryStorage();
+
+	if err != nil {
+		return false, err;
+	}
+
+	remoteMessageHistoryStorage, err := pullMessageHistoryStorage(systemInfo, client)
+
+	if err != nil {
+		return false, err;
+	}
+
+	for ind, localMessageHistoryStorageItem := range localMessageHistoryStorage {
+		remoteMessageHistoryStorageItem := remoteMessageHistoryStorage[ind].MessageHistoryStorageEntry
+		if !reflect.DeepEqual(localMessageHistoryStorageItem, remoteMessageHistoryStorageItem) {
+			return true, nil;
+		}
+	}
+
+	return false, nil;
 }
 
 func getSharedCacheDiff(systemInfo *types.System_meta, client *cb.DevClient) ([]string, error) {
