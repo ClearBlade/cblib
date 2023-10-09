@@ -3,6 +3,7 @@ package cblib
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/internal/types"
@@ -113,6 +114,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
+	logInfo("Diffing roles:");
+	diffRoles, err := getRolesDiff(systemInfo.Key, client);
+
+	if err != nil {
+		return err;
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -129,6 +137,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["webhooks"] = diffWebhooks;
 	dataMap["messageHistoryStorage"] = diffMessageHistoryStorage
 	dataMap["messageTypeTriggers"] = diffMessageTypeTriggers
+	dataMap["roles"] = diffRoles;
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
 
@@ -523,6 +532,193 @@ func getWebhooksDiff(systemInfo *types.System_meta, client *cb.DevClient) ([]str
 	}
 
 	return webhooksDiff, nil;
+
+}
+
+func sortFunc(data []map[string]interface{}, i, j int) bool {
+	return data[i]["name"].(string) < data[j]["name"].(string);
+}
+
+func getRolesDiff(systemKey string, client *cb.DevClient) ([]string, error) {
+	rolesDiff := []string{}
+
+	localRoles, err := getRoles()
+	// fmt.Println("localRoles ", localRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i:=0; i<1; i++ {
+		localRole := localRoles[0]
+		localRoleName := localRole["Name"].(string)
+
+		fmt.Printf(localRoleName + " ");
+
+		remoteRole, err := pullRole(systemKey, localRoleName, client)
+
+		// fmt.Println(localRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[0].(map[string]interface{})["Name"]);
+
+		localRolePerms, castSuccess := localRole["Permissions"].(map[string]interface{})
+		if !castSuccess {
+			return nil, fmt.Errorf("Unable to process role permissions: %v", localRole["Permissions"])
+		}
+
+		localRoleCodeServices, castSuccess := localRolePerms["CodeServices"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&localRoleCodeServices, SORT_KEY_CODE_SERVICE)
+			fmtServices := whitelistServicesPermissions(localRoleCodeServices)
+			localRolePerms["CodeServices"] = fmtServices
+		}
+
+		localRoleCollections, castSuccess := localRolePerms["Collections"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&localRoleCollections, SORT_KEY_COLLECTION)
+			fmtCollections := whitelistCollectionsPermissions(localRoleCollections)
+			localRolePerms["Collections"] = fmtCollections
+		}
+
+		localRolePortals, castSuccess := localRolePerms["Portals"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&localRolePortals, SORT_KEY_PORTAL)
+			fmtPortals := whitelistPortalsPermissions(localRolePortals)
+			localRolePerms["Portals"] = fmtPortals
+		}
+
+		localRoleServiceCaches, castSuccess := localRolePerms["ServiceCaches"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&localRoleServiceCaches, "Name")
+			localRolePerms["ServiceCaches"] = localRoleServiceCaches
+		}
+
+		localRoleTopics, castSuccess := localRolePerms["Topics"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&localRoleTopics, "Name")
+			localRolePerms["Topics"] = localRoleTopics
+		}
+
+		remoteRolePerms, castSuccess := remoteRole["Permissions"].(map[string]interface{})
+		if !castSuccess {
+			return nil, fmt.Errorf("Unable to process remote role permissions: %v", remoteRole["Permissions"])
+		}
+
+		remoteRoleCodeServices, castSuccess := remoteRolePerms["CodeServices"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&remoteRoleCodeServices, SORT_KEY_CODE_SERVICE)
+			fmtServices := whitelistServicesPermissions(remoteRoleCodeServices)
+			remoteRolePerms["CodeServices"] = fmtServices
+		}
+
+		remoteRoleCollections, castSuccess := remoteRolePerms["Collections"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&remoteRoleCollections, SORT_KEY_COLLECTION)
+			fmtCollections := whitelistCollectionsPermissions(remoteRoleCollections)
+			remoteRolePerms["Collections"] = fmtCollections
+		}
+
+		remoteRolePortals, castSuccess := remoteRolePerms["Portals"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&remoteRolePortals, SORT_KEY_PORTAL)
+			fmtPortals := whitelistPortalsPermissions(remoteRolePortals)
+			localRolePerms["Portals"] = fmtPortals
+		}
+
+		remoteRoleServiceCaches, castSuccess := remoteRolePerms["ServiceCaches"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&remoteRoleServiceCaches, "Name")
+			remoteRolePerms["ServiceCaches"] = remoteRoleServiceCaches
+		}
+
+		remoteRoleTopics, castSuccess := remoteRolePerms["Topics"].([]interface{})
+		if castSuccess {
+			sortByMapKey(&remoteRoleTopics, "Name")
+			remoteRolePerms["Topics"] = remoteRoleTopics
+		}
+
+		// TODO: working 
+		// localRolee["Permissions"] = sortSliceOfMapByKey((localRolee["Permissions"].(map[string]interface{})))
+		// remoteRole["Permissions"] = sortSliceOfMapByKey((remoteRole["Permissions"].(map[string]interface{})))
+
+		// sort.Slice(localRolee["Permissions"].(map[string]interface{})["Topics"].([]interface{}), func (i, j int) bool {
+
+		// 	return localRolee["Permissions			"].(map[string]interface{})["Topics"].([]interface{})[i].(map[string]interface{})["Name"].(string) < 
+		// 	localRolee["Permissions"].(map[string]interface{})["Topics"].([]interface{})[j].(map[string]interface{})["Name"].(string)
+		// })
+
+		// sort.Slice(remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{}), func (i, j int) bool {
+			
+		// 	return remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[i].(map[string]interface{})["Name"].(string) < 
+		// 	remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[j].(map[string]interface{})["Name"].(string)
+		// })
+
+		// fmt.Println("localRole ", localRole);
+		// fmt.Println("remoteRole ", remoteRole);
+
+
+		if err != nil {
+			rolesDiff = append(rolesDiff, localRoleName)
+			// continue
+		}
+
+		localRole, remoteRole = keepCommonKeysFromMaps(localRole, remoteRole)
+
+		if localRole["Name"] == "ServiceAccount" {
+			fmt.Println("localRole ", localRole);
+			fmt.Println("\n\n\n")
+			fmt.Println("remoteRole ", remoteRole);
+		}
+
+		fmt.Println("localRole ", localRole);
+			fmt.Println("\n\n\n")
+			fmt.Println("remoteRole ", remoteRole);
+
+		if !reflect.DeepEqual(localRole, remoteRole) {
+			fmt.Println("here")
+			rolesDiff = append(rolesDiff, localRoleName)
+		}
+	}
+
+		
+
+	// for _, localRole := range localRoles {
+	// 	localRoleName := localRole["Name"].(string)
+
+	// 	fmt.Printf(localRoleName + " ");
+
+	// 	remoteRole, err := pullRole(systemKey, localRoleName, client)
+
+	// 	// fmt.Println("localRole ", localRole);
+	// 	// fmt.Println("remoteRole ", remoteRole);
+
+	// 	if err != nil {
+	// 		rolesDiff = append(rolesDiff, localRoleName)
+	// 		continue
+	// 	}
+
+	// 	sort.Slice(localRole["Permissions"].(map[string]interface{})["Topics"].([]interface{}), func (i, j int) bool {
+			
+	// 		return localRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[i].(map[string]interface{})["Name"].(string) < 
+	// 		localRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[j].(map[string]interface{})["Name"].(string)
+	// 	})
+
+	// 	sort.Slice(remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{}), func (i, j int) bool {
+			
+	// 		return remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[i].(map[string]interface{})["Name"].(string) < 
+	// 		remoteRole["Permissions"].(map[string]interface{})["Topics"].([]interface{})[j].(map[string]interface{})["Name"].(string)
+	// 	})
+
+	// 	localRole, remoteRole = keepCommonKeysFromMaps(localRole, remoteRole)
+
+	// 	fmt.Println("localRole ", localRole);
+	// 	fmt.Println("remoteRole ", remoteRole);
+
+	// 	if !reflect.DeepEqual(localRole, remoteRole) {
+	// 		rolesDiff = append(rolesDiff, localRoleName)
+	// 	}
+	// }
+
+	fmt.Printf("\n")
+	return rolesDiff, nil
 }
 
 func areLocalAndRemoteSchemaEqual(localSchema map[string]interface{}, remoteSchema map[string]interface{}) bool {
@@ -544,4 +740,14 @@ func getCorrespondingRemoteMap(property string, value string, arr []interface{})
 	}
 
 	return nil;
+}
+
+func sortSliceOfMapByKey(entity map[string]interface{}) map[string]interface{} {
+	sort.Slice((entity)["Topics"].([]interface{}), func (i, j int) bool {
+			
+		return (entity)["Topics"].([]interface{})[i].(map[string]interface{})["Name"].(string) < 
+		(entity)["Topics"].([]interface{})[j].(map[string]interface{})["Name"].(string)
+	})
+
+	return entity;
 }

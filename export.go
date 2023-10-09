@@ -506,6 +506,7 @@ func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) ([
 
 func pullMessageHistoryStorageAndWrite(sysMeta *types.System_meta, cli *cb.DevClient) error {
 	storageEntries, err := cli.GetMessageHistoryStorage(sysMeta.Key)
+	fmt.Println("remotettt ", storageEntries)
 
 	if err != nil {
 		return fmt.Errorf("Could not pull message history storage out of system %s: %s", sysMeta.Key, err)
@@ -530,6 +531,7 @@ func pullMessageTypeTriggers(sysMeta *types.System_meta, cli *cb.DevClient) ([]m
 
 func pullMessageTypeTriggersAndWrite(sysMeta *types.System_meta, cli *cb.DevClient) error {
 	msgTypeTriggers, err := cli.GetMessageTypeTriggers(sysMeta.Key)
+	fmt.Println("remote ", msgTypeTriggers)
 	if err != nil {
 		return fmt.Errorf("Could not pull message type triggers out of system %s: %s", sysMeta.Key, err.Error())
 	}
