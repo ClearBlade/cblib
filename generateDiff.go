@@ -106,6 +106,13 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
+	logInfo("Diffing messageTypeTriggers:");
+	diffMessageTypeTriggers, err := getMessageTypeTriggersDiff(systemInfo, client);
+
+	if err != nil {
+		return err;
+	}
+
 	dataMap := make(map[string]interface{});
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
@@ -121,7 +128,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["userSchema"] = diffUserSchema;
 	dataMap["webhooks"] = diffWebhooks;
 	dataMap["messageHistoryStorage"] = diffMessageHistoryStorage
-
+	dataMap["messageTypeTriggers"] = diffMessageTypeTriggers
 
 	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
 
@@ -328,6 +335,31 @@ func getMessageHistoryStorageDiff(systemInfo *types.System_meta, client *cb.DevC
 	for ind, localMessageHistoryStorageItem := range localMessageHistoryStorage {
 		remoteMessageHistoryStorageItem := remoteMessageHistoryStorage[ind].MessageHistoryStorageEntry
 		if !reflect.DeepEqual(localMessageHistoryStorageItem, remoteMessageHistoryStorageItem) {
+			return true, nil;
+		}
+	}
+
+	return false, nil;
+}
+
+func getMessageTypeTriggersDiff(systemInfo *types.System_meta, client *cb.DevClient) (bool, error) {
+	localMessageTypeTriggers, err := getMessageTypeTriggers();
+
+	if err != nil {
+		return false, err;
+	}
+
+	remoteMessageTypeTriggers, err := pullMessageTypeTriggers(systemInfo, client)
+
+	if err != nil {
+		return false, err;
+	}
+
+	for ind, localMessageTypeTrigger := range localMessageTypeTriggers {
+		remoteMessageTypeTrigger:= remoteMessageTypeTriggers[ind]
+
+		localMessageTypeTrigger, remoteMessageTypeTrigger = keepCommonKeysFromMaps(localMessageTypeTrigger, remoteMessageTypeTrigger)
+		if !reflect.DeepEqual(localMessageTypeTrigger, remoteMessageTypeTrigger) {
 			return true, nil;
 		}
 	}
