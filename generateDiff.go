@@ -124,7 +124,7 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 	dataMap["services"] = diffServices;
 	dataMap["libraries"] = diffLibraries;
 	dataMap["devices"] = diffDevices;
-	dataMap["devicesRoles"] = diffDeviceRoles;
+	dataMap["deviceRoles"] = diffDeviceRoles;
 	dataMap["deviceSchema"] = diffDeviceSchema;
 	dataMap["edges"] = diffEdges;
 	dataMap["edgesSchema"] = diffEdgesSchema;

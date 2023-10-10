@@ -1522,13 +1522,13 @@ func storeDataInJSONFile(data map[string]interface{}, path string, fileName stri
 	return nil;
 }
 
-func readDataFromJSONDiffFile(filename string) map[string][]string {
+func readDataFromJSONDiffFile(filename string) map[string]interface{} {
 	jsonStr, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Println("Error reading the json file ", err);
 	}
 
-	parsed := make(map[string][]string)
+	parsed := make(map[string]interface{})
 
 	err = json.Unmarshal(jsonStr, &parsed)
 
