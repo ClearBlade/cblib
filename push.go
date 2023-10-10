@@ -2757,35 +2757,6 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	return nil
 }
 
-func pushServicesFromSlice(systemInfo *types.System_meta, services []string, client *cb.DevClient) error {
-	for _, service := range services {
-		if err := pushOneService(systemInfo, client, service); err != nil {
-			return err;
-		}
-	}
-
-	return nil;
-}
-
-func pushLibrariesFromSlice(systemInfo *types.System_meta, libraries []string, client *cb.DevClient) error {
-	for _, library := range libraries {
-		if err := pushOneLibrary(systemInfo, client, library); err != nil {
-			return err;
-		}
-	}
-
-	return nil;
-}
-
-func pushDevicesFromSlice(systemInfo *types.System_meta, devices []string, client *cb.DevClient) error {
-	for _, device := range devices {
-		if err := pushOneDevice(systemInfo, client, device); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
-
 func pushDeviceRolesFromSlice(systemInfo *types.System_meta, deviceRoles []string, client *cb.DevClient) error {
 	for _, deviceRole := range deviceRoles {
 		device, err := getDevice(deviceRole)
@@ -2795,42 +2766,6 @@ func pushDeviceRolesFromSlice(systemInfo *types.System_meta, deviceRoles []strin
 		}
 
 		if err := updateDevice(systemInfo.Key, device, client); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
-
-func pushEdgesFromSlice(systemInfo *types.System_meta, edges []string, client *cb.DevClient) error {
-	for _, edge := range edges {
-		if err := pushOneEdge(systemInfo, client, edge); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
-
-func pushSharedCachesFromSlice(systemInfo *types.System_meta, sharedCaches []string, client *cb.DevClient) error {
-	for _, sharedCache := range sharedCaches {
-		if err := pushOneServiceCache(systemInfo, client, sharedCache); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
-
-func pushTimersFromSlice(systemInfo *types.System_meta, timers []string, client *cb.DevClient) error {
-	for _, timer := range timers {
-		if err := pushOneTimer(systemInfo, client, timer); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
-
-func pushUsersFromSlice(systemInfo *types.System_meta, users []string, client *cb.DevClient) error {
-	for _, userEmail := range users {
-		if err := pushOneUser(systemInfo, client, userEmail); err != nil {
 			return err;
 		}
 	}
@@ -2852,18 +2787,11 @@ func pushUserRolesFromSlice(systemInfo *types.System_meta, userRoles []string, c
 	return nil;
 }
 
-func pushWebhooksFromSlice(systemInfo *types.System_meta, webhooks []string, client *cb.DevClient) error {
-	for _, webhook := range webhooks {
-		if err := pushOneWebhook(systemInfo, client, webhook); err != nil {
-			return err;
-		}
-	}
-	return nil;
-}
+type pushOneEntityFunc func(systemInfo *types.System_meta, client *cb.DevClient, name string) error
 
-func pushRolesFromSlice(systemInfo *types.System_meta, roles []string, client *cb.DevClient) error {
-	for _, role := range roles {
-		if err := pushOneRole(systemInfo, client, role); err != nil {
+func pushEntityFromSlice(systemInfo *types.System_meta, entities []string, client *cb.DevClient, fn pushOneEntityFunc) error {
+	for _, entity := range entities {
+		if err := fn(systemInfo, client, entity); err != nil {
 			return err;
 		}
 	}
@@ -2878,26 +2806,26 @@ func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb
 	logInfo("Pushing services")
 
 	servicesSlice := convertInterfaceSliceToStringSlice(mp["services"].([]interface{}))
-	if err := pushServicesFromSlice(systemInfo, servicesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, servicesSlice, client, pushOneService); err != nil {
 		return err;
 	}
 
 	logInfo("Pushing libraries")
 
 	librariesSlice := convertInterfaceSliceToStringSlice(mp["libraries"].([]interface{}))
-	if err := pushLibrariesFromSlice(systemInfo, librariesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, librariesSlice, client, pushOneLibrary); err != nil {
 		return err;
 	}
 
 	logInfo("Pushing devices")
 	devicesSlice := convertInterfaceSliceToStringSlice(mp["devices"].([]interface{}))
-	if err := pushDevicesFromSlice(systemInfo, devicesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, devicesSlice, client, pushOneDevice); err != nil {
 		return err;
 	}
 
 	logInfo("Pushing device roles")
 	deviceRolesSlice := convertInterfaceSliceToStringSlice(mp["deviceRoles"].([]interface{}))
-	if err := pushDevicesFromSlice(systemInfo, deviceRolesSlice, client); err != nil {
+	if err := pushDeviceRolesFromSlice(systemInfo, deviceRolesSlice, client); err != nil {
 		return err;
 	}
 
@@ -2910,10 +2838,10 @@ func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb
 
 	logInfo("Pushing edges")
 	edgesSlice := convertInterfaceSliceToStringSlice(mp["edges"].([]interface{}))
-	if err := pushEdgesFromSlice(systemInfo, edgesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, edgesSlice, client, pushOneEdge); err != nil {
 		return err;
 	}
-	
+
 	logInfo("Pushing edge schema")
 	if mp["edgesSchema"].(bool) {
 		if err := pushEdgesSchema(systemInfo, client); err != nil {
@@ -2923,19 +2851,19 @@ func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb
 	
 	logInfo("Pushing shared caches")
 	sharedCachesSlice := convertInterfaceSliceToStringSlice(mp["sharedCaches"].([]interface{}))
-	if err := pushSharedCachesFromSlice(systemInfo, sharedCachesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, sharedCachesSlice, client, pushOneServiceCache); err != nil {
 		return err;
 	}
 
 	logInfo("Pushing timers")
 	timersSlice := convertInterfaceSliceToStringSlice(mp["timers"].([]interface{}))
-	if err := pushTimersFromSlice(systemInfo, timersSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, timersSlice, client, pushOneTimer); err != nil {
 		return err;
 	}
 
 	logInfo("Pushing users")
 	usersSlice := convertInterfaceSliceToStringSlice(mp["users"].([]interface{}))
-	if err := pushUsersFromSlice(systemInfo, usersSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, usersSlice, client, pushOneUser); err != nil {
 		return err;
 	}
 
@@ -2954,7 +2882,7 @@ func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb
 
 	logInfo("Pushing webhooks")
 	webhooksSlice := convertInterfaceSliceToStringSlice(mp["webhooks"].([]interface{}))
-	if err := pushWebhooksFromSlice(systemInfo, webhooksSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, webhooksSlice, client, pushOneWebhook); err != nil {
 		return err;
 	}
 
@@ -2980,7 +2908,7 @@ func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb
 
 	logInfo("Pushing roles")
 	rolesSlice := convertInterfaceSliceToStringSlice(mp["roles"].([]interface{}))
-	if err := pushRolesFromSlice(systemInfo, rolesSlice, client); err != nil {
+	if err := pushEntityFromSlice(systemInfo, rolesSlice, client, pushOneRole); err != nil {
 		return err;
 	}
 
