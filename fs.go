@@ -20,6 +20,8 @@ const SORT_KEY_CODE_SERVICE = "Name"
 const SORT_KEY_PORTAL = "Name"
 const SORT_KEY_COLLECTION_ITEM = "item_id"
 const SORT_KEY_COLLECTION = "Name"
+const SORT_KEY_SERVICE_CACHES = "Name"
+const SORT_KEY_TOPICS = "Name"
 const collectionNameToIdFileName = "collections.json"
 const roleNameToIdFileName = "roles.json"
 const userEmailToIdFileName = "users.json"
@@ -1496,4 +1498,43 @@ func fileExists(name string) bool {
 		// the error
 	}
 	return true
+}
+
+func storeDataInJSONDiffFile(data DiffFileData, path string, fileName string) error {
+	marshalled, err := json.MarshalIndent(data, "", "  ");
+
+	if err != nil {
+		fmt.Println("Error marshalling data ", err);
+		return err;
+	}
+
+	relativePath := ".";
+
+	if len(path) > 0 {
+		relativePath = path;
+	}
+
+	if err = ioutil.WriteFile(relativePath+"/"+fileName, marshalled, 0666); err != nil {
+		fmt.Println("Could not write to json file");
+		return err;
+	}
+
+	return nil;
+}
+
+func readDataFromJSONDiffFile(filename string) DiffFileData {
+	jsonStr, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("Error reading the json file ", err);
+	}
+
+	var parsed DiffFileData
+
+	err = json.Unmarshal(jsonStr, &parsed)
+
+	if err != nil {
+		fmt.Println("error unmarshalling ", err)
+	}
+
+	return parsed;
 }

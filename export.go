@@ -373,13 +373,15 @@ func pullDeployments(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[strin
 	return deployments, nil
 }
 
-func pullAndWriteServiceCache(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteServiceCache(sysMeta *types.System_meta, cli *cb.DevClient, name string, write bool) (map[string]interface{}, error) {
 	cache, err := cli.GetServiceCacheMeta(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	if err = writeServiceCache(cache["name"].(string), cache); err != nil {
-		return nil, err
+	if write {
+		if err = writeServiceCache(cache["name"].(string), cache); err != nil {
+			return nil, err
+		}
 	}
 	return cache, nil
 }
@@ -492,8 +494,20 @@ func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) (map[string]inte
 	return theSecrets, nil
 }
 
-func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) error {
+func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) ([]cb.GetMessageHistoryStorageEntry, error) {
 	storageEntries, err := cli.GetMessageHistoryStorage(sysMeta.Key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return storageEntries, nil;
+}
+
+func pullMessageHistoryStorageAndWrite(sysMeta *types.System_meta, cli *cb.DevClient) error {
+	storageEntries, err := cli.GetMessageHistoryStorage(sysMeta.Key)
+	fmt.Println("remotettt ", storageEntries)
+
 	if err != nil {
 		return fmt.Errorf("Could not pull message history storage out of system %s: %s", sysMeta.Key, err)
 	}
@@ -506,8 +520,18 @@ func pullMessageHistoryStorage(sysMeta *types.System_meta, cli *cb.DevClient) er
 	return nil
 }
 
-func pullMessageTypeTriggers(sysMeta *types.System_meta, cli *cb.DevClient) error {
+func pullMessageTypeTriggers(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[string]interface{}, error) {
 	msgTypeTriggers, err := cli.GetMessageTypeTriggers(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not pull message type triggers out of system %s: %s", sysMeta.Key, err.Error())
+	}
+
+	return msgTypeTriggers, err
+}
+
+func pullMessageTypeTriggersAndWrite(sysMeta *types.System_meta, cli *cb.DevClient) error {
+	msgTypeTriggers, err := cli.GetMessageTypeTriggers(sysMeta.Key)
+	fmt.Println("remote ", msgTypeTriggers)
 	if err != nil {
 		return fmt.Errorf("Could not pull message type triggers out of system %s: %s", sysMeta.Key, err.Error())
 	}
@@ -532,13 +556,15 @@ func pullAndWriteSecret(sysMeta *types.System_meta, cli *cb.DevClient, name stri
 	return sec, nil
 }
 
-func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
+func pullAndWriteWebhook(sysMeta *types.System_meta, cli *cb.DevClient, name string, write bool) (map[string]interface{}, error) {
 	hook, err := cli.GetWebhook(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	if err = writeWebhook(hook["name"].(string), hook); err != nil {
-		return nil, err
+	if write {
+		if err = writeWebhook(hook["name"].(string), hook); err != nil {
+			return nil, err
+		}
 	}
 	return hook, nil
 }

@@ -93,6 +93,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
+	pushCommand.flags.StringVar(&PathForDiffFile, "diff", "", "Relative path of the diff.json file to be used for pushing code services and libraries")
 
 	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
 	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
@@ -1025,6 +1026,13 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if CollectionId != "" {
 		didSomething = true
 		if err := pushOneCollectionById(systemInfo, client, CollectionId); err != nil {
+			return err
+		}
+	}
+
+	if PathForDiffFile != "" {
+		didSomething = true
+		if err := pushDiffEntities(systemInfo, PathForDiffFile, client); err != nil {
 			return err
 		}
 	}
@@ -2746,4 +2754,168 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		}
 	}
 	return nil
+}
+
+func pushDeviceRolesFromSlice(systemInfo *types.System_meta, deviceRoles []string, client *cb.DevClient) error {
+	for _, deviceRole := range deviceRoles {
+		device, err := getDevice(deviceRole)
+		
+		if err != nil {
+			return err
+		}
+
+		if err := updateDevice(systemInfo.Key, device, client); err != nil {
+			return err;
+		}
+	}
+	return nil;
+}
+
+func pushUserRolesFromSlice(systemInfo *types.System_meta, userRoles []string, client *cb.DevClient) error {
+	for _, userEmail := range userRoles {
+		user, err := getFullUserObject(userEmail)
+
+		if err != nil {
+			return err;
+		}
+		
+		if err := updateUser(systemInfo, user, client); err != nil {
+			return err;
+		}
+	}
+	return nil;
+}
+
+type pushOneEntityFunc func(systemInfo *types.System_meta, client *cb.DevClient, name string) error
+
+func pushEntityFromSlice(systemInfo *types.System_meta, entities []string, client *cb.DevClient, fn pushOneEntityFunc) error {
+	for _, entity := range entities {
+		if err := fn(systemInfo, client, entity); err != nil {
+			return err;
+		}
+	}
+	return nil;
+}
+
+func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb.DevClient) error {
+	var diffData DiffFileData;
+
+	diffData = readDataFromJSONDiffFile(diffPath);
+
+	if len(diffData.Services) > 0 {
+		logInfo("Pushing services");
+		if err := pushEntityFromSlice(systemInfo, diffData.Services, client, pushOneService); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Libraries) > 0 {
+		logInfo("Pushing libraries");
+		if err := pushEntityFromSlice(systemInfo, diffData.Libraries, client, pushOneLibrary); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Devices) > 0 {
+		logInfo("Pushing devices");
+		if err := pushEntityFromSlice(systemInfo, diffData.Devices, client, pushOneDevice); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.DeviceRoles) > 0 {
+		logInfo("Pushing device roles");
+		if err := pushDeviceRolesFromSlice(systemInfo, diffData.DeviceRoles, client); err != nil {
+			return err;
+		}
+	}
+
+	if diffData.DeviceSchema {
+		logInfo("Pushing device schema")
+		if err := pushDevicesSchema(systemInfo, client); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Edges) > 0 {
+		logInfo("Pushing edges");
+		if err := pushEntityFromSlice(systemInfo, diffData.Edges, client, pushOneEdge); err != nil {
+			return err;
+		}
+	}
+
+	
+	if diffData.EdgesSchema {
+		logInfo("Pushing edge schema");
+		if err := pushEdgesSchema(systemInfo, client); err != nil {
+			return err;
+		}
+	}
+
+	if diffData.MessageHistoryStorage {
+		logInfo("Pushing message history storage")
+		if err := pushMessageHistoryStorage(systemInfo, client); err != nil {
+			return err;
+		}
+	}
+
+	if diffData.MessageTypeTriggers {
+		logInfo("Pushing message type triggers")
+		if err := pushMessageTypeTriggers(systemInfo, client); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Roles) > 0 {
+		logInfo("Pushing roles");
+		if err := pushEntityFromSlice(systemInfo, diffData.Roles, client, pushOneRole); err != nil {
+			return err;
+		}
+	}
+	
+	if len(diffData.SharedCaches) > 0 {
+		logInfo("Pushing shared caches");
+		if err := pushEntityFromSlice(systemInfo, diffData.SharedCaches, client, pushOneServiceCache); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Timers) > 0 {
+		logInfo("Pushing timers")
+		if err := pushEntityFromSlice(systemInfo, diffData.Timers, client, pushOneTimer); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Users) > 0 {
+		logInfo("Pushing users");
+		if err := pushEntityFromSlice(systemInfo, diffData.Users, client, pushOneUser); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.UserRoles) > 0 {
+		logInfo("Pushing user roles")
+		if err := pushUserRolesFromSlice(systemInfo, diffData.UserRoles, client); err != nil {
+			return err;
+		}
+	}
+
+	if diffData.UserSchema {
+		logInfo("Pushing user schema")
+		if err := pushUserSchema(systemInfo, client); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Webhooks) > 0 {
+		logInfo("Pushing webhooks")
+		if err := pushEntityFromSlice(systemInfo, diffData.Webhooks, client, pushOneWebhook); err != nil {
+			return err;
+		}
+	}
+
+	logInfo("Successfully pushed the entities using the diff file")
+
+	return nil;
 }

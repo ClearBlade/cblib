@@ -197,6 +197,10 @@ func pullAllUsers(systemKey string, client *cb.DevClient) ([]interface{}, error)
 	return paginateRequests(systemKey, DataPageSize, client.GetUserCountWithQuery, client.GetUsersWithQuery)
 }
 
+func pullUserRoles(systemKey string, userId string, client *cb.DevClient) ([]string, error) {
+	return client.GetUserRoles(systemKey, userId);
+}
+
 func PullAndWriteUsers(systemKey string, userName string, client *cb.DevClient, saveThem bool) ([]map[string]interface{}, error) {
 	if users, err := pullAllUsers(systemKey, client); err != nil {
 		return nil, err

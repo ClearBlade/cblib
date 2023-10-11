@@ -586,3 +586,23 @@ func createCollectionIfNecessary(meta *types.System_meta, collection map[string]
 	}
 	return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: true}, nil
 }
+
+func keepCommonKeysFromMaps(first map[string]interface{}, second map[string]interface{}) (map[string]interface{}, map[string]interface{}) {
+	// checking for all keys in first and removing the keys not present in second
+	for key := range first {
+		if _, ok := second[key]; ok == false {
+			// remove key from first because it is not present in second
+			delete(first, key);
+		}
+	}
+
+	// checking for all keys in second and removing the keys not present in first
+	for key := range second {
+		if _, ok := first[key]; ok == false {
+			// remove key from second because it is not present in first
+			delete(second, key);
+		}
+	}
+
+	return first, second;
+}

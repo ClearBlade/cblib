@@ -350,7 +350,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.ServiceCacheName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling shared cache %+s\n", ServiceCacheName))
-		if _, err := pullAndWriteServiceCache(systemInfo, client, ServiceCacheName); err != nil {
+		if _, err := pullAndWriteServiceCache(systemInfo, client, ServiceCacheName, true); err != nil {
 			logError(fmt.Sprintf("Failed to pull shared cache. %s", err.Error()))
 		}
 		fmt.Printf("\n")
@@ -368,7 +368,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.WebhookName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling webhook %+s\n", WebhookName))
-		if _, err := pullAndWriteWebhook(systemInfo, client, WebhookName); err != nil {
+		if _, err := pullAndWriteWebhook(systemInfo, client, WebhookName, true); err != nil {
 			logError(fmt.Sprintf("Failed to pull webhook. %s", err.Error()))
 		}
 		fmt.Printf("\n")
@@ -458,7 +458,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.MessageHistoryStorage || assets.AllAssets {
 		didSomething = true
 		logInfo("Pulling message history storage")
-		if err := pullMessageHistoryStorage(systemInfo, client); err != nil {
+		if err := pullMessageHistoryStorageAndWrite(systemInfo, client); err != nil {
 			logError(fmt.Sprintf("Failed to pull message history storage. %s", err.Error()))
 		}
 		fmt.Printf("\n")
@@ -467,7 +467,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 	if assets.MessageTypeTriggers || assets.AllAssets {
 		didSomething = true
 		logInfo("Pulling message type triggers")
-		err := pullMessageTypeTriggers(systemInfo, client)
+		err := pullMessageTypeTriggersAndWrite(systemInfo, client)
 		if err != nil {
 			logError(fmt.Sprintf("Failed to pull message type triggers. %s", err.Error()))
 		}
