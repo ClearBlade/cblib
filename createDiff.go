@@ -243,6 +243,14 @@ func getDevicesDiff(systemKey string, client *cb.DevClient) ([]string, []string,
 		return nil, nil, false, err
 	}
 
+	remoteDeviceSchema, err := pullDevicesSchema(systemKey, client, false)
+	if err != nil {
+		return nil, nil, false, err;
+	}
+
+	columnsToDiff := getCustomColumnsFromSchema(remoteDeviceSchema)
+	columnsToDiff = append(columnsToDiff, "description")
+
 	for _, localDevice := range localDevices {
 		localDeviceName := (localDevice["name"]).(string)
 
@@ -256,6 +264,9 @@ func getDevicesDiff(systemKey string, client *cb.DevClient) ([]string, []string,
 			deviceRolesDiff = append(deviceRolesDiff, localDeviceName)
 			continue;
 		}
+
+		localDevice = keepSelectedKeysInMap(localDevice, columnsToDiff)
+		remoteDevice = keepSelectedKeysInMap(remoteDevice, columnsToDiff)
 
 		localDevice, remoteDevice = keepCommonKeysFromMaps(localDevice, remoteDevice)
 
@@ -283,11 +294,6 @@ func getDevicesDiff(systemKey string, client *cb.DevClient) ([]string, []string,
 		return nil, nil, false, err;
 	}
 
-	remoteDeviceSchema, err := pullDevicesSchema(systemKey, client, false)
-	if err != nil {
-		return nil, nil, false, err;
-	}
-
 	if !areLocalAndRemoteSchemaEqual(localDeviceSchema, remoteDeviceSchema) {
 		return devicesDiff, deviceRolesDiff, true, nil;
 	} else {
@@ -303,9 +309,16 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 		return nil, false, err;
 	}
 
-	// had to use pullAllEdges instead of pullEdge inside the for loop because pullEdge lacked some information
-	// like last_connect, last_disconnect
+	remoteEdgesSchema, err := pullEdgesSchema(systemKey, client, false)
+	if err != nil {
+		return nil, false, err;
+	}
+
+	columnsToDiff := getCustomColumnsFromSchema(remoteEdgesSchema)
+	columnsToDiff = append(columnsToDiff, "description")
+
 	remoteEdges, err := pullAllEdges(systemKey, client)
+
 	if err != nil {
 		return nil, false, err;
 	}
@@ -322,6 +335,9 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 			continue;
 		}
 
+		localEdge = keepSelectedKeysInMap(localEdge, columnsToDiff)
+		remoteEdge = keepSelectedKeysInMap(remoteEdge.(map[string]interface{}), columnsToDiff)
+
 		localEdge, remoteEdge = keepCommonKeysFromMaps(localEdge, remoteEdge.(map[string]interface{}))
 
 		if !reflect.DeepEqual(localEdge, remoteEdge) {
@@ -330,11 +346,6 @@ func getEdgesDiff(systemKey string, client *cb.DevClient) ([]string, bool, error
 	}
 
 	localEdgesSchema, err := getEdgesSchema()
-	if err != nil {
-		return nil, false, err;
-	}
-
-	remoteEdgesSchema, err := pullEdgesSchema(systemKey, client, false)
 	if err != nil {
 		return nil, false, err;
 	}
@@ -473,12 +484,24 @@ func getUsersDiff(systemKey string, client *cb.DevClient) ([]string, []string, b
 		return nil, nil, false, err
 	}
 
+	remoteUserSchema, err := pullUserSchemaInfo(systemKey, client, false)
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	columnsToDiff := getCustomColumnsFromSchema(remoteUserSchema)
+	columnsToDiff = append(columnsToDiff, "description")
+
 	for _, localUser := range localUsers {
 		localUserEmail := localUser["email"].(string)
 		remoteUser := getCorrespondingRemoteMap("email", localUserEmail, remoteUsers)
 		userId := remoteUser.(map[string]interface{})["user_id"].(string)
 
 		fmt.Printf(userId + " ");
+
+		localUser = keepSelectedKeysInMap(localUser, columnsToDiff)
+		remoteUser = keepSelectedKeysInMap(remoteUser.(map[string]interface{}), columnsToDiff)
 
 		localUser, remoteUser = keepCommonKeysFromMaps(localUser, remoteUser.(map[string]interface{}))
 
@@ -505,12 +528,6 @@ func getUsersDiff(systemKey string, client *cb.DevClient) ([]string, []string, b
 	}
 
 	localUserSchema, err := getUserSchema()
-
-	if err != nil {
-		return nil, nil, false, err
-	}
-
-	remoteUserSchema, err := pullUserSchemaInfo(systemKey, client, false)
 
 	if err != nil {
 		return nil, nil, false, err
@@ -705,4 +722,28 @@ func getCorrespondingRemoteMap(property string, value string, arr []interface{})
 	}
 
 	return nil;
+}
+
+func getCustomColumnsFromSchema(schema map[string]interface{}) []string {
+	var customColumns []string;
+
+	for _, col := range schema["columns"].([]interface{}) {
+		if col.(map[string]interface{})["UserDefined"].(bool) {
+			customColumns = append(customColumns, col.(map[string]interface{})["ColumnName"].(string));
+		}
+	}
+
+	return customColumns;
+}
+
+func keepSelectedKeysInMap(mp map[string]interface{}, keysToKeep []string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for _, key := range keysToKeep {
+		if value, ok := mp[key]; ok {
+			result[key] = value;
+		}
+	}
+
+	return result;
 }
