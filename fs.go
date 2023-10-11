@@ -1500,7 +1500,7 @@ func fileExists(name string) bool {
 	return true
 }
 
-func storeDataInJSONFile(data map[string]interface{}, path string, fileName string) error {
+func storeDataInJSONDiffFile(data DiffFileData, path string, fileName string) error {
 	marshalled, err := json.MarshalIndent(data, "", "  ");
 
 	if err != nil {
@@ -1522,13 +1522,13 @@ func storeDataInJSONFile(data map[string]interface{}, path string, fileName stri
 	return nil;
 }
 
-func readDataFromJSONDiffFile(filename string) map[string]interface{} {
+func readDataFromJSONDiffFile(filename string) DiffFileData {
 	jsonStr, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Println("Error reading the json file ", err);
 	}
 
-	parsed := make(map[string]interface{})
+	var parsed DiffFileData
 
 	err = json.Unmarshal(jsonStr, &parsed)
 

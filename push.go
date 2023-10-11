@@ -2743,7 +2743,6 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
 		updateRoleBody, err := packageRoleForUpdate(roleID, role, client, systemInfo)
-		fmt.Println("\n\n\n update ", updateRoleBody);
 		if err != nil {
 			return err
 		}
@@ -2799,117 +2798,121 @@ func pushEntityFromSlice(systemInfo *types.System_meta, entities []string, clien
 }
 
 func pushDiffEntities(systemInfo *types.System_meta, diffPath string, client *cb.DevClient) error {
-	var mp map[string]interface{};
+	var diffData DiffFileData;
 
-	mp = readDataFromJSONDiffFile(diffPath);
+	diffData = readDataFromJSONDiffFile(diffPath);
 
-	logInfo("Pushing services")
-
-	servicesSlice := convertInterfaceSliceToStringSlice(mp["services"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, servicesSlice, client, pushOneService); err != nil {
-		return err;
+	if len(diffData.Services) > 0 {
+		logInfo("Pushing services");
+		if err := pushEntityFromSlice(systemInfo, diffData.Services, client, pushOneService); err != nil {
+			return err;
+		}
 	}
 
-	logInfo("Pushing libraries")
-
-	librariesSlice := convertInterfaceSliceToStringSlice(mp["libraries"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, librariesSlice, client, pushOneLibrary); err != nil {
-		return err;
+	if len(diffData.Libraries) > 0 {
+		logInfo("Pushing libraries");
+		if err := pushEntityFromSlice(systemInfo, diffData.Libraries, client, pushOneLibrary); err != nil {
+			return err;
+		}
 	}
 
-	logInfo("Pushing devices")
-	devicesSlice := convertInterfaceSliceToStringSlice(mp["devices"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, devicesSlice, client, pushOneDevice); err != nil {
-		return err;
+	if len(diffData.Devices) > 0 {
+		logInfo("Pushing devices");
+		if err := pushEntityFromSlice(systemInfo, diffData.Devices, client, pushOneDevice); err != nil {
+			return err;
+		}
 	}
 
-	logInfo("Pushing device roles")
-	deviceRolesSlice := convertInterfaceSliceToStringSlice(mp["deviceRoles"].([]interface{}))
-	if err := pushDeviceRolesFromSlice(systemInfo, deviceRolesSlice, client); err != nil {
-		return err;
+	if len(diffData.DeviceRoles) > 0 {
+		logInfo("Pushing device roles");
+		if err := pushDeviceRolesFromSlice(systemInfo, diffData.DeviceRoles, client); err != nil {
+			return err;
+		}
 	}
 
-	logInfo("Pushing device schema")
-	if mp["deviceSchema"].(bool) {
+	if diffData.DeviceSchema {
+		logInfo("Pushing device schema")
 		if err := pushDevicesSchema(systemInfo, client); err != nil {
 			return err;
 		}
 	}
 
-	logInfo("Pushing edges")
-	edgesSlice := convertInterfaceSliceToStringSlice(mp["edges"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, edgesSlice, client, pushOneEdge); err != nil {
-		return err;
+	if len(diffData.Edges) > 0 {
+		logInfo("Pushing edges");
+		if err := pushEntityFromSlice(systemInfo, diffData.Edges, client, pushOneEdge); err != nil {
+			return err;
+		}
 	}
 
-	logInfo("Pushing edge schema")
-	if mp["edgesSchema"].(bool) {
+	
+	if diffData.EdgesSchema {
+		logInfo("Pushing edge schema");
 		if err := pushEdgesSchema(systemInfo, client); err != nil {
 			return err;
 		}
 	}
-	
-	logInfo("Pushing shared caches")
-	sharedCachesSlice := convertInterfaceSliceToStringSlice(mp["sharedCaches"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, sharedCachesSlice, client, pushOneServiceCache); err != nil {
-		return err;
-	}
 
-	logInfo("Pushing timers")
-	timersSlice := convertInterfaceSliceToStringSlice(mp["timers"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, timersSlice, client, pushOneTimer); err != nil {
-		return err;
-	}
-
-	logInfo("Pushing users")
-	usersSlice := convertInterfaceSliceToStringSlice(mp["users"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, usersSlice, client, pushOneUser); err != nil {
-		return err;
-	}
-
-	logInfo("Pushing user roles")
-	userRolesSlice := convertInterfaceSliceToStringSlice(mp["userRoles"].([]interface{}))
-	if err := pushUserRolesFromSlice(systemInfo, userRolesSlice, client); err != nil {
-		return err;
-	}
-
-	logInfo("Pushing user schema")
-	if mp["userSchema"].(bool) {
-		if err := pushUserSchema(systemInfo, client); err != nil {
-			return err;
-		}
-	}
-
-	logInfo("Pushing webhooks")
-	webhooksSlice := convertInterfaceSliceToStringSlice(mp["webhooks"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, webhooksSlice, client, pushOneWebhook); err != nil {
-		return err;
-	}
-
-	logInfo("Pushing message history storage")
-	if mp["messageHistoryStorage"].(bool) {
+	if diffData.MessageHistoryStorage {
+		logInfo("Pushing message history storage")
 		if err := pushMessageHistoryStorage(systemInfo, client); err != nil {
 			return err;
 		}
 	}
 
-	logInfo("Pushing message type triggers")
-	if mp["messageTypeTriggers"].(bool) {
+	if diffData.MessageTypeTriggers {
+		logInfo("Pushing message type triggers")
 		if err := pushMessageTypeTriggers(systemInfo, client); err != nil {
 			return err;
 		}
 	}
+
+	if len(diffData.Roles) > 0 {
+		logInfo("Pushing roles");
+		if err := pushEntityFromSlice(systemInfo, diffData.Roles, client, pushOneRole); err != nil {
+			return err;
+		}
+	}
 	
-	if mp["userSchema"].(bool) {
+	if len(diffData.SharedCaches) > 0 {
+		logInfo("Pushing shared caches");
+		if err := pushEntityFromSlice(systemInfo, diffData.SharedCaches, client, pushOneServiceCache); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Timers) > 0 {
+		logInfo("Pushing timers")
+		if err := pushEntityFromSlice(systemInfo, diffData.Timers, client, pushOneTimer); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.Users) > 0 {
+		logInfo("Pushing users");
+		if err := pushEntityFromSlice(systemInfo, diffData.Users, client, pushOneUser); err != nil {
+			return err;
+		}
+	}
+
+	if len(diffData.UserRoles) > 0 {
+		logInfo("Pushing user roles")
+		if err := pushUserRolesFromSlice(systemInfo, diffData.UserRoles, client); err != nil {
+			return err;
+		}
+	}
+
+	if diffData.UserSchema {
+		logInfo("Pushing user schema")
 		if err := pushUserSchema(systemInfo, client); err != nil {
 			return err;
 		}
 	}
 
-	logInfo("Pushing roles")
-	rolesSlice := convertInterfaceSliceToStringSlice(mp["roles"].([]interface{}))
-	if err := pushEntityFromSlice(systemInfo, rolesSlice, client, pushOneRole); err != nil {
-		return err;
+	if len(diffData.Webhooks) > 0 {
+		logInfo("Pushing webhooks")
+		if err := pushEntityFromSlice(systemInfo, diffData.Webhooks, client, pushOneWebhook); err != nil {
+			return err;
+		}
 	}
 
 	logInfo("Successfully pushed the entities using the diff file")

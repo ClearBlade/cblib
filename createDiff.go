@@ -8,6 +8,25 @@ import (
 	"github.com/clearblade/cblib/internal/types"
 )
 
+type DiffFileData struct {
+	DeviceRoles []string `json:"DeviceRoles"`
+	DeviceSchema bool `json:"DeviceSchema"`
+	Devices []string `json:"Devices"`
+	Edges []string `json:"Edges"`
+	EdgesSchema bool `json:"EdgesSchema"`
+	Libraries []string `json:"Libraries"`
+	MessageHistoryStorage bool `json:"MessageHistoryStorage"`
+	MessageTypeTriggers bool `json:"MessageTypeTriggers"`
+	Roles []string `json:"Roles"`
+	Services []string `json:"Services"`
+	SharedCaches []string `json:"SharedCaches"`
+	Timers []string `json:"Timers"`
+	UserRoles []string `json:"UserRoles"`
+	UserSchema bool `json:"UserSchema"`
+	Users []string `json:"Users"`
+	Webhooks []string `json:"Webhooks"`
+}
+
 func init() {
 	usage :=
 		`
@@ -120,25 +139,25 @@ func doGenerateDiff(cmd *SubCommand, client *cb.DevClient, args ...string) error
 		return err;
 	}
 
-	dataMap := make(map[string]interface{});
-	dataMap["services"] = diffServices;
-	dataMap["libraries"] = diffLibraries;
-	dataMap["devices"] = diffDevices;
-	dataMap["deviceRoles"] = diffDeviceRoles;
-	dataMap["deviceSchema"] = diffDeviceSchema;
-	dataMap["edges"] = diffEdges;
-	dataMap["edgesSchema"] = diffEdgesSchema;
-	dataMap["sharedCaches"] = diffSharedCaches;
-	dataMap["timers"] = diffTimers
-	dataMap["users"] = diffUsers;
-	dataMap["userRoles"] = diffUserRoles;
-	dataMap["userSchema"] = diffUserSchema;
-	dataMap["webhooks"] = diffWebhooks;
-	dataMap["messageHistoryStorage"] = diffMessageHistoryStorage
-	dataMap["messageTypeTriggers"] = diffMessageTypeTriggers
-	dataMap["roles"] = diffRoles;
+	var dataMap DiffFileData
+	dataMap.Services = diffServices;
+	dataMap.Libraries = diffLibraries;
+	dataMap.Devices = diffDevices;
+	dataMap.DeviceRoles = diffDeviceRoles;
+	dataMap.DeviceSchema = diffDeviceSchema;
+	dataMap.Edges = diffEdges;
+	dataMap.EdgesSchema = diffEdgesSchema;
+	dataMap.MessageHistoryStorage = diffMessageHistoryStorage
+	dataMap.MessageTypeTriggers = diffMessageTypeTriggers
+	dataMap.Roles = diffRoles;
+	dataMap.SharedCaches = diffSharedCaches;
+	dataMap.Timers = diffTimers
+	dataMap.Users = diffUsers;
+	dataMap.UserRoles = diffUserRoles;
+	dataMap.UserSchema = diffUserSchema;
+	dataMap.Webhooks = diffWebhooks;
 
-	err = storeDataInJSONFile(dataMap, PathForDiffFile, "diff.json");
+	err = storeDataInJSONDiffFile(dataMap, PathForDiffFile, "diff.json");
 
 	if err != nil {
 		return err
