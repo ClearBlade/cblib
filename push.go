@@ -883,29 +883,25 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 	}
 
 	servicesToCreate, ok := dryRun["services_to_create"].([]string)
-	if !ok {
-		return fmt.Errorf("field 'services_to_create' missing from dry run: %v", dryRun)
-	}
+	if ok {
+		for i, service := range servicesToCreate {
+			if i == 0 {
+				fmt.Println("The following services will be created:")
+			}
 
-	for i, service := range servicesToCreate {
-		if i == 0 {
-			fmt.Println("The following services will be created:")
+			fmt.Printf("%s\n", service)
 		}
-
-		fmt.Printf("%s\n", service)
 	}
 
 	librariesToCreate, ok := dryRun["libraries_to_create"].([]string)
-	if !ok {
-		return fmt.Errorf("field 'libraries_to_create' missing from dry run: %v", dryRun)
-	}
+	if ok {
+		for i, library := range librariesToCreate {
+			if i == 0 {
+				fmt.Println("The following libraries will be created:")
+			}
 
-	for i, library := range librariesToCreate {
-		if i == 0 {
-			fmt.Println("The following libraries will be created:")
+			fmt.Printf("%s\n", library)
 		}
-
-		fmt.Printf("%s\n", library)
 	}
 
 	return nil
