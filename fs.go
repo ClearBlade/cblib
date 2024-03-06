@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -1496,4 +1497,64 @@ func fileExists(name string) bool {
 		// the error
 	}
 	return true
+}
+
+func writeSystemZip(options systemPushOptions) (string, error) {
+	archive, err := os.CreateTemp("", "cb_cli_push_*.zip")
+	if err != nil {
+		return "", err
+	}
+
+	defer archive.Close()
+	w := zip.NewWriter(archive)
+	if options.AllLibraries {
+		if err := writeDirectoryToZip(w, libDir, "code/libraries"); err != nil {
+			return "", err
+		}
+	}
+
+	if options.AllServices {
+		if err := writeDirectoryToZip(w, svcDir, "code/services"); err != nil {
+			return "", err
+		}
+	}
+
+	if err := w.Close(); err != nil {
+		return "", err
+	}
+
+	return archive.Name(), nil
+}
+
+func writeDirectoryToZip(w *zip.Writer, localPath string, zipPath string) error {
+	files, err := os.ReadDir(localPath)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		localFilePath := fmt.Sprintf("%s/%s", localPath, file.Name())
+		zipFilePath := fmt.Sprintf("%s/%s", zipPath, file.Name())
+
+		if file.IsDir() {
+			writeDirectoryToZip(w, localFilePath, zipFilePath)
+			continue
+		}
+
+		buf, err := os.ReadFile(localFilePath)
+		if err != nil {
+			return err
+		}
+
+		f, err := w.Create(zipFilePath)
+		if err != nil {
+			return err
+		}
+
+		if _, err := f.Write(buf); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
