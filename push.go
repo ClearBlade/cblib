@@ -844,13 +844,17 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 		return err
 	}
 
-	if err := printSystemPushDryRun(systemInfo, client, buffer); err != nil {
+	// TODO: What if there are no changes
+	willCreateNewObjects, err := printSystemPushDryRun(systemInfo, client, buffer)
+	if err != nil {
 		return err
 	}
 
-	c, err := confirmPrompt(fmt.Sprintln("Would you like to accept these changes?"))
-	if err != nil {
-		return err
+	c := true
+	if willCreateNewObjects {
+		if c, err = confirmPrompt(fmt.Sprintln("Would you like to accept these changes?")); err != nil {
+			return err
+		}
 	}
 
 	if !c {
@@ -865,27 +869,29 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 	return nil
 }
 
-func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) error {
+func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (bool, error) {
+	hasChanges := false
 	dryRunResult, err := client.UploadToSystem(systemInfo.Key, buffer, true)
 	if err != nil {
-		return err
+		return hasChanges, err
 	}
 
 	dryRun, ok := dryRunResult.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("unexpected response when doing dry run of push: %v", dryRun)
+		return hasChanges, fmt.Errorf("unexpected response when doing dry run of push: %v", dryRun)
 	}
+	fmt.Printf("DRY RUN RESULT: %+v\n", dryRun)
 
 	errors, ok := dryRun["errors"].([]string)
 	if ok && len(errors) > 0 {
-		// TODO: Will this print out???
-		return fmt.Errorf("cannot push: %s", strings.Join(errors, "\n\t"))
+		return hasChanges, fmt.Errorf("cannot push: %s", strings.Join(errors, "\n\t"))
 	}
 
 	servicesToCreate, ok := dryRun["services_to_create"].([]string)
 	if ok {
 		for i, service := range servicesToCreate {
 			if i == 0 {
+				hasChanges = true
 				fmt.Println("The following services will be created:")
 			}
 
@@ -897,6 +903,7 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 	if ok {
 		for i, library := range librariesToCreate {
 			if i == 0 {
+				hasChanges = true
 				fmt.Println("The following libraries will be created:")
 			}
 
@@ -904,7 +911,7 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 		}
 	}
 
-	return nil
+	return hasChanges, nil
 }
 
 func pushOneLibrary(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
