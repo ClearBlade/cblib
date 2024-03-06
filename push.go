@@ -880,7 +880,9 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 	if !ok {
 		return hasChanges, fmt.Errorf("unexpected response when doing dry run of push: %v", dryRun)
 	}
-	fmt.Printf("DRY RUN RESULT: %+v\n", dryRun)
+
+	fmt.Printf("DRY RUN: %v\n", dryRun)
+	fmt.Printf("TYPE IS %T\n", dryRun["services_to_update"])
 
 	errors, ok := dryRun["errors"].([]string)
 	if ok && len(errors) > 0 {
