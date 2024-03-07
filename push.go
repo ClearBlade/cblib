@@ -10,6 +10,9 @@ import (
 	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	libPkg "github.com/clearblade/cblib/models/libraries"
+	"github.com/clearblade/cblib/models/systemUpload"
+	"github.com/clearblade/cblib/models/systemUpload/dryRun"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -827,62 +830,63 @@ func pushAllAdaptors(systemInfo *types.System_meta, client *cb.DevClient) error 
 	return nil
 }
 
+func pushAllServices(systemInfo *types.System_meta, client *cb.DevClient) error {
+	services, err := getServices()
+	if err != nil {
+		return err
+	}
+	for _, service := range services {
+		name := service["name"].(string)
+		fmt.Printf("Pushing service %+s\n", name)
+		if err := updateServiceWithRunAs(systemInfo.Key, name, service, client); err != nil {
+			return fmt.Errorf("Error updating service '%s': %s\n", service["name"].(string), err.Error())
+		}
+	}
+	return nil
+}
+
 type systemPushOptions struct {
 	AllServices  bool
 	AllLibraries bool
 }
 
 func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	if systemUpload.DoesBackendSupportSystemUpload(systemInfo, client) {
+		return pushSystemZip(systemInfo, client, options)
+	} else {
+		return pushSystemLegacy(systemInfo, client, options)
+	}
+}
+
+func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
 	// TODO: We shouldn't do this if the api doesn't support it
 	// Go back to the old method if we need to
-	path, err := writeSystemZip(options)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(path)
-
-	buffer, err := os.ReadFile(path)
+	buffer, err := getSystemZipBytes(options)
 	if err != nil {
 		return err
 	}
 
-	dryRun, err := doSystemDryRun(systemInfo, client, buffer)
+	dryRun, err := dryRun.New(systemInfo, client, buffer)
 	if err != nil {
 		return err
 	}
 
-	if len(dryRun.errors) > 0 {
-		return fmt.Errorf("cannot push: %s", strings.Join(dryRun.errors, "\n"))
+	if !dryRun.HasChanges() {
+		return nil
 	}
 
-	for i, service := range dryRun.servicesToCreate {
-		if i == 0 {
-			fmt.Println("The following services will be created:")
-		}
-
-		fmt.Printf("%s\n", service)
+	fmt.Println(dryRun.String())
+	changesAccepted, err := confirmPrompt(fmt.Sprintln("Would you like to accept these changes?"))
+	if err != nil {
+		return err
 	}
 
-	for i, library := range dryRun.librariesToCreate {
-		if i == 0 {
-			fmt.Println("The following libraries will be created:")
-		}
-
-		fmt.Printf("%s\n", library)
-	}
-
-	confirmed := true
-	if len(dryRun.librariesToCreate)+len(dryRun.servicesToCreate) > 0 {
-		if confirmed, err = confirmPrompt(fmt.Sprintln("Would you like to accept these changes?")); err != nil {
-			return err
-		}
-	}
-
-	if !confirmed {
+	if !changesAccepted {
 		fmt.Println("Changes will not be pushed")
 		return nil
 	}
 
+	fmt.Println("Pushing changes")
 	if _, err := client.UploadToSystem(systemInfo.Key, buffer, false); err != nil {
 		return err
 	}
@@ -890,68 +894,20 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 	return nil
 }
 
-type dryRun struct {
-	errors            []string
-	librariesToCreate []string
-	servicesToCreate  []string
-}
-
-func doSystemDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (*dryRun, error) {
-	dryRunResult, err := client.UploadToSystem(systemInfo.Key, buffer, true)
-	if err != nil {
-		return nil, err
-	}
-
-	run := dryRunResult.(map[string]interface{})
-	return &dryRun{
-		errors:            toStringArray(run["errors"]),
-		librariesToCreate: toStringArray(run["libraries_to_create"]),
-		servicesToCreate:  toStringArray(run["services_to_create"]),
-	}, nil
-}
-
-func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (bool, error) {
-	hasChanges := false
-	dryRunResult, err := client.UploadToSystem(systemInfo.Key, buffer, true)
-	if err != nil {
-		return hasChanges, err
-	}
-
-	dryRun, ok := dryRunResult.(map[string]interface{})
-	if !ok {
-		return hasChanges, fmt.Errorf("unexpected response when doing dry run of push: %v", dryRun)
-	}
-
-	errors, ok := dryRun["errors"].([]interface{})
-	if ok && len(errors) > 0 {
-		return hasChanges, fmt.Errorf("cannot push: %s", strings.Join(errors, "\n\t"))
-	}
-
-	servicesToCreate, ok := dryRun["services_to_create"].([]interface{})
-	if ok {
-		for i, service := range servicesToCreate {
-			if i == 0 {
-				hasChanges = true
-				fmt.Println("The following services will be created:")
-			}
-
-			fmt.Printf("%s\n", service)
+func pushSystemLegacy(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	if options.AllLibraries {
+		if err := pushAllLibraries(systemInfo, client); err != nil {
+			return err
 		}
 	}
 
-	librariesToCreate, ok := dryRun["libraries_to_create"].([]interface{})
-	if ok {
-		for i, library := range librariesToCreate {
-			if i == 0 {
-				hasChanges = true
-				fmt.Println("The following libraries will be created:")
-			}
-
-			fmt.Printf("%s\n", library)
+	if options.AllServices {
+		if err := pushAllServices(systemInfo, client); err != nil {
+			return err
 		}
 	}
 
-	return hasChanges, nil
+	return nil
 }
 
 func pushOneLibrary(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
@@ -997,6 +953,28 @@ func pushMessageTypeTriggers(systemInfo *types.System_meta, client *cb.DevClient
 	err = client.AddMessageTypeTriggers(systemInfo.Key, msgTypeTriggers)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
+	rawLibraries, err := getLibraries()
+	if err != nil {
+		return err
+	}
+
+	libraries := make([]libPkg.Library, 0)
+	for _, rawLib := range rawLibraries {
+		libraries = append(libraries, libPkg.NewLibraryFromMap(rawLib))
+	}
+
+	orderedLibraries := libPkg.PostorderLibraries(libraries)
+
+	for _, library := range orderedLibraries {
+		fmt.Printf("Pushing library %+s\n", library.GetName())
+		if err := updateLibrary(systemInfo.Key, library.GetMap(), client); err != nil {
+			return fmt.Errorf("Error updating library '%s': %s\n", library.GetName(), err.Error())
+		}
 	}
 	return nil
 }
@@ -1062,11 +1040,11 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllLibraries || AllServices {
+	if AllLibraries || AllServices || AllAssets {
 		didSomething = true
 		if err := pushSystem(systemInfo, client, systemPushOptions{
-			AllServices:  AllServices,
-			AllLibraries: AllLibraries,
+			AllServices:  AllServices || AllAssets,
+			AllLibraries: AllLibraries || AllAssets,
 		}); err != nil {
 			return err
 		}

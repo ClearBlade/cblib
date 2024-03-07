@@ -1499,6 +1499,16 @@ func fileExists(name string) bool {
 	return true
 }
 
+func getSystemZipBytes(options systemPushOptions) ([]byte, error) {
+	path, err := writeSystemZip(options)
+	if err != nil {
+		return nil, err
+	}
+
+	defer os.Remove(path)
+	return os.ReadFile(path)
+}
+
 func writeSystemZip(options systemPushOptions) (string, error) {
 	archive, err := os.CreateTemp("", "cb_cli_push_*.zip")
 	if err != nil {
