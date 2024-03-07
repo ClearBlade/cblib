@@ -16,8 +16,8 @@ func toStringArray(val interface{}) []string {
 	return result
 }
 
-func writeDryRunSection(sb strings.Builder, title, contents string) {
-	sb.WriteString(fmt.Sprintf("-- %s --\n"))
+func writeDryRunSection(sb *strings.Builder, title, contents string) {
+	sb.WriteString(fmt.Sprintf("-- %s --\n", title))
 	sb.WriteString(contents)
 	sb.WriteString("\n\n")
 }

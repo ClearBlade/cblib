@@ -44,11 +44,11 @@ func (d *DryRun) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("The following changes will be made:\n")
 	if d.hasServiceChanges() {
-		writeDryRunSection(sb, "SERVICES", d.ServicesString())
+		writeDryRunSection(&sb, "SERVICES", d.ServicesString())
 	}
 
 	if d.hasLibraryChanges() {
-		writeDryRunSection(sb, "LIBRARIES", d.LibrariesString())
+		writeDryRunSection(&sb, "LIBRARIES", d.LibrariesString())
 	}
 
 	return sb.String()
