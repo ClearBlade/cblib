@@ -833,6 +833,8 @@ type systemPushOptions struct {
 }
 
 func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	// TODO: We shouldn't do this if the api doesn't support it
+	// Go back to the old method if we need to
 	path, err := writeSystemZip(options)
 	if err != nil {
 		return err
@@ -844,20 +846,39 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 		return err
 	}
 
-	// TODO: What if there are no changes
-	willCreateNewObjects, err := printSystemPushDryRun(systemInfo, client, buffer)
+	dryRun, err := doSystemDryRun(systemInfo, client, buffer)
 	if err != nil {
 		return err
 	}
 
-	c := true
-	if willCreateNewObjects {
-		if c, err = confirmPrompt(fmt.Sprintln("Would you like to accept these changes?")); err != nil {
+	if len(dryRun.errors) > 0 {
+		return fmt.Errorf("cannot push: %s", strings.Join(dryRun.errors, "\n"))
+	}
+
+	for i, service := range dryRun.servicesToCreate {
+		if i == 0 {
+			fmt.Println("The following services will be created:")
+		}
+
+		fmt.Printf("%s\n", service)
+	}
+
+	for i, library := range dryRun.librariesToCreate {
+		if i == 0 {
+			fmt.Println("The following libraries will be created:")
+		}
+
+		fmt.Printf("%s\n", library)
+	}
+
+	confirmed := true
+	if len(dryRun.librariesToCreate)+len(dryRun.servicesToCreate) > 0 {
+		if confirmed, err = confirmPrompt(fmt.Sprintln("Would you like to accept these changes?")); err != nil {
 			return err
 		}
 	}
 
-	if !c {
+	if !confirmed {
 		fmt.Println("Changes will not be pushed")
 		return nil
 	}
@@ -867,6 +888,26 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 	}
 
 	return nil
+}
+
+type dryRun struct {
+	errors            []string
+	librariesToCreate []string
+	servicesToCreate  []string
+}
+
+func doSystemDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (*dryRun, error) {
+	dryRunResult, err := client.UploadToSystem(systemInfo.Key, buffer, true)
+	if err != nil {
+		return nil, err
+	}
+
+	run := dryRunResult.(map[string]interface{})
+	return &dryRun{
+		errors:            toStringArray(run["errors"]),
+		librariesToCreate: toStringArray(run["libraries_to_create"]),
+		servicesToCreate:  toStringArray(run["services_to_create"]),
+	}, nil
 }
 
 func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (bool, error) {
@@ -881,15 +922,12 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 		return hasChanges, fmt.Errorf("unexpected response when doing dry run of push: %v", dryRun)
 	}
 
-	fmt.Printf("DRY RUN: %v\n", dryRun)
-	fmt.Printf("TYPE IS %T\n", dryRun["services_to_update"])
-
-	errors, ok := dryRun["errors"].([]string)
+	errors, ok := dryRun["errors"].([]interface{})
 	if ok && len(errors) > 0 {
 		return hasChanges, fmt.Errorf("cannot push: %s", strings.Join(errors, "\n\t"))
 	}
 
-	servicesToCreate, ok := dryRun["services_to_create"].([]string)
+	servicesToCreate, ok := dryRun["services_to_create"].([]interface{})
 	if ok {
 		for i, service := range servicesToCreate {
 			if i == 0 {
@@ -901,7 +939,7 @@ func printSystemPushDryRun(systemInfo *types.System_meta, client *cb.DevClient, 
 		}
 	}
 
-	librariesToCreate, ok := dryRun["libraries_to_create"].([]string)
+	librariesToCreate, ok := dryRun["libraries_to_create"].([]interface{})
 	if ok {
 		for i, library := range librariesToCreate {
 			if i == 0 {
