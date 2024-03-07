@@ -859,8 +859,6 @@ func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options sys
 }
 
 func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
-	// TODO: We shouldn't do this if the api doesn't support it
-	// Go back to the old method if we need to
 	buffer, err := getSystemZipBytes(options)
 	if err != nil {
 		return err
@@ -894,6 +892,10 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	return nil
 }
 
+/**
+ * Legacy behavior of push where each object is pushed individually.
+ * This should be used on systems that do not support system upload.
+ */
 func pushSystemLegacy(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
 	if options.AllLibraries {
 		if err := pushAllLibraries(systemInfo, client); err != nil {
