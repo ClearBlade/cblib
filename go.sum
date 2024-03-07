@@ -29,6 +29,8 @@ github.com/clearblade/Go-SDK v0.0.0-20240305193218-292023fc6487 h1:j59t1Ywzxiwul
 github.com/clearblade/Go-SDK v0.0.0-20240305193218-292023fc6487/go.mod h1:zHjGnfWvneo/sW1PBnAUBUcsMVaFoQfKxW43rXUp3RY=
 github.com/clearblade/Go-SDK v0.0.0-20240307155638-d7e70edf43a3 h1:Pzo99+IKxwJtjI11GPTQnB3GgKVEvi6QVsbyLEwPajY=
 github.com/clearblade/Go-SDK v0.0.0-20240307155638-d7e70edf43a3/go.mod h1:zHjGnfWvneo/sW1PBnAUBUcsMVaFoQfKxW43rXUp3RY=
+github.com/clearblade/Go-SDK v0.0.0-20240307161113-68b38ce52246 h1:cGF5JXCOMs8ju1Mc1o9GP3pdemMs2hzVpwpp95ipQVk=
+github.com/clearblade/Go-SDK v0.0.0-20240307161113-68b38ce52246/go.mod h1:zHjGnfWvneo/sW1PBnAUBUcsMVaFoQfKxW43rXUp3RY=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c h1:KnJkP9fLFNyoV+pU3mXiRW5oLJdgDzVM/hWQhc0Scas=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c/go.mod h1:Pbu2bhtMVaWboL3mRaFQmGs8USG8uG4EAW2LB3SfCME=
 github.com/clearblade/go-utils v1.1.4 h1:/pcYKVTAJ5RcXRZnVENNdUZUKCoZRa3OVhbyer/aHiY=

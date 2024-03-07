@@ -873,7 +873,7 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return nil
 	}
 
-	fmt.Println(dryRun.String())
+	fmt.Print(dryRun.String())
 	changesAccepted, err := confirmPrompt(fmt.Sprintln("Would you like to accept these changes?"))
 	if err != nil {
 		return err
