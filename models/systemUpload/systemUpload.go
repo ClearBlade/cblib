@@ -9,3 +9,14 @@ func DoesBackendSupportSystemUpload(systemInfo *types.System_meta, client *cb.De
 	_, err := client.GetSystemUploadVersion(systemInfo.Key)
 	return err == nil
 }
+
+func ToStringArray(val interface{}) []string {
+	result := make([]string, 0)
+
+	arr := val.([]interface{})
+	for _, item := range arr {
+		result = append(result, item.(string))
+	}
+
+	return result
+}

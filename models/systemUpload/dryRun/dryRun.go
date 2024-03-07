@@ -6,6 +6,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/models/systemUpload"
 )
 
 type DryRun struct {
@@ -24,11 +25,11 @@ func New(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (*D
 
 	run := dryRunResult.(map[string]interface{})
 	return &DryRun{
-		Errors:            toStringArray(run["errors"]),
-		LibrariesToCreate: toStringArray(run["libraries_to_create"]),
-		LibrariesToUpdate: toStringArray(run["libraries_to_update"]),
-		ServicesToCreate:  toStringArray(run["services_to_create"]),
-		ServicesToUpdate:  toStringArray(run["services_to_update"]),
+		Errors:            systemUpload.ToStringArray(run["errors"]),
+		LibrariesToCreate: systemUpload.ToStringArray(run["libraries_to_create"]),
+		LibrariesToUpdate: systemUpload.ToStringArray(run["libraries_to_update"]),
+		ServicesToCreate:  systemUpload.ToStringArray(run["services_to_create"]),
+		ServicesToUpdate:  systemUpload.ToStringArray(run["services_to_update"]),
 	}, nil
 }
 
@@ -60,6 +61,10 @@ func (d *DryRun) HasChanges() bool {
 	}
 
 	return d.hasServiceChanges() || d.hasLibraryChanges()
+}
+
+func (d *DryRun) HasErrors() bool {
+	return len(d.Errors) > 0
 }
 
 // ----------------------- SERVICES -----------------------

@@ -13,6 +13,7 @@ import (
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/models/systemUpload/dryRun"
+	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -869,6 +870,10 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return err
 	}
 
+	if dryRun.HasErrors() {
+		return fmt.Errorf(dryRun.String())
+	}
+
 	if !dryRun.HasChanges() {
 		return nil
 	}
@@ -885,11 +890,12 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	}
 
 	fmt.Println("Pushing changes")
-	if _, err := client.UploadToSystem(systemInfo.Key, buffer, false); err != nil {
+	r, err := client.UploadToSystem(systemInfo.Key, buffer, false)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	return uploadResult.New(r).Error()
 }
 
 /**
