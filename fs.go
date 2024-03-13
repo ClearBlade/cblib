@@ -1518,13 +1518,13 @@ func writeSystemZip(options systemPushOptions) (string, error) {
 	defer archive.Close()
 	w := zip.NewWriter(archive)
 	if options.AllLibraries {
-		if err := writeDirectoryToZip(w, libDir, "code/libraries"); err != nil {
+		if err := writeDirectoryToZip(w, libDir, "code/libraries", []string{"js", "json"}); err != nil {
 			return "", err
 		}
 	}
 
 	if options.AllServices {
-		if err := writeDirectoryToZip(w, svcDir, "code/services"); err != nil {
+		if err := writeDirectoryToZip(w, svcDir, "code/services", []string{"js", "json"}); err != nil {
 			return "", err
 		}
 	}
@@ -1536,7 +1536,7 @@ func writeSystemZip(options systemPushOptions) (string, error) {
 	return archive.Name(), nil
 }
 
-func writeDirectoryToZip(w *zip.Writer, localPath string, zipPath string) error {
+func writeDirectoryToZip(w *zip.Writer, localPath string, zipPath string, fileTypes []string) error {
 	files, err := os.ReadDir(localPath)
 	if err != nil {
 		return err
@@ -1547,7 +1547,11 @@ func writeDirectoryToZip(w *zip.Writer, localPath string, zipPath string) error 
 		zipFilePath := fmt.Sprintf("%s/%s", zipPath, file.Name())
 
 		if file.IsDir() {
-			writeDirectoryToZip(w, localFilePath, zipFilePath)
+			writeDirectoryToZip(w, localFilePath, zipFilePath, fileTypes)
+			continue
+		}
+
+		if !ContainsString(fileTypes, getFileType(file.Name())) {
 			continue
 		}
 
@@ -1567,4 +1571,13 @@ func writeDirectoryToZip(w *zip.Writer, localPath string, zipPath string) error 
 	}
 
 	return nil
+}
+
+func getFileType(fileName string) string {
+	components := strings.Split(fileName, ".")
+	if len(components) == 0 {
+		return ""
+	}
+
+	return strings.ToLower(components[len(components)-1])
 }
