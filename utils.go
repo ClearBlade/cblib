@@ -586,3 +586,13 @@ func createCollectionIfNecessary(meta *types.System_meta, collection map[string]
 	}
 	return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: true}, nil
 }
+
+func ContainsString(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+
+	return false
+}

@@ -11,6 +11,9 @@ import (
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
+	"github.com/clearblade/cblib/models/systemUpload"
+	"github.com/clearblade/cblib/models/systemUpload/dryRun"
+	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -843,6 +846,78 @@ func pushAllServices(systemInfo *types.System_meta, client *cb.DevClient) error 
 	return nil
 }
 
+type systemPushOptions struct {
+	AllServices  bool
+	AllLibraries bool
+}
+
+func pushSystem(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	if systemUpload.DoesBackendSupportSystemUpload(systemInfo, client) {
+		return pushSystemZip(systemInfo, client, options)
+	} else {
+		return pushSystemLegacy(systemInfo, client, options)
+	}
+}
+
+func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	buffer, err := getSystemZipBytes(options)
+	if err != nil {
+		return err
+	}
+
+	dryRun, err := dryRun.New(systemInfo, client, buffer)
+	if err != nil {
+		return err
+	}
+
+	if dryRun.HasErrors() {
+		return fmt.Errorf(dryRun.String())
+	}
+
+	if !dryRun.HasChanges() {
+		return nil
+	}
+
+	fmt.Print(dryRun.String())
+	changesAccepted, err := confirmPrompt(fmt.Sprintln("Would you like to accept these changes?"))
+	if err != nil {
+		return err
+	}
+
+	if !changesAccepted {
+		fmt.Println("Changes will not be pushed")
+		return nil
+	}
+
+	fmt.Println("Pushing changes")
+	r, err := client.UploadToSystem(systemInfo.Key, buffer, false)
+	if err != nil {
+		return err
+	}
+
+	return uploadResult.New(r).Error()
+}
+
+/**
+ * Legacy behavior of push where each object is pushed individually.
+ * This should be used on systems that do not support system upload.
+ */
+func pushSystemLegacy(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+	if options.AllLibraries {
+		if err := pushAllLibraries(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if options.AllServices {
+		if err := pushAllServices(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func pushOneLibrary(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing library %+s\n", name)
 
@@ -973,9 +1048,12 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
-	if AllLibraries || AllAssets {
+	if AllLibraries || AllServices || AllAssets {
 		didSomething = true
-		if err := pushAllLibraries(systemInfo, client); err != nil {
+		if err := pushSystem(systemInfo, client, systemPushOptions{
+			AllServices:  AllServices || AllAssets,
+			AllLibraries: AllLibraries || AllAssets,
+		}); err != nil {
 			return err
 		}
 	}
@@ -983,13 +1061,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if LibraryName != "" {
 		didSomething = true
 		if err := pushOneLibrary(systemInfo, client, LibraryName); err != nil {
-			return err
-		}
-	}
-
-	if AllServices || AllAssets {
-		didSomething = true
-		if err := pushAllServices(systemInfo, client); err != nil {
 			return err
 		}
 	}
