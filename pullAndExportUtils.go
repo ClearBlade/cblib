@@ -101,6 +101,10 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		if _, err := pullAndWriteCollectionColumns(systemInfo, client, CollectionSchema); err != nil {
 			logError(fmt.Sprintf("Failed to pull collection schema. %s", err.Error()))
 		}
+		logInfo(fmt.Sprintf("Pulling collection indexes for %s\n", CollectionSchema))
+		if _, err := pullAndWriteCollectionIndexes(systemInfo, client, CollectionSchema); err != nil {
+			logError(fmt.Sprintf("Failed to pull collection indexes. %s", err.Error()))
+		}
 		fmt.Printf("\n")
 	}
 

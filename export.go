@@ -113,6 +113,20 @@ func pullCollectionColumns(sysMeta *types.System_meta, cli *cb.DevClient, name s
 	return cli.GetColumnsByCollectionName(sysMeta.Key, name)
 }
 
+func pullAndWriteCollectionIndexes(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*rt.Indexes, error) {
+
+	indexes, err := pullCollectionIndexes(sysMeta, cli, name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateCollectionIndexes(name, indexes, cli, sysMeta)
+	if err != nil {
+		return nil, err
+	}
+	return indexes, nil
+}
+
 func pullCollectionIndexes(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*rt.Indexes, error) {
 
 	data, err := cli.ListIndexes(sysMeta.Key, name)

@@ -15,6 +15,7 @@ import (
 	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	rt "github.com/clearblade/cblib/resourcetree"
 )
 
 const SORT_KEY_CODE_SERVICE = "Name"
@@ -475,6 +476,22 @@ func getUserIdByEmail(email string) (string, error) {
 	} else {
 		return val, nil
 	}
+}
+
+func updateCollectionIndexes(collectionName string, indexes *rt.Indexes, client *cb.DevClient, systemInfo *types.System_meta) error {
+	collInfo, err := getCollection(collectionName)
+	if err != nil {
+		return err
+	}
+
+	collInfo["indexes"] = indexes
+
+	id, err := getCollectionIdByName(collectionName, client, systemInfo)
+	if err != nil {
+		return err
+	}
+	collInfo["collection_id"] = id
+	return writeCollection(collectionName, collInfo)
 }
 
 func updateCollectionSchema(collectionName string, schema []interface{}, client *cb.DevClient, systemInfo *types.System_meta) error {

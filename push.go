@@ -1084,6 +1084,9 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		if err := pushOneCollectionSchema(systemInfo, client, CollectionSchema); err != nil {
 			return err
 		}
+		if err := pushCollectionIndexes(systemInfo, client, CollectionSchema); err != nil {
+			return err
+		}
 	}
 
 	if CollectionName != "" {
