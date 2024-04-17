@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
 )
 
 type CollectionIdFetcher interface {
-	GetCollectionIdByName(theNameWeWant string, systemInfo *types.System_meta) (string, error)
+	GetCollectionIdByName(theNameWeWant string) (string, error)
 }
 
-func PackageRoleForUpdate(roleID string, role map[string]interface{}, fetcher CollectionIdFetcher, systemInfo *types.System_meta) (map[string]interface{}, error) {
+func PackageRoleForUpdate(roleID string, role map[string]interface{}, fetcher CollectionIdFetcher) (map[string]interface{}, error) {
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
-		return map[string]interface{}{}, fmt.Errorf("Permissions for role do not exist or is not a map")
+		return map[string]interface{}{}, fmt.Errorf("permissions for role do not exist or is not a map")
 	}
-	convertedPermissions := convertPermissionsStructure(permissions, fetcher, systemInfo)
+	convertedPermissions := ConvertPermissionsStructure(permissions, fetcher)
 	return map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}, nil
 }
 
@@ -26,7 +25,7 @@ func PackageRoleForUpdate(roleID string, role map[string]interface{}, fetcher Co
 // conversion function. -swm
 //
 // THis is a gigantic cluster. We need to fix and learn from this. -swm
-func convertPermissionsStructure(in map[string]interface{}, fetcher CollectionIdFetcher, systemInfo *types.System_meta) map[string]interface{} {
+func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionIdFetcher) map[string]interface{} {
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		switch key {
@@ -56,7 +55,7 @@ func convertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 				cols := make([]map[string]interface{}, 0)
 				for _, mapVal := range collections {
 					collName := mapVal["Name"].(string)
-					id, err := fetcher.GetCollectionIdByName(collName, systemInfo)
+					id, err := fetcher.GetCollectionIdByName(collName)
 					if err != nil {
 						fmt.Printf("Skipping permissions for collection '%s'; Error is - %s", collName, err.Error())
 						continue

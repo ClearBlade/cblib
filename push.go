@@ -1525,7 +1525,7 @@ func createRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	} else {
 		roleID = roleName // Administrator, Authorized, Anonymous
 	}
-	updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client}, systemInfo)
+	updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client, systemInfo: systemInfo})
 	if err != nil {
 		return err
 	}
@@ -1548,11 +1548,12 @@ func lookupCollectionIdByName(theNameWeWant string, collectionsInfo []Collection
 }
 
 type networkCollectionFetcher struct {
-	client *cb.DevClient
+	client     *cb.DevClient
+	systemInfo *types.System_meta
 }
 
-func (f networkCollectionFetcher) GetCollectionIdByName(theNameWeWant string, systemInfo *types.System_meta) (string, error) {
-	return getCollectionIdByName(theNameWeWant, f.client, systemInfo)
+func (f networkCollectionFetcher) GetCollectionIdByName(theNameWeWant string) (string, error) {
+	return getCollectionIdByName(theNameWeWant, f.client, f.systemInfo)
 }
 
 func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInfo *types.System_meta) (string, error) {
@@ -2541,7 +2542,7 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		if err != nil {
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
-		updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client}, systemInfo)
+		updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client, systemInfo: systemInfo})
 		if err != nil {
 			return err
 		}
