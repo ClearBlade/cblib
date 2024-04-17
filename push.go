@@ -2541,7 +2541,7 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		if err != nil {
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
-		updateRoleBody, err := PackageRoleForUpdate(roleID, role, client, systemInfo)
+		updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client}, systemInfo)
 		if err != nil {
 			return err
 		}
