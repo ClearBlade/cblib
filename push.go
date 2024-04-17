@@ -1524,7 +1524,7 @@ func createRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	} else {
 		roleID = roleName // Administrator, Authorized, Anonymous
 	}
-	updateRoleBody, err := packageRoleForUpdate(roleID, role, client, systemInfo)
+	updateRoleBody, err := PackageRoleForUpdate(roleID, role, client, systemInfo)
 	if err != nil {
 		return err
 	}
@@ -1537,7 +1537,7 @@ func createRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	return nil
 }
 
-func packageRoleForUpdate(roleID string, role map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) (map[string]interface{}, error) {
+func PackageRoleForUpdate(roleID string, role map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) (map[string]interface{}, error) {
 	permissions, ok := role["Permissions"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Permissions for role do not exist or is not a map")
@@ -2805,7 +2805,7 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		if err != nil {
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
-		updateRoleBody, err := packageRoleForUpdate(roleID, role, client, systemInfo)
+		updateRoleBody, err := PackageRoleForUpdate(roleID, role, client, systemInfo)
 		if err != nil {
 			return err
 		}
