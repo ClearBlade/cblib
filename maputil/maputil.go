@@ -1,5 +1,10 @@
 package maputil
 
+import (
+	"fmt"
+	"os"
+)
+
 // --------------------------------
 // Map utilities
 // --------------------------------
@@ -125,4 +130,36 @@ func SetIfMissing(m map[string]interface{}, key string, value interface{}) bool 
 		return true
 	}
 	return false
+}
+
+// The main thing I hate about go: type assertions
+func GetASliceOfMaps(val interface{}) ([]map[string]interface{}, error) {
+	switch val.(type) {
+	case []map[string]interface{}:
+		return val.([]map[string]interface{}), nil
+	case []interface{}:
+		rval := make([]map[string]interface{}, len(val.([]interface{})))
+		for idx, mapVal := range val.([]interface{}) {
+			switch mapVal.(type) {
+			case map[string]interface{}:
+				rval[idx] = mapVal.(map[string]interface{})
+			default:
+				return nil, fmt.Errorf("slice values are not maps: %T\n", mapVal)
+			}
+		}
+		return rval, nil
+	default:
+		return nil, fmt.Errorf("Bad type %T: expecting a slice", val)
+	}
+}
+
+func GetMap(val interface{}) map[string]interface{} {
+	switch val.(type) {
+	case map[string]interface{}:
+		return val.(map[string]interface{})
+	default:
+		fmt.Printf("permissions type must be a map, not %T\n", val)
+		os.Exit(1)
+	}
+	return map[string]interface{}{}
 }
