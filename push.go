@@ -11,6 +11,7 @@ import (
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
+	"github.com/clearblade/cblib/models/roles"
 	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/models/systemUpload/dryRun"
 	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
@@ -1527,7 +1528,7 @@ func createRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	} else {
 		roleID = roleName // Administrator, Authorized, Anonymous
 	}
-	updateRoleBody, err := packageRoleForUpdate(roleID, role, client, systemInfo)
+	updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client, systemInfo: systemInfo})
 	if err != nil {
 		return err
 	}
@@ -1540,15 +1541,6 @@ func createRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	return nil
 }
 
-func packageRoleForUpdate(roleID string, role map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) (map[string]interface{}, error) {
-	permissions, ok := role["Permissions"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("Permissions for role do not exist or is not a map")
-	}
-	convertedPermissions := convertPermissionsStructure(permissions, client, systemInfo)
-	return map[string]interface{}{"ID": roleID, "Permissions": convertedPermissions}, nil
-}
-
 func lookupCollectionIdByName(theNameWeWant string, collectionsInfo []CollectionInfo) (string, bool) {
 	for i := 0; i < len(collectionsInfo); i++ {
 		if collectionsInfo[i].Name == theNameWeWant {
@@ -1556,6 +1548,15 @@ func lookupCollectionIdByName(theNameWeWant string, collectionsInfo []Collection
 		}
 	}
 	return "", false
+}
+
+type networkCollectionFetcher struct {
+	client     *cb.DevClient
+	systemInfo *types.System_meta
+}
+
+func (f networkCollectionFetcher) GetCollectionIdByName(theNameWeWant string) (string, error) {
+	return getCollectionIdByName(theNameWeWant, f.client, f.systemInfo)
 }
 
 func getCollectionIdByName(theNameWeWant string, client *cb.DevClient, systemInfo *types.System_meta) (string, error) {
@@ -1596,270 +1597,6 @@ func getAllCollectionsInfo(client *cb.DevClient, systemInfo *types.System_meta) 
 		})
 	}
 	return infoList, nil
-}
-
-// it's possible that there are duplicate permissions
-// we need to remove any duplicates so that a role create/update succeeds
-func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []map[string]interface{} {
-	rtn := make([]map[string]interface{}, 0)
-	foundIds := make(map[string]bool)
-
-	for i := 0; i < len(perms); i++ {
-		id := perms[i]["itemInfo"].(map[string]interface{})[idKey].(string)
-		if _, found := foundIds[id]; !found {
-			foundIds[id] = true
-			rtn = append(rtn, perms[i])
-		}
-	}
-
-	return rtn
-}
-
-// The roles structure we get back when we retrieve roles is different from
-// the format accepted for updating a role. Thus, we have this beauty of a
-// conversion function. -swm
-//
-// THis is a gigantic cluster. We need to fix and learn from this. -swm
-func convertPermissionsStructure(in map[string]interface{}, client *cb.DevClient, systemInfo *types.System_meta) map[string]interface{} {
-	out := map[string]interface{}{}
-	for key, valIF := range in {
-		switch key {
-		case "CodeServices":
-			if valIF != nil {
-				services, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for services permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				svcs := make([]map[string]interface{}, len(services))
-				for idx, mapVal := range services {
-					svcs[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["services"] = removeDuplicatePermissions(svcs, "name")
-			}
-		case "Collections":
-			if valIF != nil {
-				collections, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for collections permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				cols := make([]map[string]interface{}, 0)
-				for _, mapVal := range collections {
-					collName := mapVal["Name"].(string)
-					id, err := getCollectionIdByName(collName, client, systemInfo)
-					if err != nil {
-						fmt.Printf("Skipping permissions for collection '%s'; Error is - %s", collName, err.Error())
-						continue
-					}
-					cols = append(cols, map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"id": id, "name": collName},
-						"permissions": mapVal["Level"],
-					})
-				}
-				out["collections"] = removeDuplicatePermissions(cols, "id")
-			}
-		case "DevicesList":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["devices"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "MsgHistory":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["msgHistory"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "SystemServices":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["system_services"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Portals":
-			if valIF != nil {
-				portals, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for portals permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				ptls := make([]map[string]interface{}, len(portals))
-				for idx, mapVal := range portals {
-					ptls[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["portals"] = removeDuplicatePermissions(ptls, "name")
-			}
-		case "ExternalDatabases":
-			if valIF != nil {
-				externalDatabases, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for externalDatabases permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				extDbs := make([]map[string]interface{}, len(externalDatabases))
-				for idx, mapVal := range externalDatabases {
-					extDbs[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["externaldatabases"] = removeDuplicatePermissions(extDbs, "name")
-			}
-		case "ServiceCaches":
-			if valIF != nil {
-				serviceCaches, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for serviceCaches permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				svcCaches := make([]map[string]interface{}, len(serviceCaches))
-				for idx, mapVal := range serviceCaches {
-					svcCaches[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["servicecaches"] = removeDuplicatePermissions(svcCaches, "name")
-			}
-		case "Push":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["push"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Topics":
-			if valIF != nil {
-				topics, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for topics permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				tpcs := make([]map[string]interface{}, len(topics))
-				for idx, mapVal := range topics {
-					tpcs[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["topics"] = tpcs
-			}
-		case "UsersList":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["users"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "EdgesList":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["edges"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-
-		case "Triggers":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["triggers"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Timers":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["timers"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Deployments":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["deployments"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Roles":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["roles"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "AllCollections":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["allcollections"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "AllServices":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["allservices"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "ManageUsers":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["manageusers"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "AllExternalDatabases":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["allexternaldatabases"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "Files":
-			if valIF != nil {
-				files, err := getASliceOfMaps(valIF)
-				if err != nil {
-					fmt.Printf("Bad format for files permissions, not a slice of maps: %T\n", valIF)
-					os.Exit(1)
-				}
-				theFiles := make([]map[string]interface{}, len(files))
-				for idx, mapVal := range files {
-					theFiles[idx] = map[string]interface{}{
-						"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-						"permissions": mapVal["Level"],
-					}
-				}
-				out["files"] = removeDuplicatePermissions(theFiles, "name")
-			}
-		case "usersecrets":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["usersecrets"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		case "adapters":
-			if valIF != nil {
-				val := getMap(valIF)
-				out["adapters"] = map[string]interface{}{"permissions": val["Level"]}
-			}
-		default:
-
-		}
-	}
-	return out
-}
-
-// The main thing I hate about go: type assertions
-func getASliceOfMaps(val interface{}) ([]map[string]interface{}, error) {
-	switch val.(type) {
-	case []map[string]interface{}:
-		return val.([]map[string]interface{}), nil
-	case []interface{}:
-		rval := make([]map[string]interface{}, len(val.([]interface{})))
-		for idx, mapVal := range val.([]interface{}) {
-			switch mapVal.(type) {
-			case map[string]interface{}:
-				rval[idx] = mapVal.(map[string]interface{})
-			default:
-				return nil, fmt.Errorf("slice values are not maps: %T\n", mapVal)
-			}
-		}
-		return rval, nil
-	default:
-		return nil, fmt.Errorf("Bad type %T: expecting a slice", val)
-	}
-}
-
-func getMap(val interface{}) map[string]interface{} {
-	switch val.(type) {
-	case map[string]interface{}:
-		return val.(map[string]interface{})
-	default:
-		fmt.Printf("permissions type must be a map, not %T\n", val)
-		os.Exit(1)
-	}
-	return map[string]interface{}{}
 }
 
 func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb.DevClient) error {
@@ -2808,7 +2545,7 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 		if err != nil {
 			return fmt.Errorf("Error updating role: %s", err.Error())
 		}
-		updateRoleBody, err := packageRoleForUpdate(roleID, role, client, systemInfo)
+		updateRoleBody, err := roles.PackageRoleForUpdate(roleID, role, networkCollectionFetcher{client: client, systemInfo: systemInfo})
 		if err != nil {
 			return err
 		}
