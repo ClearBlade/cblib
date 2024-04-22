@@ -607,12 +607,12 @@ func createDevices(config ImportConfig, systemInfo *types.System_meta, client *c
 		deviceRoles, err := getDeviceRoles(deviceName)
 		if err != nil {
 			// system is probably in the legacy format, let's just set the roles to the default
-			deviceRoles = convertStringSliceToInterfaceSlice([]string{"Authenticated"})
+			deviceRoles = []string{"Authenticated"}
 			logWarning(fmt.Sprintf("Could not find roles for device with name '%s'. This device will be created with only the default 'Authenticated' role.", deviceName))
 		}
-		defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
+		defaultRoles := []string{"Authenticated"}
 		roleDiff := roles.DiffRoles(deviceRoles, defaultRoles)
-		if err := client.UpdateDeviceRoles(systemInfo.Key, deviceName, convertInterfaceSliceToStringSlice(roleDiff.Added), convertInterfaceSliceToStringSlice(roleDiff.Removed)); err != nil {
+		if err := client.UpdateDeviceRoles(systemInfo.Key, deviceName, roleDiff.Added, roleDiff.Removed); err != nil {
 			return nil, err
 		}
 		devicesRval[idx] = deviceInfo

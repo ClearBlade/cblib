@@ -5,13 +5,13 @@ import (
 	"github.com/clearblade/cblib/listutil"
 )
 
-func GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}) *diff.UnsafeDiff {
-	return listutil.CompareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
+func GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}) *diff.UnsafeDiff[interface{}] {
+	return listutil.CompareListsAndFilter[interface{}](localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
 		return a.(map[string]interface{})["UserDefined"].(bool)
 	})
 }
 
-func GetDiffForColumnsWithStaticListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *diff.UnsafeDiff {
+func GetDiffForColumnsWithStaticListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *diff.UnsafeDiff[interface{}] {
 	return listutil.CompareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
 		return !isDefaultColumn(defaultColumns, a.(map[string]interface{})["ColumnName"].(string))
 	})

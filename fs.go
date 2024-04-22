@@ -1330,8 +1330,13 @@ func getFullUserObject(email string) (map[string]interface{}, error) {
 	return u, nil
 }
 
-func getUserRoles(email string) ([]interface{}, error) {
-	return getArray(usersRolesDir + "/" + email + ".json")
+func getUserRoles(email string) ([]string, error) {
+	arr, err := getArray(usersRolesDir + "/" + email + ".json")
+	if err != nil {
+		return []string{}, err
+	}
+
+	return convertInterfaceSliceToStringSlice(arr), err
 }
 
 func getUser(email string) (map[string]interface{}, error) {
@@ -1350,8 +1355,13 @@ func getDevice(name string) (map[string]interface{}, error) {
 	return getObject(devicesDir, name+".json")
 }
 
-func getDeviceRoles(name string) ([]interface{}, error) {
-	return getArray(devicesRolesDir + "/" + name + ".json")
+func getDeviceRoles(name string) ([]string, error) {
+	arr, err := getArray(devicesRolesDir + "/" + name + ".json")
+	if err != nil {
+		return []string{}, err
+	}
+
+	return convertInterfaceSliceToStringSlice(arr), err
 }
 
 func getEdge(name string) (map[string]interface{}, error) {

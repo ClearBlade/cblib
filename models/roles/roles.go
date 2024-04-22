@@ -254,10 +254,10 @@ func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []
 	return rtn
 }
 
-func DiffRoles(local, backend []interface{}) *diff.UnsafeDiff {
+func DiffRoles(local, backend []string) *diff.UnsafeDiff[string] {
 	return listutil.CompareLists(local, backend, roleExists)
 }
 
-func roleExists(a interface{}, b interface{}) bool {
+func roleExists(a, b string) bool {
 	return a == b
 }
