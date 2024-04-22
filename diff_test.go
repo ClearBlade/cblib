@@ -3,6 +3,7 @@ package cblib
 import (
 	"testing"
 
+	"github.com/clearblade/cblib/diff"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,8 +25,8 @@ func TestIntDiffSucceeds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		intDiff := IntDiff{tt.a, tt.b, nil, nil}
-		Diff(&intDiff)
+		intDiff := diff.IntDiff{tt.a, tt.b, nil, nil}
+		diff.Diff(&intDiff)
 		assert.Equal(t, tt.added, intDiff.Added)
 		assert.Equal(t, tt.removed, intDiff.Removed)
 	}

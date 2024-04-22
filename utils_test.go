@@ -154,9 +154,9 @@ func compareString(slice *[]interface{}, i int, j int) bool {
 
 func Test_DeletingAllUserRoles(t *testing.T) {
 	backend := []string{"Authenticated", "Administrator"}
-	local := []interface{}{}
+	local := []string{}
 
-	roleDiff := roles.DiffRoles(local, convertStringSliceToInterfaceSlice(backend))
+	roleDiff := roles.DiffRoles(local, backend)
 
 	if len(roleDiff.Removed) != 2 {
 		t.Errorf("Expected to remove 2 elements but got %d elements", len(roleDiff.Removed))

@@ -22,10 +22,10 @@ func Test_IsDefaultColumn(t *testing.T) {
 }
 
 func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
-	backend := []interface{}{
+	backend := []map[string]interface{}{
 		map[string]interface{}{"ColumnName": "edge_key", "ColumnType": "string", "PK": true, "UserDefined": false}, map[string]interface{}{"ColumnName": "novi_system_key", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "system_key", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "system_secret", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "token", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "name", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "description", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "location", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "mac_address", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "public_addr", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "public_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "local_addr", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "local_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_tls_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_ws_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_wss_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_auth_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "broker_ws_auth_port", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "first_talked", "ColumnType": "bigint", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "last_talked", "ColumnType": "bigint", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "communication_style", "ColumnType": "int", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "last_seen_version", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "policy_name", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "resolver_func", "ColumnType": "string", "PK": false, "UserDefined": false}, map[string]interface{}{"ColumnName": "sync_edge_tables", "ColumnType": "string", "PK": false, "UserDefined": false},
 	}
-	local := []interface{}{}
+	local := []map[string]interface{}{}
 
 	diff := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 
@@ -42,46 +42,46 @@ func Test_DiffEdgeColumnsWithNoCustomColumns(t *testing.T) {
 func TestFindDiff_WithDefaultColumns(test *testing.T) {
 	removeColName := "test2"
 	addColName := "test3"
-	local := []interface{}{
-		map[string]interface{}{
+	local := []map[string]interface{}{
+		{
 			"ColumnName":  "user_id",
 			"ColumnType":  "string",
 			"PK":          true,
 			"UserDefined": false,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  "test",
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": true,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  addColName,
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": true,
 		},
 	}
-	backend := []interface{}{
-		map[string]interface{}{
+	backend := []map[string]interface{}{
+		{
 			"ColumnName":  "user_id",
 			"ColumnType":  "string",
 			"PK":          true,
 			"UserDefined": false,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  "creation_date",
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": false,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  "test",
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": true,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  removeColName,
 			"ColumnType":  "string",
 			"PK":          false,
@@ -92,8 +92,8 @@ func TestFindDiff_WithDefaultColumns(test *testing.T) {
 	if len(diff.Removed) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.Removed))
 	}
-	if diff.Removed[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.Removed[0].(map[string]interface{})["ColumnName"].(string))
+	if diff.Removed[0]["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.Removed[0]["ColumnName"].(string))
 	}
 	if len(diff.Added) != 1 {
 		test.Errorf("Expected to add 1 element but got %d elements", len(diff.Added))
@@ -102,22 +102,22 @@ func TestFindDiff_WithDefaultColumns(test *testing.T) {
 
 func TestFindDiff_NoDefaultColumns(test *testing.T) {
 	removeColName := "test2"
-	local := []interface{}{
-		map[string]interface{}{
+	local := []map[string]interface{}{
+		{
 			"ColumnName":  "test",
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": true,
 		},
 	}
-	backend := []interface{}{
-		map[string]interface{}{
+	backend := []map[string]interface{}{
+		{
 			"ColumnName":  "test",
 			"ColumnType":  "string",
 			"PK":          false,
 			"UserDefined": true,
 		},
-		map[string]interface{}{
+		{
 			"ColumnName":  removeColName,
 			"ColumnType":  "string",
 			"PK":          false,
@@ -128,8 +128,8 @@ func TestFindDiff_NoDefaultColumns(test *testing.T) {
 	if len(diff.Removed) != 1 {
 		test.Errorf("Expected to remove 1 element but got %d elements", len(diff.Removed))
 	}
-	if diff.Removed[0].(map[string]interface{})["ColumnName"].(string) != removeColName {
-		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.Removed[0].(map[string]interface{})["ColumnName"].(string))
+	if diff.Removed[0]["ColumnName"].(string) != removeColName {
+		test.Errorf("Expected column name to be '%s' but got '%s'\n", removeColName, diff.Removed[0]["ColumnName"].(string))
 	}
 	if len(diff.Added) != 0 {
 		test.Errorf("Expected to add 0 elements but got %d elements", len(diff.Added))
