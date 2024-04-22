@@ -356,6 +356,14 @@ func convertStringSliceToInterfaceSlice(strs []string) []interface{} {
 	return rtn
 }
 
+func convertInterfaceSlice[T any](ifaces []interface{}) []T {
+	rtn := make([]T, len(ifaces))
+	for i, s := range ifaces {
+		rtn[i] = s.(T)
+	}
+	return rtn
+}
+
 func convertInterfaceSliceToStringSlice(ifaces []interface{}) []string {
 	rtn := make([]string, len(ifaces))
 	for i, s := range ifaces {

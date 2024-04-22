@@ -155,20 +155,20 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error fetching user columns: %s", err.Error())
 	}
 
-	localSchema, ok := userschema["columns"].([]interface{})
+	localSchema, ok := userschema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, userColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](userColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateUserColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Failed to create user column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateUserColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Failed to create user column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	return nil
@@ -185,20 +185,20 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return err
 	}
 
-	typedLocalSchema, ok := edgeschema["columns"].([]interface{})
+	typedLocalSchema, ok := edgeschema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, allEdgeColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateEdgeColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateEdgeColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -216,20 +216,20 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 	if err != nil {
 		return err
 	}
-	localSchema, ok := deviceSchema["columns"].([]interface{})
+	localSchema, ok := deviceSchema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, allDeviceColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateDeviceColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateDeviceColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -1338,20 +1338,20 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 	if err != nil {
 		return err
 	}
-	localSchema, ok := collection["schema"].([]interface{})
+	localSchema, ok := collection["schema"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(localSchema, backendSchema, DefaultCollectionColumns)
+	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := cli.DeleteColumn(collID, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := cli.DeleteColumn(collID, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := cli.AddColumn(collID, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := cli.AddColumn(collID, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
