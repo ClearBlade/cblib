@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/clearblade/cblib/models/roles"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -287,7 +288,7 @@ func Test_DeletingAllUserRoles(t *testing.T) {
 	backend := []string{"Authenticated", "Administrator"}
 	local := []interface{}{}
 
-	roleDiff := diffRoles(local, convertStringSliceToInterfaceSlice(backend))
+	roleDiff := roles.DiffRoles(local, convertStringSliceToInterfaceSlice(backend))
 
 	if len(roleDiff.Removed) != 2 {
 		t.Errorf("Expected to remove 2 elements but got %d elements", len(roleDiff.Removed))

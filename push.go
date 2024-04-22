@@ -1635,7 +1635,7 @@ func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb
 	if err != nil {
 		return err
 	}
-	roleDiff := diffRoles(userRoles, convertStringSliceToInterfaceSlice(backendUserRoles))
+	roleDiff := roles.DiffRoles(userRoles, convertStringSliceToInterfaceSlice(backendUserRoles))
 	user["roles"] = map[string]interface{}{
 		"add":    convertInterfaceSliceToStringSlice(roleDiff.Added),
 		"delete": convertInterfaceSliceToStringSlice(roleDiff.Removed),
@@ -1673,7 +1673,7 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 		}
 	}
 	defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
-	roleDiff := diffRoles(userRoles, defaultRoles)
+	roleDiff := roles.DiffRoles(userRoles, defaultRoles)
 	if len(roleDiff.Added) > 0 || len(roleDiff.Removed) > 0 {
 		added := convertInterfaceSliceToStringSlice(roleDiff.Added)
 		removed := convertInterfaceSliceToStringSlice(roleDiff.Removed)
@@ -1682,14 +1682,6 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 		}
 	}
 	return userId, nil
-}
-
-func diffRoles(local, backend []interface{}) *UnsafeDiff {
-	return compareLists(local, backend, roleExists)
-}
-
-func roleExists(a interface{}, b interface{}) bool {
-	return a == b
 }
 
 func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
@@ -1890,7 +1882,7 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 	if err != nil {
 		return err
 	}
-	roleDiff := diffRoles(deviceRoles, convertStringSliceToInterfaceSlice(backendDeviceRoles))
+	roleDiff := roles.DiffRoles(deviceRoles, convertStringSliceToInterfaceSlice(backendDeviceRoles))
 	return client.UpdateDeviceRoles(
 		systemKey,
 		deviceName,

@@ -12,6 +12,7 @@ import (
 	"github.com/clearblade/cblib/maputil"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
+	"github.com/clearblade/cblib/models/roles"
 )
 
 var (
@@ -610,7 +611,7 @@ func createDevices(config ImportConfig, systemInfo *types.System_meta, client *c
 			logWarning(fmt.Sprintf("Could not find roles for device with name '%s'. This device will be created with only the default 'Authenticated' role.", deviceName))
 		}
 		defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
-		roleDiff := diffRoles(deviceRoles, defaultRoles)
+		roleDiff := roles.DiffRoles(deviceRoles, defaultRoles)
 		if err := client.UpdateDeviceRoles(systemInfo.Key, deviceName, convertInterfaceSliceToStringSlice(roleDiff.Added), convertInterfaceSliceToStringSlice(roleDiff.Removed)); err != nil {
 			return nil, err
 		}
@@ -824,7 +825,6 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
-
 
 	logInfo("Importing webhooks...")
 	if _, err := createWebhooks(config, systemInfo, cli); err != nil {

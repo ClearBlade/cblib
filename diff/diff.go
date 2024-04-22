@@ -1,4 +1,4 @@
-package cblib
+package diff
 
 // Differ defines an interface for a collection that can be diffed against
 // another collection, it works with indices to let the caller handle the

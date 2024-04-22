@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 
+	d "github.com/clearblade/cblib/diff"
+
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/internal/types"
 )
@@ -370,17 +372,11 @@ func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{
 	return filtered
 }
 
-func compareListsAndFilter(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool, filter func(interface{}) bool) *UnsafeDiff {
-	diff := UnsafeDiff{after, before, nil, nil, compare}
-	Diff(&diff)
+func compareListsAndFilter(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool, filter func(interface{}) bool) *d.UnsafeDiff {
+	diff := d.UnsafeDiff{after, before, nil, nil, compare}
+	d.Diff(&diff)
 	diff.Added = FilterSlice(diff.Added, filter)
 	diff.Removed = FilterSlice(diff.Removed, filter)
-	return &diff
-}
-
-func compareLists(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool) *UnsafeDiff {
-	diff := UnsafeDiff{after, before, nil, nil, compare}
-	Diff(&diff)
 	return &diff
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/clearblade/cblib/diff"
+	"github.com/clearblade/cblib/listutil"
 	"github.com/clearblade/cblib/maputil"
 )
 
@@ -250,4 +252,12 @@ func removeDuplicatePermissions(perms []map[string]interface{}, idKey string) []
 	}
 
 	return rtn
+}
+
+func DiffRoles(local, backend []interface{}) *diff.UnsafeDiff {
+	return listutil.CompareLists(local, backend, roleExists)
+}
+
+func roleExists(a interface{}, b interface{}) bool {
+	return a == b
 }
