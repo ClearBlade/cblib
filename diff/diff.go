@@ -1,4 +1,4 @@
-package cblib
+package diff
 
 // Differ defines an interface for a collection that can be diffed against
 // another collection, it works with indices to let the caller handle the
@@ -130,35 +130,35 @@ func (sdiff *StringDiff) Drop(j int) {
 }
 
 // UnsafeDiff implements the `Differ` interface for an unsafe slice of interfaces.
-type UnsafeDiff struct {
-	After   []interface{}
-	Before  []interface{}
-	Added   []interface{}
-	Removed []interface{}
-	Compare func(interface{}, interface{}) bool
+type UnsafeDiff[T any] struct {
+	After   []T
+	Before  []T
+	Added   []T
+	Removed []T
+	Compare func(T, T) bool
 }
 
-func (udiff *UnsafeDiff) Prepare() {
-	udiff.Added = make([]interface{}, 0, len(udiff.After))
-	udiff.Removed = make([]interface{}, 0, len(udiff.Before))
+func (udiff *UnsafeDiff[T]) Prepare() {
+	udiff.Added = make([]T, 0, len(udiff.After))
+	udiff.Removed = make([]T, 0, len(udiff.Before))
 }
 
-func (udiff *UnsafeDiff) LenA() int {
+func (udiff *UnsafeDiff[T]) LenA() int {
 	return len(udiff.After)
 }
 
-func (udiff *UnsafeDiff) LenB() int {
+func (udiff *UnsafeDiff[T]) LenB() int {
 	return len(udiff.Before)
 }
 
-func (udiff *UnsafeDiff) Same(i, j int) bool {
+func (udiff *UnsafeDiff[T]) Same(i, j int) bool {
 	return udiff.Compare(udiff.After[i], udiff.Before[j])
 }
 
-func (udiff *UnsafeDiff) Keep(i int) {
+func (udiff *UnsafeDiff[T]) Keep(i int) {
 	udiff.Added = append(udiff.Added, udiff.After[i])
 }
 
-func (udiff *UnsafeDiff) Drop(j int) {
+func (udiff *UnsafeDiff[T]) Drop(j int) {
 	udiff.Removed = append(udiff.Removed, udiff.Before[j])
 }

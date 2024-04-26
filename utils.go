@@ -348,46 +348,18 @@ type ListDiff struct {
 	remove []interface{}
 }
 
-func isDefaultColumn(defaultColumns []string, colName string) bool {
-	for i := 0; i < len(defaultColumns); i++ {
-		if defaultColumns[i] == colName {
-			return true
-		}
-	}
-	return false
-}
-
-// FilterSlice returns the items of the slice `s` for which `predicate` returns true.
-func FilterSlice(s []interface{}, predicate func(interface{}) bool) []interface{} {
-	filtered := make([]interface{}, 0, len(s))
-
-	for _, item := range s {
-		if predicate(item) {
-			filtered = append(filtered, item)
-		}
-	}
-
-	return filtered
-}
-
-func compareListsAndFilter(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool, filter func(interface{}) bool) *UnsafeDiff {
-	diff := UnsafeDiff{after, before, nil, nil, compare}
-	Diff(&diff)
-	diff.Added = FilterSlice(diff.Added, filter)
-	diff.Removed = FilterSlice(diff.Removed, filter)
-	return &diff
-}
-
-func compareLists(after []interface{}, before []interface{}, compare func(interface{}, interface{}) bool) *UnsafeDiff {
-	diff := UnsafeDiff{after, before, nil, nil, compare}
-	Diff(&diff)
-	return &diff
-}
-
 func convertStringSliceToInterfaceSlice(strs []string) []interface{} {
 	rtn := make([]interface{}, len(strs))
 	for i, s := range strs {
 		rtn[i] = s
+	}
+	return rtn
+}
+
+func convertInterfaceSlice[T any](ifaces []interface{}) []T {
+	rtn := make([]T, len(ifaces))
+	for i, s := range ifaces {
+		rtn[i] = s.(T)
 	}
 	return rtn
 }

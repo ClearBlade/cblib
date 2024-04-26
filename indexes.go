@@ -3,6 +3,7 @@ package cblib
 import (
 	"fmt"
 
+	d "github.com/clearblade/cblib/diff"
 	rt "github.com/clearblade/cblib/resourcetree"
 )
 
@@ -44,7 +45,7 @@ func (idxdiff *IndexDiff) Drop(j int) {
 // DiffIndexesFull takes two slices of indexes diffs them using *IndexDiff.
 func DiffIndexesFull(after, before []*rt.Index) *IndexDiff {
 	diff := IndexDiff{after, before, nil, nil}
-	Diff(&diff)
+	d.Diff(&diff)
 	return &diff
 }
 

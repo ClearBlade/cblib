@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clearblade/cblib/colutil"
 	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/listutil"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
@@ -153,42 +155,23 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error fetching user columns: %s", err.Error())
 	}
 
-	localSchema, ok := userschema["columns"].([]interface{})
+	localSchema, ok := userschema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, userColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](userColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
+		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateUserColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Failed to create user column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateUserColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Failed to create user column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	return nil
-}
-
-func getDiffForColumnsWithStaticListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}, defaultColumns []string) *UnsafeDiff {
-	return compareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
-		return !isDefaultColumn(defaultColumns, a.(map[string]interface{})["ColumnName"].(string))
-	})
-}
-
-func getDiffForColumnsWithDynamicListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []interface{}) *UnsafeDiff {
-	return compareListsAndFilter(localSchemaInterfaces, backendSchemaInterfaces, columnExists, func(a interface{}) bool {
-		return a.(map[string]interface{})["UserDefined"].(bool)
-	})
-}
-
-func columnExists(colA interface{}, colB interface{}) bool {
-	if colA.(map[string]interface{})["ColumnName"].(string) == colB.(map[string]interface{})["ColumnName"].(string) && colA.(map[string]interface{})["ColumnType"].(string) == colB.(map[string]interface{})["ColumnType"].(string) {
-		return true
-	}
-	return false
 }
 
 func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
@@ -202,20 +185,20 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return err
 	}
 
-	typedLocalSchema, ok := edgeschema["columns"].([]interface{})
+	typedLocalSchema, ok := edgeschema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, allEdgeColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateEdgeColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateEdgeColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -233,20 +216,20 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 	if err != nil {
 		return err
 	}
-	localSchema, ok := deviceSchema["columns"].([]interface{})
+	localSchema, ok := deviceSchema["columns"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := getDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, allDeviceColumns)
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := client.CreateDeviceColumn(systemInfo.Key, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := client.CreateDeviceColumn(systemInfo.Key, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -1358,20 +1341,20 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 	if err != nil {
 		return err
 	}
-	localSchema, ok := collection["schema"].([]interface{})
+	localSchema, ok := collection["schema"].([]map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := getDiffForColumnsWithStaticListOfDefaultColumns(localSchema, backendSchema, DefaultCollectionColumns)
+	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
 	for i := 0; i < len(diff.Removed); i++ {
-		if err := cli.DeleteColumn(collID, diff.Removed[i].(map[string]interface{})["ColumnName"].(string)); err != nil {
-			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := cli.DeleteColumn(collID, diff.Removed[i]["ColumnName"].(string)); err != nil {
+			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
 		}
 	}
 	for i := 0; i < len(diff.Added); i++ {
-		if err := cli.AddColumn(collID, diff.Added[i].(map[string]interface{})["ColumnName"].(string), diff.Added[i].(map[string]interface{})["ColumnType"].(string)); err != nil {
-			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i].(map[string]interface{})["ColumnName"].(string), err.Error())
+		if err := cli.AddColumn(collID, diff.Added[i]["ColumnName"].(string), diff.Added[i]["ColumnType"].(string)); err != nil {
+			return fmt.Errorf("Unable to create column '%s': %s", diff.Added[i]["ColumnName"].(string), err.Error())
 		}
 	}
 
@@ -1485,8 +1468,8 @@ func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name str
 }
 
 func diffDeployments(localDep map[string]interface{}, backendDep map[string]interface{}) map[string]interface{} {
-	assetDiff := compareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch)
-	edgeDiff := compareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch)
+	assetDiff := listutil.CompareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch)
+	edgeDiff := listutil.CompareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch)
 	return map[string]interface{}{
 		"assets": map[string]interface{}{
 			"add":    assetDiff.Added,
@@ -1638,10 +1621,10 @@ func updateUser(meta *types.System_meta, user map[string]interface{}, client *cb
 	if err != nil {
 		return err
 	}
-	roleDiff := diffRoles(userRoles, convertStringSliceToInterfaceSlice(backendUserRoles))
+	roleDiff := roles.DiffRoles(userRoles, backendUserRoles)
 	user["roles"] = map[string]interface{}{
-		"add":    convertInterfaceSliceToStringSlice(roleDiff.Added),
-		"delete": convertInterfaceSliceToStringSlice(roleDiff.Removed),
+		"add":    roleDiff.Added,
+		"delete": roleDiff.Removed,
 	}
 
 	delete(user, "user_id")
@@ -1669,30 +1652,20 @@ func createUser(systemKey string, systemSecret string, user map[string]interface
 	if err != nil {
 		// couldn't get user roles, let's see if they're on the user map (legacy format)
 		if r, ok := user["roles"].([]interface{}); ok {
-			userRoles = r
+			userRoles = convertInterfaceSliceToStringSlice(r)
 		} else {
 			logWarning(fmt.Sprintf("Could not find roles for user with email '%s'. This user will be created with only the default 'Authenticated' role.", email))
-			userRoles = convertStringSliceToInterfaceSlice([]string{"Authenticated"})
+			userRoles = []string{"Authenticated"}
 		}
 	}
-	defaultRoles := convertStringSliceToInterfaceSlice([]string{"Authenticated"})
-	roleDiff := diffRoles(userRoles, defaultRoles)
+	defaultRoles := []string{"Authenticated"}
+	roleDiff := roles.DiffRoles(userRoles, defaultRoles)
 	if len(roleDiff.Added) > 0 || len(roleDiff.Removed) > 0 {
-		added := convertInterfaceSliceToStringSlice(roleDiff.Added)
-		removed := convertInterfaceSliceToStringSlice(roleDiff.Removed)
-		if err := client.UpdateUserRoles(systemKey, userId, added, removed); err != nil {
+		if err := client.UpdateUserRoles(systemKey, userId, roleDiff.Added, roleDiff.Removed); err != nil {
 			return "", err
 		}
 	}
 	return userId, nil
-}
-
-func diffRoles(local, backend []interface{}) *UnsafeDiff {
-	return compareLists(local, backend, roleExists)
-}
-
-func roleExists(a interface{}, b interface{}) bool {
-	return a == b
 }
 
 func createTrigger(sysKey string, trigger map[string]interface{}, client *cb.DevClient) (map[string]interface{}, error) {
@@ -1893,12 +1866,12 @@ func updateDevice(systemKey string, device map[string]interface{}, client *cb.De
 	if err != nil {
 		return err
 	}
-	roleDiff := diffRoles(deviceRoles, convertStringSliceToInterfaceSlice(backendDeviceRoles))
+	roleDiff := roles.DiffRoles(deviceRoles, backendDeviceRoles)
 	return client.UpdateDeviceRoles(
 		systemKey,
 		deviceName,
-		convertInterfaceSliceToStringSlice(roleDiff.Added),
-		convertInterfaceSliceToStringSlice(roleDiff.Removed))
+		roleDiff.Added,
+		roleDiff.Removed)
 }
 
 func updateEdge(systemKey string, edge map[string]interface{}, client *cb.DevClient) error {
