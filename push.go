@@ -1032,6 +1032,20 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		}
 	}
 
+	if AllServiceCaches || AllAssets {
+		didSomething = true
+		if err := pushAllServiceCaches(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
+	if ServiceCacheName != "" {
+		didSomething = true
+		if err := pushOneServiceCache(systemInfo, client, ServiceCacheName); err != nil {
+			return err
+		}
+	}
+
 	if AllLibraries || AllServices || AllAssets {
 		didSomething = true
 		if err := pushSystem(systemInfo, client, systemPushOptions{
@@ -1209,20 +1223,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if DeploymentName != "" {
 		didSomething = true
 		if err := pushDeployment(systemInfo, client, DeploymentName); err != nil {
-			return err
-		}
-	}
-
-	if AllServiceCaches || AllAssets {
-		didSomething = true
-		if err := pushAllServiceCaches(systemInfo, client); err != nil {
-			return err
-		}
-	}
-
-	if ServiceCacheName != "" {
-		didSomething = true
-		if err := pushOneServiceCache(systemInfo, client, ServiceCacheName); err != nil {
 			return err
 		}
 	}
