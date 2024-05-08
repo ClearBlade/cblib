@@ -155,12 +155,12 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error fetching user columns: %s", err.Error())
 	}
 
-	localSchema, ok := userschema["columns"].([]map[string]interface{})
+	localSchema, ok := userschema["columns"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](userColumns))
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](userColumns))
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
@@ -185,12 +185,12 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return err
 	}
 
-	typedLocalSchema, ok := edgeschema["columns"].([]map[string]interface{})
+	typedLocalSchema, ok := edgeschema["columns"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(typedLocalSchema, convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](typedLocalSchema), convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -216,12 +216,12 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 	if err != nil {
 		return err
 	}
-	localSchema, ok := deviceSchema["columns"].([]map[string]interface{})
+	localSchema, ok := deviceSchema["columns"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
+	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -1341,12 +1341,12 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 	if err != nil {
 		return err
 	}
-	localSchema, ok := collection["schema"].([]map[string]interface{})
+	localSchema, ok := collection["schema"].([]interface{})
 	if !ok {
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(localSchema, convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
+	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := cli.DeleteColumn(collID, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -1805,7 +1805,6 @@ func createWebhook(systemKey string, hook map[string]interface{}, client *cb.Dev
 func createExternalDatabase(systemKey string, obj map[string]interface{}, client *cb.DevClient) error {
 	name := obj["name"].(string)
 	// add a new line before prompting for password
-	fmt.Println("")
 	password := getOneItem(fmt.Sprintf("Password for external database '%s'", name), true)
 	obj["credentials"].(map[string]interface{})["password"] = password
 
