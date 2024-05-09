@@ -12,6 +12,7 @@ import (
 	"github.com/clearblade/cblib/listutil"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/models/index"
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/roles"
 	"github.com/clearblade/cblib/models/systemUpload"
@@ -1387,7 +1388,7 @@ func pushCollectionIndexes(systemInfo *types.System_meta, cli *cb.DevClient, nam
 		return err
 	}
 
-	diff := DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
+	diff := index.DiffIndexesFull(localIndexes.Data, remoteIndexes.Data)
 
 	for _, index := range diff.Removed {
 		err = doDropIndex(
