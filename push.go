@@ -12,6 +12,7 @@ import (
 	"github.com/clearblade/cblib/listutil"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/models/collections"
 	"github.com/clearblade/cblib/models/index"
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/roles"
@@ -2278,7 +2279,7 @@ type RoleInfo struct {
 
 func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
 	collectionName := collection["name"].(string)
-	isConnect := isConnectCollection(collection)
+	isConnect := collections.IsConnectCollection(collection)
 	var colId string
 	var err error
 	if isConnect {

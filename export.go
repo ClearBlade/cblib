@@ -9,6 +9,7 @@ import (
 	cb "github.com/clearblade/Go-SDK"
 
 	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/models/collections"
 	rt "github.com/clearblade/cblib/resourcetree"
 )
 
@@ -145,7 +146,7 @@ func pullCollectionIndexes(sysMeta *types.System_meta, cli *cb.DevClient, name s
 func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
 	fmt.Printf(" %s", co["name"].(string))
 
-	isConnect := isConnectCollection(co)
+	isConnect := collections.IsConnectCollection(co)
 
 	var columnsResp []interface{}
 	var err error
@@ -195,20 +196,6 @@ func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string
 	}
 
 	return co, nil
-}
-
-func isConnectCollection(co map[string]interface{}) bool {
-	if isConnect, ok := co["isConnect"]; ok {
-		switch isConnect.(type) {
-		case bool:
-			return isConnect.(bool)
-		case string:
-			return isConnect.(string) == "true"
-		default:
-			return false
-		}
-	}
-	return false
 }
 
 func pullCollectionData(collection map[string]interface{}, client *cb.DevClient) ([]interface{}, error) {

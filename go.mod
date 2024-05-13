@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/clearblade/Go-SDK v0.0.0-20240506151411-4736fda446c8
+	github.com/clearblade/Go-SDK v0.0.0-20240513143644-7f42c8265eb7
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
