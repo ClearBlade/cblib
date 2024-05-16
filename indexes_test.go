@@ -3,6 +3,7 @@ package cblib
 import (
 	"testing"
 
+	"github.com/clearblade/cblib/models/index"
 	rt "github.com/clearblade/cblib/resourcetree"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +51,7 @@ func TestGetDiffForIndexesSucceeds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		diff := DiffIndexesFull(tt.a, tt.b)
+		diff := index.DiffIndexesFull(tt.a, tt.b)
 		assert.Equal(t, tt.added, diff.Added)
 		assert.Equal(t, tt.removed, diff.Removed)
 	}
