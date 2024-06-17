@@ -595,6 +595,7 @@ func whitelistTrigger(data map[string]interface{}) map[string]interface{} {
 		"key_value_pairs":  data["key_value_pairs"],
 		"name":             data["name"],
 		"service_name":     data["service_name"],
+		"disabled":         data["disabled"],
 	}
 }
 
