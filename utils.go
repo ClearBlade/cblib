@@ -487,11 +487,27 @@ func replaceUserIdWithEmailInTriggerKeyValuePairs(trig map[string]interface{}, u
 }
 
 func isTriggerForSpecificUser(trig map[string]interface{}) (string, map[string]interface{}, bool) {
-	if kv, ok := trig["key_value_pairs"]; ok {
+	def, ok := trig["event_definition"].(map[string]interface{})
+	if !ok {
+		return "", nil, false
+	}
+
+	defName, ok := def["def_name"].(string)
+	if !ok {
+		return "", nil, false
+	}
+
+	if defName == "MQTTUserConnected" || defName == "MQTTUserDisconnected" {
+		return "", nil, false
+	}
+
+	kv, ok := trig["key_value_pairs"]
+	if ok {
 		if userEmail, ok := kv.(map[string]interface{})["email"]; ok {
 			return userEmail.(string), kv.(map[string]interface{}), ok
 		}
 	}
+
 	return "", nil, false
 }
 
