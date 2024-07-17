@@ -1317,7 +1317,8 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	if MessageTypeTriggers || AllAssets {
 		didSomething = true
 		if err := pushMessageTypeTriggers(systemInfo, client); err != nil {
-			return err
+			// ignoring error while pushing message type triggers since older platforms don't support this endpoint
+			fmt.Printf("Ignoring error while pushing message type triggers. Assuming that you're pointed at an older platform. Error: %s\n", err.Error())
 		}
 	}
 
