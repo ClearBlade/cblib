@@ -614,6 +614,7 @@ func whitelistTimer(data map[string]interface{}) map[string]interface{} {
 		"repeats":      data["repeats"],
 		"service_name": data["service_name"],
 		"start_time":   data["start_time"],
+		"disabled":     data["disabled"],
 	}
 }
 
