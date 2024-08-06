@@ -3,6 +3,7 @@ package cblib
 import (
 	//"fmt"
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
+	bo "github.com/cenkalti/backoff/v4"
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/internal/types"
 )
@@ -450,25 +453,35 @@ func getUserEmailByID(id string) (string, error) {
 
 type requestFunc = func() (interface{}, error)
 
-func retryRequest(funk requestFunc, maxRetries int) (interface{}, error) {
-	numOfRetries := 0
+func retryRequest(funk requestFunc, maxRetries int, initialInterval, maxInterval time.Duration, multiplier float64) (interface{}, error) {
+	fmt.Println("retry", maxRetries, initialInterval, maxInterval, multiplier)
+	backoff := bo.NewExponentialBackOff(bo.WithMultiplier(multiplier), bo.WithMaxInterval(maxInterval), bo.WithInitialInterval(initialInterval), bo.WithRandomizationFactor(1))
+	return bo.RetryNotifyWithData(funk, bo.WithMaxRetries(backoff, uint64(maxRetries)), func(err error, duration time.Duration) {
+		logInfo(fmt.Sprintf("Request failed. Waiting for %s and then retrying. Error: %s", duration, err.Error()))
+	})
+}
 
-	var recur func() (interface{}, error)
-	recur = func() (interface{}, error) {
-		data, err := funk()
-		if err != nil {
-			retryNumber := numOfRetries + 1
-			logError(err.Error())
-			if numOfRetries < maxRetries {
-				logInfo(fmt.Sprintf("Retrying request number %d out of %d", retryNumber, maxRetries))
-				numOfRetries++
-				return recur()
-			}
-			return nil, err
-		}
-		return data, nil
+func setBackoffFlags(flagSet flag.FlagSet) {
+	flagSet.IntVar(&BackoffMaxRetries, "max-retries", 3, "(Deprecated. Use -backoff-max-retries instead) Number of retries to attempt if a request fails")
+	flagSet.IntVar(&BackoffMaxRetries, "backoff-max-retries", 3, "Number of retries to attempt if a request fails")
+	flagSet.StringVar(&BackoffInitialIntervalFlag, "backoff-initial-interval", "500ms", "Sets the initial interval between retries. Represented by golang duration, see https://pkg.go.dev/maze.io/x/duration#ParseDuration")
+	flagSet.StringVar(&BackoffMaxIntervalFlag, "backoff-max-interval", "1m", "Sets the maximum interval between retries. Represented by golang duration, see https://pkg.go.dev/maze.io/x/duration#ParseDuration")
+	flagSet.Float64Var(&BackoffRetryMultiplier, "backoff-retry-multiplier", 1.5, "Sets the multiplier for increasing the interval between retries")
+}
+
+func parseBackoffFlags() {
+	var err error
+	BackoffInitialInterval, err = time.ParseDuration(BackoffInitialIntervalFlag)
+	if err != nil {
+		fmt.Println("Error parsing backoff-initial-interval flag: ", err)
+		os.Exit(1)
 	}
-	return recur()
+
+	BackoffMaxInterval, err = time.ParseDuration(BackoffMaxIntervalFlag)
+	if err != nil {
+		fmt.Println("Error parsing backoff-max-interval flag: ", err)
+		os.Exit(1)
+	}
 }
 
 func replaceUserIdWithEmailInTriggerKeyValuePairs(trig map[string]interface{}, userEmailToId map[string]interface{}) {

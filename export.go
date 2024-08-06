@@ -51,7 +51,7 @@ func init() {
 	myExportCommand.flags.BoolVar(&ExportItemId, "exportitemid", ExportItemIdDefault, "exports a collection rows' item_id column, Default: true")
 	myExportCommand.flags.BoolVar(&SortCollections, "sort-collections", SortCollectionsDefault, "Sort collections version control ease, Note: exportitemid must be enabled")
 	myExportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to fetch at a time, Note: Large collections should increase up to 1000 rows")
-	myExportCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
+	setBackoffFlags(myExportCommand.flags)
 	AddCommand("export", myExportCommand)
 }
 
@@ -224,7 +224,9 @@ func pullCollectionData(collection map[string]interface{}, client *cb.DevClient)
 	for j := 0; j < totalItems; j += DataPageSize {
 		dataQuery.PageNumber = (j / DataPageSize) + 1
 
-		data, err := retryRequest(func() (interface{}, error) { return client.GetData(colId, dataQuery) }, MaxRetries)
+		data, err := retryRequest(func() (interface{}, error) {
+			return client.GetData(colId, dataQuery)
+		}, BackoffMaxRetries, BackoffInitialInterval, BackoffMaxInterval, BackoffRetryMultiplier)
 		if err != nil {
 			return nil, err
 		}
@@ -753,6 +755,7 @@ func PullAdaptors(sysMeta *types.System_meta, cli *cb.DevClient) error {
 }
 
 func doExport(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	parseBackoffFlags()
 	if len(args) != 0 {
 		return fmt.Errorf("export command takes no arguments; only options\n")
 	}

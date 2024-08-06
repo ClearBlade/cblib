@@ -102,8 +102,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
 
-	pushCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
-	pushCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
+	setBackoffFlags(pushCommand.flags)
 
 	AddCommand("push", pushCommand)
 }
@@ -974,6 +973,7 @@ func pushAllLibraries(systemInfo *types.System_meta, client *cb.DevClient) error
 }
 
 func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	parseBackoffFlags()
 	if err := checkPushArgsAndFlags(args); err != nil {
 		return err
 	}
@@ -2376,7 +2376,7 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 			itemsInThisPage[i] = item.(map[string]interface{})
 		}
 
-		if _, err := retryRequest(func() (interface{}, error) { return client.CreateData(colId, itemsInThisPage) }, MaxRetries); err != nil {
+		if _, err := retryRequest(func() (interface{}, error) { return client.CreateData(colId, itemsInThisPage) }, BackoffMaxRetries, BackoffInitialInterval, BackoffMaxInterval, BackoffRetryMultiplier); err != nil {
 			return CollectionInfo{}, err
 		}
 		totalPushed += len(itemsInThisPage)

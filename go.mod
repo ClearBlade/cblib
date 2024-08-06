@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/clearblade/go-utils v1.1.4 // indirect
 	github.com/clearblade/mqtt_parsing v0.0.0-20160301165118-6ae49eac0961 // indirect
 	github.com/clearblade/paho.mqtt.golang v1.1.1-0.20221107221803-558038c7f9ad // indirect
