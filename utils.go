@@ -454,7 +454,6 @@ func getUserEmailByID(id string) (string, error) {
 type requestFunc = func() (interface{}, error)
 
 func retryRequest(funk requestFunc, maxRetries int, initialInterval, maxInterval time.Duration, multiplier float64) (interface{}, error) {
-	fmt.Println("retry", maxRetries, initialInterval, maxInterval, multiplier)
 	backoff := bo.NewExponentialBackOff(bo.WithMultiplier(multiplier), bo.WithMaxInterval(maxInterval), bo.WithInitialInterval(initialInterval), bo.WithRandomizationFactor(1))
 	return bo.RetryNotifyWithData(funk, bo.WithMaxRetries(backoff, uint64(maxRetries)), func(err error, duration time.Duration) {
 		logInfo(fmt.Sprintf("Request failed. Waiting for %s and then retrying. Error: %s", duration, err.Error()))
