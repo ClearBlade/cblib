@@ -87,12 +87,13 @@ func init() {
 	pullCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to pull from bucket set box")
 	pullCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to pull")
 
-	pullCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
+	setBackoffFlags(pullCommand.flags)
 
 	AddCommand("pull", pullCommand)
 }
 
 func doPull(cmd *SubCommand, client *cb.DevClient, args ...string) error {
+	parseBackoffFlags()
 	SetRootDir(".")
 	systemInfo, err := getSysMeta()
 	if err != nil {

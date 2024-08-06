@@ -1,6 +1,8 @@
 package cblib
 
 import (
+	"time"
+
 	"github.com/clearblade/cblib/internal/types"
 )
 
@@ -37,7 +39,12 @@ var (
 	DeviceSchema               bool
 	UserSchema                 bool
 	DataPageSize               int
-	MaxRetries                 int
+	BackoffMaxRetries          int
+	BackoffMaxInterval         time.Duration
+	BackoffMaxIntervalFlag     string
+	BackoffInitialInterval     time.Duration
+	BackoffInitialIntervalFlag string
+	BackoffRetryMultiplier     float64
 	Email                      string
 	Password                   string
 	CollectionSchema           string

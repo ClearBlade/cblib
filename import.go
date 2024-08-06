@@ -46,14 +46,14 @@ func init() {
 	myImportCommand.flags.StringVar(&Password, "password", "", "Developer password at import destination")
 	myImportCommand.flags.StringVar(&DevToken, "dev-token", "", "Developer token to use instead of email/password")
 	myImportCommand.flags.IntVar(&DataPageSize, "data-page-size", DataPageSizeDefault, "Number of rows in a collection to push/import at a time")
-	myImportCommand.flags.IntVar(&MaxRetries, "max-retries", 3, "Number of retries to attempt if a request fails")
+	setBackoffFlags(myImportCommand.flags)
 	AddCommand("import", myImportCommand)
 	AddCommand("imp", myImportCommand)
 	AddCommand("im", myImportCommand)
 }
 
 func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
-
+	parseBackoffFlags()
 	systemPath, err := os.Getwd()
 	if err != nil {
 		return err
