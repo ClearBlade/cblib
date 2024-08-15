@@ -630,7 +630,6 @@ func whitelistDeployment(data map[string]interface{}) map[string]interface{} {
 		"assets":      data["assets"],
 		"description": data["description"],
 		"edges":       data["edges"],
-		"enabled":     data["enabled"],
 		"name":        data["name"],
 	}
 }
