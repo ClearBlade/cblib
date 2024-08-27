@@ -18,7 +18,7 @@ import (
 
 	bo "github.com/cenkalti/backoff/v4"
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/types"
 )
 
 const BACKUP_DIRECTORY_SUFFIX = "_cb_bak"

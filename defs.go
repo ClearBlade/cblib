@@ -3,7 +3,7 @@ package cblib
 import (
 	"time"
 
-	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/types"
 )
 
 //

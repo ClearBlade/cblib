@@ -8,11 +8,11 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/roles"
+	"github.com/clearblade/cblib/types"
 )
 
 var (

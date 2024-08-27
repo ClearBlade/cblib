@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/clearblade/cblib/colutil"
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/listutil"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
@@ -19,6 +18,7 @@ import (
 	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/models/systemUpload/dryRun"
 	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
+	"github.com/clearblade/cblib/types"
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"

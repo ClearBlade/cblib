@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/types"
 )
 
 func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets AffectedAssets) (bool, error) {

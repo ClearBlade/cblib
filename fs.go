@@ -12,10 +12,10 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	rt "github.com/clearblade/cblib/resourcetree"
+	"github.com/clearblade/cblib/types"
 )
 
 const SORT_KEY_CODE_SERVICE = "Name"

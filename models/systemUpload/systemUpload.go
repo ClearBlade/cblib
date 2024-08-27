@@ -2,7 +2,7 @@ package systemUpload
 
 import (
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/types"
 )
 
 func DoesBackendSupportSystemUpload(systemInfo *types.System_meta, client *cb.DevClient) bool {

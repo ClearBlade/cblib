@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/types"
 )
 
 func init() {
