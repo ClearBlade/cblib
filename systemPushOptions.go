@@ -80,9 +80,57 @@ type systemPushOptions struct {
 	PushMessageTypeTriggers   bool
 }
 
-func NewDefaultPushOptions() *systemPushOptions {
+func DefaultPushOptions() *systemPushOptions {
 	return &systemPushOptions{
-		// TODO:
+		AllAssets:                 AllAssets,
+		AllAdaptors:               AllAdaptors,
+		AdaptorName:               AdaptorName,
+		AllBucketSets:             AllBucketSets,
+		BucketSetName:             BucketSetName,
+		AllBucketSetFiles:         AllBucketSetFiles,
+		BucketSetFiles:            BucketSetFiles,
+		BucketSetBoxName:          BucketSetBoxName,
+		BucketSetFileName:         BucketSetFileName,
+		AllServiceCaches:          AllServiceCaches,
+		ServiceCacheName:          ServiceCacheName,
+		AllCollections:            AllCollections,
+		CollectionName:            CollectionName,
+		CollectionId:              CollectionId,
+		CollectionSchema:          CollectionSchema,
+		AllDeployments:            AllDeployments,
+		DeploymentName:            DeploymentName,
+		AllDevices:                AllDevices,
+		DeviceName:                DeviceName,
+		PushDeviceSchema:          DeviceSchema,
+		AllEdges:                  AllEdges,
+		EdgeName:                  EdgeName,
+		PushEdgeSchema:            EdgeSchema,
+		AllExternalDatabases:      AllExternalDatabases,
+		ExternalDatabaseName:      ExternalDatabaseName,
+		AllLibraries:              AllLibraries,
+		LibraryName:               LibraryName,
+		AllPlugins:                AllPlugins,
+		PluginName:                PluginName,
+		AllPortals:                AllPortals,
+		PortalName:                PortalName,
+		AllRoles:                  AllRoles,
+		RoleName:                  RoleName,
+		AllSecrets:                AllSecrets,
+		SecretName:                SecretName,
+		AllServices:               AllServices,
+		ServiceName:               ServiceName,
+		AllTimers:                 AllTimers,
+		TimerName:                 TimerName,
+		AllTriggers:               AllTriggers,
+		TriggerName:               TriggerName,
+		AllUsers:                  AllUsers,
+		UserName:                  User,
+		UserId:                    UserId,
+		PushUserSchema:            UserSchema,
+		AllWebhooks:               AllWebhooks,
+		WebhookName:               WebhookName,
+		PushMessageHistoryStorage: MessageHistoryStorage,
+		PushMessageTypeTriggers:   MessageTypeTriggers,
 	}
 }
 
@@ -90,59 +138,75 @@ func (s *systemPushOptions) GetFileRegex() *regexp.Regexp {
 	regexBuilder := strings.Builder{}
 	// TODO: handle collection schemas
 
-	appendRegexForDirectory(&regexBuilder, adaptorsDir, s.getAdaptorsRegex())
-	appendRegexForDirectory(&regexBuilder, bucketSetsDir, s.getBucketSetsRegex())
-	appendRegexForDirectory(&regexBuilder, bucketSetFiles.BucketSetFilesDir, s.getBucketSetFilesRegex())
-	appendRegexForDirectory(&regexBuilder, serviceCachesDir, s.getCachesRegex())
-	appendRegexForDirectory(&regexBuilder, dataDir, s.getCollectionsRegex())
-	appendRegexForDirectory(&regexBuilder, deploymentsDir, s.getDeploymentsRegex())
-	appendRegexForDirectory(&regexBuilder, devicesDir, s.getDevicesRegex())
-	appendRegexForDirectory(&regexBuilder, edgesDir, s.getEdgesRegex())
-	appendRegexForDirectory(&regexBuilder, externalDatabasesDir, s.getExternalDatabasesRegex())
-	appendRegexForDirectory(&regexBuilder, libDir, s.getLibrariesRegex())
-	appendRegexForDirectory(&regexBuilder, messageHistoryStorageDir, s.getMessageHistoryStorageRegex())
-	appendRegexForDirectory(&regexBuilder, messageTypeTriggersDir, s.getMessageTypeTriggerRegex())
-	appendRegexForDirectory(&regexBuilder, pluginsDir, s.getPluginsRegex())
-	appendRegexForDirectory(&regexBuilder, portalsDir, s.getPortalsRegex())
-	appendRegexForDirectory(&regexBuilder, rolesDir, s.getRolesRegex())
-	appendRegexForDirectory(&regexBuilder, secretsDir, s.getSecretsRegex())
-	appendRegexForDirectory(&regexBuilder, svcDir, s.getServicesRegex())
-	appendRegexForDirectory(&regexBuilder, timersDir, s.getTimersRegex())
-	appendRegexForDirectory(&regexBuilder, triggersDir, s.getTriggerRegex())
-	appendRegexForDirectory(&regexBuilder, usersDir, s.getUserRegex())
-	appendRegexForDirectory(&regexBuilder, webhooksDir, s.getWebhooksRegex())
+	regexDirs := []struct {
+		dir   string
+		regex string
+	}{
+		{adaptorsDir, s.getAdaptorsRegex()},
+		{bucketSetsDir, s.getBucketSetsRegex()},
+		{bucketSetFiles.BucketSetFilesDir, s.getBucketSetFilesRegex()},
+		{serviceCachesDir, s.getCachesRegex()},
+		{dataDir, s.getCollectionsRegex()},
+		{deploymentsDir, s.getDeploymentsRegex()},
+		{devicesDir, s.getDevicesRegex()},
+		{edgesDir, s.getEdgesRegex()},
+		{externalDatabasesDir, s.getExternalDatabasesRegex()},
+		{libDir, s.getLibrariesRegex()},
+		{messageHistoryStorageDir, s.getMessageHistoryStorageRegex()},
+		{messageTypeTriggersDir, s.getMessageTypeTriggerRegex()},
+		{pluginsDir, s.getPluginsRegex()},
+		{portalsDir, s.getPortalsRegex()},
+		{rolesDir, s.getRolesRegex()},
+		{secretsDir, s.getSecretsRegex()},
+		{svcDir, s.getServicesRegex()},
+		{timersDir, s.getTimersRegex()},
+		{triggersDir, s.getTriggerRegex()},
+		{usersDir, s.getUserRegex()},
+		{webhooksDir, s.getWebhooksRegex()},
+	}
 
-	// TODO: Remove trailing or
+	lastWrittenIdx := -2
+	for i, info := range regexDirs {
+		if info.regex == "" || info.dir == "" {
+			continue
+		}
+
+		if i == lastWrittenIdx+1 {
+			regexBuilder.WriteByte('|')
+		}
+
+		regexBuilder.WriteString(makeRegexForDirectory(info.dir, info.regex))
+		lastWrittenIdx = i
+	}
+
 	return regexp.MustCompile(regexBuilder.String())
 }
 
-func appendRegexForDirectory(builder *strings.Builder, dir string, regex string) {
-	if regex == "" {
-		return
-	}
-
+func makeRegexForDirectory(dir string, regex string) string {
+	builder := strings.Builder{}
 	builder.WriteByte('(')
 	builder.WriteString(regexp.QuoteMeta(dir))
 	builder.WriteString("/(")
 	builder.WriteString(regex)
-	builder.WriteString("))|")
+	builder.WriteString("))")
+	return builder.String()
 }
 
 func (s *systemPushOptions) getAdaptorsRegex() string {
 	if s.AllAssets || s.AllAdaptors {
-		return "*+"
+		return ".*"
 	}
 
 	if s.AdaptorName == "" {
 		return ""
 	}
 
-	return regexp.QuoteMeta(fmt.Sprintf("%s/*+", s.AdaptorName))
+	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.AdaptorName))
 }
 
 func (s *systemPushOptions) getBucketSetsRegex() string {
 	if s.AllAssets || s.AllBucketSets {
-		return "*+"
+		return ".*"
 	}
 
 	if s.BucketSetName == "" {
@@ -154,7 +218,7 @@ func (s *systemPushOptions) getBucketSetsRegex() string {
 
 func (s *systemPushOptions) getBucketSetFilesRegex() string {
 	if s.AllAssets || s.AllBucketSetFiles {
-		return "*+"
+		return ".*"
 	}
 
 	if s.BucketSetFiles == "" || s.BucketSetBoxName == "" {
@@ -162,7 +226,7 @@ func (s *systemPushOptions) getBucketSetFilesRegex() string {
 	}
 
 	if s.BucketSetFileName == "" {
-		return regexp.QuoteMeta(fmt.Sprintf("%s/%s/*+", BucketSetFiles, BucketSetBoxName))
+		return fmt.Sprintf("%s/%s/.*", regexp.QuoteMeta(BucketSetFiles), regexp.QuoteMeta(BucketSetBoxName))
 	}
 
 	return regexp.QuoteMeta(fmt.Sprintf("%s/%s/%s", BucketSetFiles, BucketSetBoxName, BucketSetFileName))
@@ -170,10 +234,9 @@ func (s *systemPushOptions) getBucketSetFilesRegex() string {
 
 func (s *systemPushOptions) getCachesRegex() string {
 	if s.AllAssets || s.AllServiceCaches {
-		return "*+"
+		return ".*"
 	}
 
-	// TODO: Do a test where everything is false and check the regex
 	if s.ServiceCacheName == "" {
 		return ""
 	}
@@ -202,7 +265,7 @@ func (s *systemPushOptions) getCollectionNames() []string {
 
 func (s *systemPushOptions) getCollectionsRegex() string {
 	if s.AllAssets || s.AllCollections {
-		return "*+"
+		return ".*"
 	}
 
 	collectionsRegex := strings.Builder{}
@@ -246,7 +309,7 @@ func getCollectionNameById(wantedId string) (string, error) {
 
 func (s *systemPushOptions) getCollectionSchemasRegex() string {
 	if s.AllAssets || s.AllCollections {
-		return "*+"
+		return ".*"
 	}
 
 	if s.CollectionSchema == "" {
@@ -264,7 +327,7 @@ func (s *systemPushOptions) getCollectionSchemasRegex() string {
 
 func (s *systemPushOptions) getDeploymentsRegex() string {
 	if s.AllAssets || s.AllDeployments {
-		return "*+"
+		return ".*"
 	}
 
 	if s.DeploymentName == "" {
@@ -276,7 +339,7 @@ func (s *systemPushOptions) getDeploymentsRegex() string {
 
 func (s *systemPushOptions) getDevicesRegex() string {
 	if s.AllAssets || s.AllDevices {
-		return "*+"
+		return ".*"
 	}
 
 	devices := strings.Builder{}
@@ -298,7 +361,7 @@ func (s *systemPushOptions) getDevicesRegex() string {
 
 func (s *systemPushOptions) getEdgesRegex() string {
 	if s.AllAssets || s.AllEdges {
-		return "*+"
+		return ".*"
 	}
 
 	edges := strings.Builder{}
@@ -318,7 +381,7 @@ func (s *systemPushOptions) getEdgesRegex() string {
 
 func (s *systemPushOptions) getExternalDatabasesRegex() string {
 	if s.AllAssets || s.AllExternalDatabases {
-		return "*+"
+		return ".*"
 	}
 
 	if s.ExternalDatabaseName == "" {
@@ -330,14 +393,14 @@ func (s *systemPushOptions) getExternalDatabasesRegex() string {
 
 func (s *systemPushOptions) getLibrariesRegex() string {
 	if s.AllAssets || s.AllLibraries {
-		return "*+"
+		return ".*"
 	}
 
 	if s.LibraryName == "" {
 		return ""
 	}
 
-	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.LibraryName))
+	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.LibraryName))
 }
 
 func (s *systemPushOptions) getMessageHistoryStorageRegex() string {
@@ -358,7 +421,7 @@ func (s *systemPushOptions) getMessageTypeTriggerRegex() string {
 
 func (s *systemPushOptions) getPluginsRegex() string {
 	if s.AllAssets || s.AllPlugins {
-		return "*+"
+		return ".*"
 	}
 
 	if s.PluginName == "" {
@@ -370,19 +433,19 @@ func (s *systemPushOptions) getPluginsRegex() string {
 
 func (s *systemPushOptions) getPortalsRegex() string {
 	if s.AllAssets || s.AllPortals {
-		return "*+"
+		return ".*"
 	}
 
 	if s.PortalName == "" {
 		return ""
 	}
 
-	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.PortalName))
+	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.PortalName))
 }
 
 func (s *systemPushOptions) getRolesRegex() string {
 	if s.AllAssets || s.AllRoles {
-		return "*+"
+		return ".*"
 	}
 
 	if s.RoleName == "" {
@@ -394,7 +457,7 @@ func (s *systemPushOptions) getRolesRegex() string {
 
 func (s *systemPushOptions) getSecretsRegex() string {
 	if s.AllAssets || s.AllSecrets {
-		return "*+"
+		return ".*"
 	}
 
 	if s.SecretName == "" {
@@ -406,19 +469,19 @@ func (s *systemPushOptions) getSecretsRegex() string {
 
 func (s *systemPushOptions) getServicesRegex() string {
 	if s.AllAssets || s.AllServices {
-		return "*+"
+		return ".*"
 	}
 
 	if s.ServiceName == "" {
 		return ""
 	}
 
-	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.ServiceName))
+	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.ServiceName))
 }
 
 func (s *systemPushOptions) getTimersRegex() string {
 	if s.AllAssets || s.AllTimers {
-		return "*+"
+		return ".*"
 	}
 
 	if s.TimerName == "" {
@@ -430,7 +493,7 @@ func (s *systemPushOptions) getTimersRegex() string {
 
 func (s *systemPushOptions) getTriggerRegex() string {
 	if s.AllAssets || s.AllTriggers {
-		return "*+"
+		return ".*"
 	}
 
 	if s.TriggerName == "" {
@@ -452,7 +515,7 @@ func (s *systemPushOptions) getUserEmails() []string {
 
 	email, err := getUserEmailByID(s.UserId)
 	if err != nil {
-		fmt.Printf("Ignoring user %q: 5s", s.UserId, err)
+		fmt.Printf("Ignoring user %q: %s", s.UserId, err)
 		return emails
 	}
 
@@ -462,7 +525,7 @@ func (s *systemPushOptions) getUserEmails() []string {
 
 func (s *systemPushOptions) getUserRegex() string {
 	if s.AllAssets || s.AllUsers {
-		return "*+"
+		return ".*"
 	}
 
 	userRegex := strings.Builder{}
@@ -511,7 +574,7 @@ func getUserEmailById(wantedId string) (string, error) {
 
 func (s *systemPushOptions) getWebhooksRegex() string {
 	if s.AllAssets || s.AllWebhooks {
-		return "*+"
+		return ".*"
 	}
 
 	if s.WebhookName == "" {
