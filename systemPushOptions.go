@@ -3,126 +3,222 @@ package cblib
 import (
 	"fmt"
 	"regexp"
+	"slices"
+	"strings"
+
+	"github.com/clearblade/cblib/models/bucketSetFiles"
 )
 
 type systemPushOptions struct {
-	AdaptorsRegex          string
-	BucketSetsRegex        string
-	BucketSetFilesRegex    string
-	CachesRegex            string
-	CollectionsRegex       string
-	CollectionSchemasRegex string
-	DeploymentsRegex       string
-	DevicesRegex           string
-	PushDeviceSchema       bool
-	EdgesRegex             string
-	PushEdgeSchema         bool
-	ExternalDatabasesRegex string
-	LibrariesRegex         string
-	PluginsRegex           string
-	PortalsRegex           string
-	RolesRegex             string
-	SecretsRegex           string
-	ServicesRegex          string
-	TimersRegex            string
-	TriggersRegex          string
-	UsersRegex             string
-	PushUserSchema         bool
-	WebhooksRegex          string
+	AllAssets   bool
+	AllAdaptors bool
+	AdaptorName string
+
+	AllBucketSets bool
+	BucketSetName string
+
+	AllBucketSetFiles bool
+	BucketSetFiles    string
+	BucketSetBoxName  string
+	BucketSetFileName string
+
+	AllServiceCaches bool
+	ServiceCacheName string
+
+	AllCollections   bool
+	CollectionName   string
+	CollectionId     string
+	CollectionSchema string
+
+	AllDeployments bool
+	DeploymentName string
+
+	AllDevices       bool
+	DeviceName       string
+	PushDeviceSchema bool
+
+	AllEdges       bool
+	EdgeName       string
+	PushEdgeSchema bool
+
+	AllExternalDatabases bool
+	ExternalDatabaseName string
+
+	AllLibraries bool
+	LibraryName  string
+
+	AllPlugins bool
+	PluginName string
+
+	AllPortals bool
+	PortalName string
+
+	AllRoles bool
+	RoleName string
+
+	AllSecrets bool
+	SecretName string
+
+	AllServices bool
+	ServiceName string
+
+	AllTimers bool
+	TimerName string
+
+	AllTriggers bool
+	TriggerName string
+
+	AllUsers       bool
+	UserName       string
+	UserId         string
+	PushUserSchema bool
+
+	AllWebhooks bool
+	WebhookName string
+
+	PushMessageHistoryStorage bool
+	PushMessageTypeTriggers   bool
 }
 
-func NewPushOptions() *systemPushOptions {
+func NewDefaultPushOptions() *systemPushOptions {
 	return &systemPushOptions{
-		AdaptorsRegex:          getAdaptorsRegex(),
-		BucketSetsRegex:        getBucketSetsRegex(),
-		BucketSetFilesRegex:    getBucketSetFilesRegex(),
-		CachesRegex:            getCachesRegex(),
-		CollectionsRegex:       getCollectionsRegex(),
-		CollectionSchemasRegex: getCollectionSchemasRegex(),
-		DeploymentsRegex:       getDeploymentsRegex(),
-		DevicesRegex:           getDevicesRegex(),
-		PushDeviceSchema:       shouldPushDeviceSchema(),
-		EdgesRegex:             getEdgesRegex(),
-		PushEdgeSchema:         shouldPushEdgeSchema(),
-		ExternalDatabasesRegex: getExternalDatabasesRegex(),
-		LibrariesRegex:         getLibrariesRegex(),
-		PluginsRegex:           getPluginsRegex(),
-		PortalsRegex:           getPortalsRegex(),
-		RolesRegex:             getRolesRegex(),
-		SecretsRegex:           getSecretsRegex(),
-		ServicesRegex:          getServicesRegex(),
-		TimersRegex:            getTimersRegex(),
-		TriggersRegex:          getTriggerRegex(),
-		UsersRegex:             getUserRegex(),
-		PushUserSchema:         shouldPushUserSchema(),
-		WebhooksRegex:          getWebhooksRegex(),
+		// TODO:
 	}
 }
 
-func getAdaptorsRegex() string {
-	if AllAssets || AllAdaptors {
-		return "*"
-	}
+func (s *systemPushOptions) GetFileRegex() *regexp.Regexp {
+	regexBuilder := strings.Builder{}
+	// TODO: handle collection schemas
 
-	return regexp.QuoteMeta(AdaptorName)
+	appendRegexForDirectory(&regexBuilder, adaptorsDir, s.getAdaptorsRegex())
+	appendRegexForDirectory(&regexBuilder, bucketSetsDir, s.getBucketSetsRegex())
+	appendRegexForDirectory(&regexBuilder, bucketSetFiles.BucketSetFilesDir, s.getBucketSetFilesRegex())
+	appendRegexForDirectory(&regexBuilder, serviceCachesDir, s.getCachesRegex())
+	appendRegexForDirectory(&regexBuilder, dataDir, s.getCollectionsRegex())
+	appendRegexForDirectory(&regexBuilder, deploymentsDir, s.getDeploymentsRegex())
+	appendRegexForDirectory(&regexBuilder, devicesDir, s.getDevicesRegex())
+	appendRegexForDirectory(&regexBuilder, edgesDir, s.getEdgesRegex())
+	appendRegexForDirectory(&regexBuilder, externalDatabasesDir, s.getExternalDatabasesRegex())
+	appendRegexForDirectory(&regexBuilder, libDir, s.getLibrariesRegex())
+	appendRegexForDirectory(&regexBuilder, messageHistoryStorageDir, s.getMessageHistoryStorageRegex())
+	appendRegexForDirectory(&regexBuilder, messageTypeTriggersDir, s.getMessageTypeTriggerRegex())
+	appendRegexForDirectory(&regexBuilder, pluginsDir, s.getPluginsRegex())
+	appendRegexForDirectory(&regexBuilder, portalsDir, s.getPortalsRegex())
+	appendRegexForDirectory(&regexBuilder, rolesDir, s.getRolesRegex())
+	appendRegexForDirectory(&regexBuilder, secretsDir, s.getSecretsRegex())
+	appendRegexForDirectory(&regexBuilder, svcDir, s.getServicesRegex())
+	appendRegexForDirectory(&regexBuilder, timersDir, s.getTimersRegex())
+	appendRegexForDirectory(&regexBuilder, triggersDir, s.getTriggerRegex())
+	appendRegexForDirectory(&regexBuilder, usersDir, s.getUserRegex())
+	appendRegexForDirectory(&regexBuilder, webhooksDir, s.getWebhooksRegex())
+
+	// TODO: Remove trailing or
+	return regexp.MustCompile(regexBuilder.String())
 }
 
-func getBucketSetsRegex() string {
-	if AllAssets || AllBucketSets {
-		return "*"
+func appendRegexForDirectory(builder *strings.Builder, dir string, regex string) {
+	if regex == "" {
+		return
 	}
 
-	return regexp.QuoteMeta(BucketSetName)
+	builder.WriteByte('(')
+	builder.WriteString(regexp.QuoteMeta(dir))
+	builder.WriteString("/(")
+	builder.WriteString(regex)
+	builder.WriteString("))|")
 }
 
-func getBucketSetFilesRegex() string {
-	if AllAssets || AllBucketSetFiles {
-		return "*"
+func (s *systemPushOptions) getAdaptorsRegex() string {
+	if s.AllAssets || s.AllAdaptors {
+		return "*+"
 	}
 
-	if BucketSetFiles == "" || BucketSetBoxName == "" {
+	if s.AdaptorName == "" {
 		return ""
 	}
 
-	if BucketSetFileName == "" {
-		return regexp.QuoteMeta(fmt.Sprintf("%s/%s/*", BucketSetBoxName, BucketSetBoxName))
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s/%s/%s", BucketSetBoxName, BucketSetBoxName, BucketSetFileName))
+	return regexp.QuoteMeta(fmt.Sprintf("%s/*+", s.AdaptorName))
 }
 
-func getCachesRegex() string {
-	if AllAssets || AllServiceCaches {
-		return "*"
+func (s *systemPushOptions) getBucketSetsRegex() string {
+	if s.AllAssets || s.AllBucketSets {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(ServiceCacheName)
+	if s.BucketSetName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.BucketSetName))
 }
 
-func getCollectionsRegex() string {
-	if AllAssets || AllCollections {
-		return "*"
+func (s *systemPushOptions) getBucketSetFilesRegex() string {
+	if s.AllAssets || s.AllBucketSetFiles {
+		return "*+"
 	}
 
-	// TODO: This OR logic is wrong!
-	collectionsRegex := ""
-	if CollectionName != "" {
-		collectionsRegex = "(" + regexp.QuoteMeta(CollectionName) + ")"
+	if s.BucketSetFiles == "" || s.BucketSetBoxName == "" {
+		return ""
 	}
 
-	if CollectionId != "" {
-		name, err := getCollectionNameById(CollectionId)
-		if err != nil {
-			fmt.Printf("Could not determine name for collection with id %s: %s\n", CollectionId, err)
-			return collectionsRegex
+	if s.BucketSetFileName == "" {
+		return regexp.QuoteMeta(fmt.Sprintf("%s/%s/*+", BucketSetFiles, BucketSetBoxName))
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s/%s/%s", BucketSetFiles, BucketSetBoxName, BucketSetFileName))
+}
+
+func (s *systemPushOptions) getCachesRegex() string {
+	if s.AllAssets || s.AllServiceCaches {
+		return "*+"
+	}
+
+	// TODO: Do a test where everything is false and check the regex
+	if s.ServiceCacheName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.ServiceCacheName))
+}
+
+func (s *systemPushOptions) getCollectionNames() []string {
+	names := []string{}
+	if s.CollectionName != "" {
+		names = append(names, s.CollectionName)
+	}
+
+	if s.CollectionId == "" {
+		return names
+	}
+
+	name, err := getCollectionNameById(s.CollectionId)
+	if err != nil {
+		fmt.Printf("Not pushing collection id %q: %s", s.CollectionId, err)
+	}
+
+	names = append(names, name)
+	return names
+}
+
+func (s *systemPushOptions) getCollectionsRegex() string {
+	if s.AllAssets || s.AllCollections {
+		return "*+"
+	}
+
+	collectionsRegex := strings.Builder{}
+	collections := s.getCollectionNames()
+	for i, name := range collections {
+		if i > 0 {
+			collectionsRegex.WriteByte('|')
 		}
 
-		collectionsRegex += "|(" + regexp.QuoteMeta(name) + ")"
+		collectionsRegex.WriteString("(" + regexp.QuoteMeta(fmt.Sprintf("%s.json", name)) + ")")
 	}
 
-	return regexp.QuoteMeta(collectionsRegex)
+	return collectionsRegex.String()
 }
 
+// TODO: Move somewhere else?
 func getCollectionNameById(wantedId string) (string, error) {
 	collections, err := getCollections()
 	if err != nil {
@@ -148,149 +244,242 @@ func getCollectionNameById(wantedId string) (string, error) {
 	return "", fmt.Errorf("collection with id %s not found", wantedId)
 }
 
-func getCollectionSchemasRegex() string {
-	if AllAssets || AllCollections {
-		return "*"
+func (s *systemPushOptions) getCollectionSchemasRegex() string {
+	if s.AllAssets || s.AllCollections {
+		return "*+"
 	}
 
-	collectionSchemaRegex := ""
-	if collection := getCollectionsRegex(); collection != "" {
-		collectionSchemaRegex = ""
+	if s.CollectionSchema == "" {
+		return ""
 	}
-	// TODO: Also push collection name
 
-	return regexp.QuoteMeta(CollectionSchema)
+	// Don't need to push the schema if the collection is already being pushed
+	collections := s.getCollectionNames()
+	if slices.Contains(collections, s.CollectionSchema) {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.CollectionSchema))
 }
 
-func getDeploymentsRegex() string {
-	if AllAssets || AllDeployments {
-		return "*"
+func (s *systemPushOptions) getDeploymentsRegex() string {
+	if s.AllAssets || s.AllDeployments {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(DeploymentName)
-}
-
-func getDevicesRegex() string {
-	if AllAssets || AllDevices {
-		return "*"
+	if s.DeploymentName == "" {
+		return ""
 	}
 
-	return regexp.QuoteMeta(DeviceName)
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.DeploymentName))
 }
 
-func shouldPushDeviceSchema() bool {
-	return DeviceSchema || getDevicesRegex() != ""
-}
-
-func getEdgesRegex() string {
-	if AllAssets || AllEdges {
-		return "*"
+func (s *systemPushOptions) getDevicesRegex() string {
+	if s.AllAssets || s.AllDevices {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(EdgeName)
-}
-
-func shouldPushEdgeSchema() bool {
-	return EdgeSchema || getEdgesRegex() != ""
-}
-
-func getExternalDatabasesRegex() string {
-	if AllAssets || AllExternalDatabases {
-		return "*"
+	devices := strings.Builder{}
+	if s.PushDeviceSchema || s.DeviceName != "" {
+		devices.WriteString("(" + regexp.QuoteMeta("schema.json") + ")")
 	}
 
-	return regexp.QuoteMeta(ExternalDatabaseName)
+	if s.DeviceName == "" {
+		return devices.String()
+	}
+
+	devices.WriteString("|(")
+	devices.WriteString(regexp.QuoteMeta(fmt.Sprintf("%s.json", s.DeviceName)))
+	devices.WriteString(")|(")
+	devices.WriteString(regexp.QuoteMeta(fmt.Sprintf("roles/%s.json", s.DeviceName)))
+	devices.WriteString(")")
+	return devices.String()
 }
 
-func getLibrariesRegex() string {
-	if AllAssets || AllLibraries {
-		return "*"
+func (s *systemPushOptions) getEdgesRegex() string {
+	if s.AllAssets || s.AllEdges {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(LibraryName)
+	edges := strings.Builder{}
+	if s.PushEdgeSchema || s.EdgeName != "" {
+		edges.WriteString("(" + regexp.QuoteMeta("schema.json") + ")")
+	}
+
+	if s.EdgeName == "" {
+		return edges.String()
+	}
+
+	edges.WriteString("|(")
+	edges.WriteString(regexp.QuoteMeta(fmt.Sprintf("%s.json", s.EdgeName)))
+	edges.WriteString(")")
+	return edges.String()
 }
 
-func getPluginsRegex() string {
-	if AllAssets || AllPlugins {
-		return "*"
+func (s *systemPushOptions) getExternalDatabasesRegex() string {
+	if s.AllAssets || s.AllExternalDatabases {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(PluginName)
+	if s.ExternalDatabaseName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.ExternalDatabaseName))
 }
 
-func getPortalsRegex() string {
-	if AllAssets || AllPortals {
-		return "*"
+func (s *systemPushOptions) getLibrariesRegex() string {
+	if s.AllAssets || s.AllLibraries {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(PortalName)
+	if s.LibraryName == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.LibraryName))
 }
 
-func getRolesRegex() string {
-	if AllAssets || AllRoles {
-		return "*"
+func (s *systemPushOptions) getMessageHistoryStorageRegex() string {
+	if s.AllAssets || s.PushMessageHistoryStorage {
+		return regexp.QuoteMeta("storage.json")
 	}
 
-	return regexp.QuoteMeta(RoleName)
+	return ""
 }
 
-func getSecretsRegex() string {
-	if AllAssets || AllSecrets {
-		return "*"
+func (s *systemPushOptions) getMessageTypeTriggerRegex() string {
+	if s.AllAssets || s.PushMessageTypeTriggers {
+		return regexp.QuoteMeta("triggers.json")
 	}
 
-	return regexp.QuoteMeta(SecretName)
+	return ""
 }
 
-func getServicesRegex() string {
-	if AllAssets || AllServices {
-		return "*"
+func (s *systemPushOptions) getPluginsRegex() string {
+	if s.AllAssets || s.AllPlugins {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(ServiceName)
+	if s.PluginName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.PluginName))
 }
 
-func getTimersRegex() string {
-	if AllAssets || AllTimers {
-		return "*"
+func (s *systemPushOptions) getPortalsRegex() string {
+	if s.AllAssets || s.AllPortals {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(TimerName)
+	if s.PortalName == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.PortalName))
 }
 
-func getTriggerRegex() string {
-	if AllAssets || AllTriggers {
-		return "*"
+func (s *systemPushOptions) getRolesRegex() string {
+	if s.AllAssets || s.AllRoles {
+		return "*+"
 	}
 
-	return regexp.QuoteMeta(TriggerName)
+	if s.RoleName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.RoleName))
 }
 
-func getUserRegex() string {
-	if AllAssets || AllUsers {
-		return "*"
+func (s *systemPushOptions) getSecretsRegex() string {
+	if s.AllAssets || s.AllSecrets {
+		return "*+"
 	}
 
-	userRegex := ""
-	if User != "" {
-		userRegex = "(" + regexp.QuoteMeta(User) + ")"
+	if s.SecretName == "" {
+		return ""
 	}
 
-	if UserId != "" {
-		email, err := getUserEmailByID(UserId)
-		if err != nil {
-			fmt.Printf("Could not determine email for user with id %s: %s\n", UserId, err)
-			return userRegex
-		}
-
-		userRegex += "|(" + regexp.QuoteMeta(email) + ")"
-	}
-
-	return userRegex
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.SecretName))
 }
 
-func shouldPushUserSchema() bool {
-	return UserSchema || getUserRegex() != ""
+func (s *systemPushOptions) getServicesRegex() string {
+	if s.AllAssets || s.AllServices {
+		return "*+"
+	}
+
+	if s.ServiceName == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/*+", regexp.QuoteMeta(s.ServiceName))
+}
+
+func (s *systemPushOptions) getTimersRegex() string {
+	if s.AllAssets || s.AllTimers {
+		return "*+"
+	}
+
+	if s.TimerName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.TimerName))
+}
+
+func (s *systemPushOptions) getTriggerRegex() string {
+	if s.AllAssets || s.AllTriggers {
+		return "*+"
+	}
+
+	if s.TriggerName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.TriggerName))
+}
+
+func (s *systemPushOptions) getUserEmails() []string {
+	emails := []string{}
+	if s.UserName != "" {
+		emails = append(emails, s.UserName)
+	}
+
+	if s.UserId == "" {
+		return emails
+	}
+
+	email, err := getUserEmailByID(s.UserId)
+	if err != nil {
+		fmt.Printf("Ignoring user %q: 5s", s.UserId, err)
+		return emails
+	}
+
+	emails = append(emails, email)
+	return emails
+}
+
+func (s *systemPushOptions) getUserRegex() string {
+	if s.AllAssets || s.AllUsers {
+		return "*+"
+	}
+
+	userRegex := strings.Builder{}
+	emails := s.getUserEmails()
+	if s.PushUserSchema || len(emails) > 0 {
+		userRegex.WriteString("(" + regexp.QuoteMeta("schema.json") + ")")
+	}
+
+	for _, email := range emails {
+		userRegex.WriteString("|(")
+		userRegex.WriteString(regexp.QuoteMeta(fmt.Sprintf("%s.json", email)))
+		userRegex.WriteString(")|(")
+		userRegex.WriteString(regexp.QuoteMeta(fmt.Sprintf("roles/%s.json", email)))
+		userRegex.WriteString(")")
+	}
+
+	return userRegex.String()
 }
 
 func getUserEmailById(wantedId string) (string, error) {
@@ -320,21 +509,14 @@ func getUserEmailById(wantedId string) (string, error) {
 	return "", fmt.Errorf("user with id %s not found", wantedId)
 }
 
-func getUserSchemaRegex() string {
-	if AllAssets || AllUsers || UserSchema {
-		return "*"
+func (s *systemPushOptions) getWebhooksRegex() string {
+	if s.AllAssets || s.AllWebhooks {
+		return "*+"
 	}
 
-	return ""
-}
-
-func getWebhooksRegex() string {
-	if AllAssets || AllWebhooks {
-		return "*"
+	if s.WebhookName == "" {
+		return ""
 	}
 
-	return regexp.QuoteMeta(WebhookName)
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.WebhookName))
 }
-
-// TODO: Message History Storage?
-// TODO: Message Type Triggers
