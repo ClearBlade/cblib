@@ -8,11 +8,11 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/maputil"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/roles"
+	"github.com/clearblade/cblib/types"
 )
 
 var (
@@ -207,7 +207,10 @@ func createUsers(config ImportConfig, systemInfo *types.System_meta, users []map
 	userCols := []interface{}{}
 	userSchema, err := getUserSchema()
 	if err == nil {
-		userCols = userSchema["columns"].([]interface{})
+		userColsIF, ok := userSchema["columns"]
+		if ok && userColsIF != nil {
+			userCols = userColsIF.([]interface{})
+		}
 	}
 	for _, columnIF := range userCols {
 		column := columnIF.(map[string]interface{})

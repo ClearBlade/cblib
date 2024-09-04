@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
+	"github.com/clearblade/cblib/types"
 )
 
 func DoesBackendSupportSystemUploadForCode(systemInfo *types.System_meta, client *cb.DevClient) bool {

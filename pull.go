@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models"
+	"github.com/clearblade/cblib/types"
 )
 
 var (

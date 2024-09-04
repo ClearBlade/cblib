@@ -8,9 +8,9 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
-	"github.com/clearblade/cblib/internal/types"
 	"github.com/clearblade/cblib/models/collections"
 	rt "github.com/clearblade/cblib/resourcetree"
+	"github.com/clearblade/cblib/types"
 )
 
 var (

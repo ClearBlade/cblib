@@ -1,6 +1,6 @@
 package cblib
 
-import "github.com/clearblade/cblib/internal/types"
+import "github.com/clearblade/cblib/types"
 
 func setGlobalSystemDotJSONFromSystemMeta(meta *types.System_meta) {
 	setGlobalSystemDotJSON(systemMetaToMap(meta))
