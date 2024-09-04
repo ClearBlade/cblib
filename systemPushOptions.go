@@ -134,9 +134,10 @@ func DefaultPushOptions() *systemPushOptions {
 	}
 }
 
+// TODO: Does everything match the empty regex
 func (s *systemPushOptions) GetFileRegex() *regexp.Regexp {
 	regexBuilder := strings.Builder{}
-	// TODO: handle collection schemas
+	regexBuilder.WriteByte('^')
 
 	regexDirs := []struct {
 		dir   string
@@ -179,6 +180,15 @@ func (s *systemPushOptions) GetFileRegex() *regexp.Regexp {
 		lastWrittenIdx = i
 	}
 
+	regexBuilder.WriteByte('$')
+	return regexp.MustCompile(regexBuilder.String())
+}
+
+func (s *systemPushOptions) GetCollectionSchemaRegex() *regexp.Regexp {
+	regexBuilder := strings.Builder{}
+	regexBuilder.WriteByte('^')
+	regexBuilder.WriteString(makeRegexForDirectory(dataDir, s.getCollectionSchemasRegex()))
+	regexBuilder.WriteByte('$')
 	return regexp.MustCompile(regexBuilder.String())
 }
 
