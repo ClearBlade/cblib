@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"fmt"
+	"io/fs"
 	"regexp"
 	"slices"
 	"strings"
@@ -132,6 +133,14 @@ func DefaultPushOptions() *systemPushOptions {
 		PushMessageHistoryStorage: MessageHistoryStorage,
 		PushMessageTypeTriggers:   MessageTypeTriggers,
 	}
+}
+
+type CbSystemFile struct {
+	fs.DirEntry
+}
+
+func (s *systemPushOptions) IsPathInUpload(path string) bool {
+	// TODO: Check if any of our dirs are a prefix
 }
 
 // TODO: Does everything match the empty regex
