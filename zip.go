@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/clearblade/cblib/syspath"
 )
 
 func getSystemZipBytes(options systemPushOptions) ([]byte, error) {
@@ -32,29 +34,36 @@ func writeSystemZip(options systemPushOptions) (string, error) {
 	defer archive.Close()
 	w := zip.NewWriter(archive)
 
-	fileRegex := options.GetFileRegex()
-	schemaRegex := options.GetCollectionSchemaRegex()
-
 	err = filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-		// TODO: Maybe only explore directories that are cblib
+		zipPath, pathErr := filepath.Rel(rootDir, path)
+		if pathErr != nil {
+			return fmt.Errorf("could not make %s relative to %s: %w", path, rootDir, pathErr)
+		}
+
+		// Skip if we don't care about this dir
+		if d.IsDir() {
+			if syspath.IsClearbladePath(d.Name()) {
+				return err
+			}
+
+			return filepath.SkipDir
+		}
+
+		// Skip if we don't care about this file
+		if !options.ShouldPushFile(zipPath) {
+			return nil
+		}
+
 		if err != nil {
 			return err
 		}
 
-		if d.IsDir() {
-			return nil
+		// TODO: I'd rather have us pass an interface into here to call the functions
+		if options.shouldPushCollectionSchemaFileOnly(zipPath) {
+			return copyCollectionSchemaToZip(w, path, zipPath)
+		} else {
+			return copyFileToZip(w, path, zipPath)
 		}
-
-		if !fileRegex.MatchString(path) {
-			return nil
-		}
-
-		zipPath, err := filepath.Rel(rootDir, path)
-		if err != nil {
-			return fmt.Errorf("could not make %s relative to %s: %w", path, rootDir, err)
-		}
-
-		return copyFileToZip(w, path, zipPath)
 	})
 
 	if err != nil {
@@ -66,6 +75,33 @@ func writeSystemZip(options systemPushOptions) (string, error) {
 	}
 
 	return archive.Name(), nil
+}
+
+/**
+ * Prompts the user for the password before copying
+ */
+func copyExternalDatabaseFileToZip(w *zip.Writer, localPath string, zipPath string) error {
+	return copyFileToZipWithTransform(w, localPath, zipPath, func(content []byte) ([]byte, error) {
+		var data map[string]interface{}
+		if err := json.Unmarshal(content, &data); err != nil {
+			return nil, err
+		}
+
+		name, ok := data["name"].(string)
+		if !ok {
+			return nil, fmt.Errorf("external database file at %s missing name field", zipPath)
+		}
+
+		credentials, ok := data["credentials"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("external database file at %s missing credentials field", zipPath)
+		}
+
+		// TODO: Verify that this works setting the passwor dfield
+		password := getOneItem(fmt.Sprintf("Password for external database '%s'", name), true)
+		credentials["password"] = password
+		return json.Marshal(data)
+	})
 }
 
 /**

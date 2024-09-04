@@ -2,12 +2,11 @@ package cblib
 
 import (
 	"fmt"
-	"io/fs"
 	"regexp"
 	"slices"
 	"strings"
 
-	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/syspath"
 )
 
 type systemPushOptions struct {
@@ -135,134 +134,140 @@ func DefaultPushOptions() *systemPushOptions {
 	}
 }
 
-type CbSystemFile struct {
-	fs.DirEntry
-}
-
-func (s *systemPushOptions) IsPathInUpload(path string) bool {
-	// TODO: Check if any of our dirs are a prefix
-}
-
-// TODO: Does everything match the empty regex
-func (s *systemPushOptions) GetFileRegex() *regexp.Regexp {
-	regexBuilder := strings.Builder{}
-	regexBuilder.WriteByte('^')
-
-	regexDirs := []struct {
-		dir   string
-		regex string
-	}{
-		{adaptorsDir, s.getAdaptorsRegex()},
-		{bucketSetsDir, s.getBucketSetsRegex()},
-		{bucketSetFiles.BucketSetFilesDir, s.getBucketSetFilesRegex()},
-		{serviceCachesDir, s.getCachesRegex()},
-		{dataDir, s.getCollectionsRegex()},
-		{deploymentsDir, s.getDeploymentsRegex()},
-		{devicesDir, s.getDevicesRegex()},
-		{edgesDir, s.getEdgesRegex()},
-		{externalDatabasesDir, s.getExternalDatabasesRegex()},
-		{libDir, s.getLibrariesRegex()},
-		{messageHistoryStorageDir, s.getMessageHistoryStorageRegex()},
-		{messageTypeTriggersDir, s.getMessageTypeTriggerRegex()},
-		{pluginsDir, s.getPluginsRegex()},
-		{portalsDir, s.getPortalsRegex()},
-		{rolesDir, s.getRolesRegex()},
-		{secretsDir, s.getSecretsRegex()},
-		{svcDir, s.getServicesRegex()},
-		{timersDir, s.getTimersRegex()},
-		{triggersDir, s.getTriggerRegex()},
-		{usersDir, s.getUserRegex()},
-		{webhooksDir, s.getWebhooksRegex()},
+func (s *systemPushOptions) ShouldPushFile(relPath string) bool {
+	if syspath.IsAdaptorPath(relPath) {
+		return s.shouldPushAdaptorFile(relPath)
 	}
 
-	lastWrittenIdx := -2
-	for i, info := range regexDirs {
-		if info.regex == "" || info.dir == "" {
-			continue
-		}
-
-		if i == lastWrittenIdx+1 {
-			regexBuilder.WriteByte('|')
-		}
-
-		regexBuilder.WriteString(makeRegexForDirectory(info.dir, info.regex))
-		lastWrittenIdx = i
+	if syspath.IsBucketSetFilePath(relPath) {
+		return s.shouldPushBucketSetDataFile(relPath)
 	}
 
-	regexBuilder.WriteByte('$')
-	return regexp.MustCompile(regexBuilder.String())
+	if syspath.IsBucketSetMetaPath(relPath) {
+		return s.shouldPushBucketSetMetaFile(relPath)
+	}
+
+	if syspath.IsCodePath(relPath) {
+		return s.shouldPushCodeFile(relPath)
+	}
+
+	if syspath.IsCollectionPath(relPath) {
+		return s.shouldPushCollectionFile(relPath)
+	}
+
+	if syspath.IsDeploymentPath(relPath) {
+		return s.shouldPushDeploymentFile(relPath)
+	}
+
+	if syspath.IsDevicePath(relPath) {
+		return s.shouldPushDeviceFile(relPath)
+	}
+
+	if syspath.IsEdgePath(relPath) {
+		return s.shouldPushEdgeFile(relPath)
+	}
+
+	if syspath.IsExternalDbPath(relPath) {
+		return s.shouldPushExternalDatabaseFile(relPath)
+	}
+
+	return false
 }
 
-func (s *systemPushOptions) GetCollectionSchemaRegex() *regexp.Regexp {
-	regexBuilder := strings.Builder{}
-	regexBuilder.WriteByte('^')
-	regexBuilder.WriteString(makeRegexForDirectory(dataDir, s.getCollectionSchemasRegex()))
-	regexBuilder.WriteByte('$')
-	return regexp.MustCompile(regexBuilder.String())
+func (s *systemPushOptions) shouldPushAdaptorFile(relPath string) bool {
+	name, err := syspath.GetAdaptorNameFromPath(relPath)
+	if err != nil {
+		return false
+	}
+
+	return s.shouldPushAdaptor(name)
 }
 
-func makeRegexForDirectory(dir string, regex string) string {
-	builder := strings.Builder{}
-	builder.WriteByte('(')
-	builder.WriteString(regexp.QuoteMeta(dir))
-	builder.WriteString("/(")
-	builder.WriteString(regex)
-	builder.WriteString("))")
-	return builder.String()
-}
-
-func (s *systemPushOptions) getAdaptorsRegex() string {
+func (s *systemPushOptions) shouldPushAdaptor(name string) bool {
 	if s.AllAssets || s.AllAdaptors {
-		return ".*"
+		return true
 	}
 
-	if s.AdaptorName == "" {
-		return ""
-	}
-
-	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.AdaptorName))
+	return s.AdaptorName == name
 }
 
-func (s *systemPushOptions) getBucketSetsRegex() string {
-	if s.AllAssets || s.AllBucketSets {
-		return ".*"
+func (s *systemPushOptions) shouldPushBucketSetDataFile(relPath string) bool {
+	data, err := syspath.ParseBucketPath(relPath)
+	if err != nil {
+		return false
 	}
 
-	if s.BucketSetName == "" {
-		return ""
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.BucketSetName))
+	return s.shouldPushBucketSetData(data)
 }
 
-func (s *systemPushOptions) getBucketSetFilesRegex() string {
+func (s *systemPushOptions) shouldPushBucketSetData(data *syspath.FullBucketPath) bool {
 	if s.AllAssets || s.AllBucketSetFiles {
-		return ".*"
+		return true
 	}
 
-	if s.BucketSetFiles == "" || s.BucketSetBoxName == "" {
-		return ""
+	if s.BucketSetFiles != data.BucketName || s.BucketSetBoxName != data.Box {
+		return false
 	}
 
+	// Empty means push all files in the box
 	if s.BucketSetFileName == "" {
-		return fmt.Sprintf("%s/%s/.*", regexp.QuoteMeta(BucketSetFiles), regexp.QuoteMeta(BucketSetBoxName))
+		return true
 	}
 
-	return regexp.QuoteMeta(fmt.Sprintf("%s/%s/%s", BucketSetFiles, BucketSetBoxName, BucketSetFileName))
+	return s.BucketSetFileName == data.RelativePath
 }
 
-func (s *systemPushOptions) getCachesRegex() string {
-	if s.AllAssets || s.AllServiceCaches {
-		return ".*"
+func (s *systemPushOptions) shouldPushBucketSetMetaFile(relPath string) bool {
+	name, err := syspath.GetBucketSetNameFromPath(relPath)
+	if err != nil {
+		return false
 	}
 
-	if s.ServiceCacheName == "" {
-		return ""
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.ServiceCacheName))
+	return s.shouldPushBucketSetMeta(name)
 }
 
+func (s *systemPushOptions) shouldPushBucketSetMeta(bucketName string) bool {
+	if s.AllAssets || s.AllBucketSets || s.AllBucketSetFiles {
+		return true
+	}
+
+	// Push the meta if any file for this bucket set is being pushed
+	return s.BucketSetName == bucketName || s.BucketSetFiles == bucketName
+}
+
+func (s *systemPushOptions) shouldPushCodeFile(relPath string) bool {
+	if service, err := syspath.GetServiceNameFromPath(relPath); err == nil {
+		return s.shouldPushService(service)
+	}
+
+	if library, err := syspath.GetLibraryNameFromPath(relPath); err == nil {
+		return s.shouldPushLibrary(library)
+	}
+
+	return false
+}
+
+func (s *systemPushOptions) shouldPushService(name string) bool {
+	if s.AllAssets || s.AllServices {
+		return true
+	}
+
+	return s.ServiceName == name
+}
+
+func (s *systemPushOptions) shouldPushLibrary(name string) bool {
+	if s.AllAssets || s.AllLibraries {
+		return true
+	}
+
+	return s.LibraryName == name
+}
+
+/**
+ * The user can specify a collection name, collection id, or both.
+ * This is a helper function to return all the collection names that
+ * were specified, if any
+ */
 func (s *systemPushOptions) getCollectionNames() []string {
 	names := []string{}
 	if s.CollectionName != "" {
@@ -282,144 +287,124 @@ func (s *systemPushOptions) getCollectionNames() []string {
 	return names
 }
 
-func (s *systemPushOptions) getCollectionsRegex() string {
-	if s.AllAssets || s.AllCollections {
-		return ".*"
-	}
-
-	collectionsRegex := strings.Builder{}
-	collections := s.getCollectionNames()
-	for i, name := range collections {
-		if i > 0 {
-			collectionsRegex.WriteByte('|')
-		}
-
-		collectionsRegex.WriteString("(" + regexp.QuoteMeta(fmt.Sprintf("%s.json", name)) + ")")
-	}
-
-	return collectionsRegex.String()
-}
-
-// TODO: Move somewhere else?
-func getCollectionNameById(wantedId string) (string, error) {
-	collections, err := getCollections()
+func (s *systemPushOptions) shouldPushCollectionFile(relPath string) bool {
+	name, err := syspath.GetCollectionNameFromPath(relPath)
 	if err != nil {
-		return "", err
+		return false
 	}
-	for _, collection := range collections {
-		id, ok := collection["collectionID"].(string)
-		if !ok {
-			continue
-		}
 
-		if id != wantedId {
-			continue
-		}
-
-		name, ok := collection["name"].(string)
-		if !ok {
-			continue
-		}
-
-		return name, nil
-	}
-	return "", fmt.Errorf("collection with id %s not found", wantedId)
+	return s.shouldPushCollection(name)
 }
 
-func (s *systemPushOptions) getCollectionSchemasRegex() string {
+func (s *systemPushOptions) shouldPushCollection(name string) bool {
 	if s.AllAssets || s.AllCollections {
-		return ".*"
+		return true
 	}
 
-	if s.CollectionSchema == "" {
-		return ""
-	}
-
-	// Don't need to push the schema if the collection is already being pushed
-	collections := s.getCollectionNames()
-	if slices.Contains(collections, s.CollectionSchema) {
-		return ""
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.CollectionSchema))
+	return slices.Contains(s.getCollectionNames(), name)
 }
 
-func (s *systemPushOptions) getDeploymentsRegex() string {
+func (s *systemPushOptions) shouldPushCollectionSchemaFileOnly(relPath string) bool {
+	name, err := syspath.GetCollectionNameFromPath(relPath)
+	if err != nil {
+		return false
+	}
+
+	return s.shouldPushCollectionSchemaOnly(name)
+}
+
+func (s *systemPushOptions) shouldPushCollectionSchemaOnly(name string) bool {
+	// We're already pushing the entire collection
+	if s.shouldPushCollection(name) {
+		return false
+	}
+
+	return s.CollectionSchema == name
+}
+
+func (s *systemPushOptions) shouldPushDeploymentFile(relPath string) bool {
+	name, err := syspath.GetDeploymentNameFromPath(relPath)
+	if err != nil {
+		return false
+	}
+
+	return s.shouldPushDeployment(name)
+}
+
+func (s *systemPushOptions) shouldPushDeployment(name string) bool {
 	if s.AllAssets || s.AllDeployments {
-		return ".*"
+		return true
 	}
 
-	if s.DeploymentName == "" {
-		return ""
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.DeploymentName))
+	return s.DeploymentName == name
 }
 
-func (s *systemPushOptions) getDevicesRegex() string {
+func (s *systemPushOptions) shouldPushDeviceFile(relPath string) bool {
+	if syspath.IsDeviceSchemaPath(relPath) {
+		return s.shouldPushDeviceSchema()
+	}
+
+	if name, err := syspath.GetDeviceNameFromDataPath(relPath); err == nil {
+		return s.shouldPushDevice(name)
+	}
+
+	if name, err := syspath.GetDeviceNameFromRolePath(relPath); err == nil {
+		return s.shouldPushDevice(name)
+	}
+
+	return false
+}
+
+func (s *systemPushOptions) shouldPushDeviceSchema() bool {
+	return s.AllAssets || s.AllDevices || s.PushDeviceSchema || s.DeviceName != ""
+}
+
+func (s *systemPushOptions) shouldPushDevice(name string) bool {
 	if s.AllAssets || s.AllDevices {
-		return ".*"
+		return true
 	}
 
-	devices := strings.Builder{}
-	if s.PushDeviceSchema || s.DeviceName != "" {
-		devices.WriteString("(" + regexp.QuoteMeta("schema.json") + ")")
-	}
-
-	if s.DeviceName == "" {
-		return devices.String()
-	}
-
-	devices.WriteString("|(")
-	devices.WriteString(regexp.QuoteMeta(fmt.Sprintf("%s.json", s.DeviceName)))
-	devices.WriteString(")|(")
-	devices.WriteString(regexp.QuoteMeta(fmt.Sprintf("roles/%s.json", s.DeviceName)))
-	devices.WriteString(")")
-	return devices.String()
+	return s.DeviceName == name
 }
 
-func (s *systemPushOptions) getEdgesRegex() string {
+func (s *systemPushOptions) shouldPushEdgeFile(relPath string) bool {
+	if syspath.IsEdgeSchemaPath(relPath) {
+		return s.shouldPushEdgeSchema()
+	}
+
+	if name, err := syspath.GetEdgeNameFromPath(relPath); err == nil {
+		return s.shouldPushEdge(name)
+	}
+
+	return false
+}
+
+func (s *systemPushOptions) shouldPushEdgeSchema() bool {
+	return s.AllAssets || s.AllEdges || s.PushEdgeSchema || s.EdgeName != ""
+}
+
+func (s *systemPushOptions) shouldPushEdge(name string) bool {
 	if s.AllAssets || s.AllEdges {
-		return ".*"
+		return true
 	}
 
-	edges := strings.Builder{}
-	if s.PushEdgeSchema || s.EdgeName != "" {
-		edges.WriteString("(" + regexp.QuoteMeta("schema.json") + ")")
-	}
-
-	if s.EdgeName == "" {
-		return edges.String()
-	}
-
-	edges.WriteString("|(")
-	edges.WriteString(regexp.QuoteMeta(fmt.Sprintf("%s.json", s.EdgeName)))
-	edges.WriteString(")")
-	return edges.String()
+	return s.EdgeName == name
 }
 
-func (s *systemPushOptions) getExternalDatabasesRegex() string {
+func (s *systemPushOptions) shouldPushExternalDatabaseFile(relPath string) bool {
+	if name, err := syspath.GetExternalDbNameFromPath(relPath); err == nil {
+		return s.shouldPushExternalDatabase(name)
+	}
+
+	return false
+}
+
+func (s *systemPushOptions) shouldPushExternalDatabase(name string) bool {
 	if s.AllAssets || s.AllExternalDatabases {
-		return ".*"
+		return true
 	}
 
-	if s.ExternalDatabaseName == "" {
-		return ""
-	}
-
-	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.ExternalDatabaseName))
-}
-
-func (s *systemPushOptions) getLibrariesRegex() string {
-	if s.AllAssets || s.AllLibraries {
-		return ".*"
-	}
-
-	if s.LibraryName == "" {
-		return ""
-	}
-
-	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.LibraryName))
+	return s.ExternalDatabaseName == name
 }
 
 func (s *systemPushOptions) getMessageHistoryStorageRegex() string {
@@ -484,18 +469,6 @@ func (s *systemPushOptions) getSecretsRegex() string {
 	}
 
 	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.SecretName))
-}
-
-func (s *systemPushOptions) getServicesRegex() string {
-	if s.AllAssets || s.AllServices {
-		return ".*"
-	}
-
-	if s.ServiceName == "" {
-		return ""
-	}
-
-	return fmt.Sprintf("%s/.*", regexp.QuoteMeta(s.ServiceName))
 }
 
 func (s *systemPushOptions) getTimersRegex() string {
@@ -601,4 +574,16 @@ func (s *systemPushOptions) getWebhooksRegex() string {
 	}
 
 	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.WebhookName))
+}
+
+func (s *systemPushOptions) getCachesRegex() string {
+	if s.AllAssets || s.AllServiceCaches {
+		return ".*"
+	}
+
+	if s.ServiceCacheName == "" {
+		return ""
+	}
+
+	return regexp.QuoteMeta(fmt.Sprintf("%s.json", s.ServiceCacheName))
 }

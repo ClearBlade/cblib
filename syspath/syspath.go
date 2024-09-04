@@ -31,3 +31,25 @@ func GetFileName(path string) string {
 	_, fileName := pth.Split(path)
 	return fileName
 }
+
+func IsClearbladePath(path string) bool {
+	return IsAdaptorPath(path) ||
+		IsBucketSetPath(path) ||
+		IsCodePath(path) ||
+		IsCollectionPath(path) ||
+		IsDeploymentPath(path) ||
+		IsDevicePath(path) ||
+		IsEdgePath(path) ||
+		IsExternalDbPath(path) ||
+		IsMessageHistoryWhitelistPath(path) ||
+		IsMessageTypeTriggerPath(path) ||
+		IsPluginPath(path) ||
+		IsPortalPath(path) ||
+		IsRolePath(path) ||
+		IsSecretPath(path) ||
+		IsServiceCachePath(path) ||
+		IsTimerPath(path) ||
+		IsTriggerPath(path) ||
+		IsUserPath(path) ||
+		IsWebhookPath(path)
+}
