@@ -13,6 +13,7 @@ const (
 var (
 	deviceDataPathRegex *regexp.Regexp
 	deviceRolePathRegex *regexp.Regexp
+	DeviceSchemaPath    = "devices/schema.json"
 )
 
 func init() {
@@ -25,7 +26,7 @@ func IsDevicePath(path string) bool {
 }
 
 func IsDeviceSchemaPath(path string) bool {
-	return path == "devices/schema.json"
+	return path == DeviceSchemaPath
 }
 
 func GetDeviceNameFromDataPath(path string) (string, error) {

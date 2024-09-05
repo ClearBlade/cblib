@@ -10,7 +10,8 @@ const (
 )
 
 var (
-	edgePathRegex *regexp.Regexp
+	edgePathRegex  *regexp.Regexp
+	EdgeSchemaPath = "edges/schema.json"
 )
 
 func init() {
@@ -22,7 +23,7 @@ func IsEdgePath(path string) bool {
 }
 
 func IsEdgeSchemaPath(path string) bool {
-	return path == "edges/schema.json"
+	return path == EdgeSchemaPath
 }
 
 func GetEdgeNameFromPath(path string) (string, error) {

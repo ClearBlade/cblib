@@ -13,6 +13,8 @@ const (
 var (
 	userDataPathRegex *regexp.Regexp
 	userRolePathRegex *regexp.Regexp
+
+	UserSchemaPath = "users/schema.json"
 )
 
 func init() {
@@ -25,7 +27,7 @@ func IsUserPath(path string) bool {
 }
 
 func IsUserSchemaPath(path string) bool {
-	return path == "users/schema.json"
+	return path == UserSchemaPath
 }
 
 func GetUserEmailFromDataPath(path string) (string, error) {
