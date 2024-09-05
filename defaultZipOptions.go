@@ -1,9 +1,13 @@
 package cblib
 
-import "github.com/clearblade/cblib/fs"
+import (
+	"fmt"
+
+	"github.com/clearblade/cblib/fs"
+)
 
 func DefaultZipOptions() *fs.ZipOptions {
-	opts := fs.NewZipOptions(mapper)
+	opts := fs.NewZipOptions(&mapper{})
 	opts.AllAssets = AllAssets
 	opts.AllAdaptors = AllAdaptors
 	opts.AdaptorName = AdaptorName
@@ -54,4 +58,37 @@ func DefaultZipOptions() *fs.ZipOptions {
 	opts.PushMessageHistoryStorage = MessageHistoryStorage
 	opts.PushMessageTypeTriggers = MessageTypeTriggers
 	return opts
+}
+
+type mapper struct{}
+
+func (m *mapper) GetCollectionNameById(id string) (string, error) {
+	return getCollectionNameById(id)
+}
+
+func (m *mapper) GetUserEmailById(wantedId string) (string, error) {
+	users, err := getUsers()
+	if err != nil {
+		return "", err
+	}
+
+	for _, user := range users {
+		id, ok := user["user_id"].(string)
+		if !ok {
+			continue
+		}
+
+		if id != wantedId {
+			continue
+		}
+
+		email, ok := user["email"].(string)
+		if !ok {
+			continue
+		}
+
+		return email, nil
+	}
+
+	return "", fmt.Errorf("user with id %s not found", wantedId)
 }

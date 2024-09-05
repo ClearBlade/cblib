@@ -20,6 +20,7 @@ import (
 	"github.com/nsf/jsondiff"
 
 	cb "github.com/clearblade/Go-SDK"
+	cbfs "github.com/clearblade/cblib/fs"
 
 	rt "github.com/clearblade/cblib/resourcetree"
 )
@@ -84,10 +85,11 @@ func doLegacyPush(cmd *SubCommand, client *cb.DevClient, systemInfo *types.Syste
 
 	if AllLibraries || AllServices || AllAssets {
 		didSomething = true
-		if err := pushCode(systemInfo, client, systemPushOptions{
-			AllServices:  AllServices || AllAssets,
-			AllLibraries: AllLibraries || AllAssets,
-		}); err != nil {
+		opts := cbfs.NewZipOptions(&mapper{})
+		opts.AllAssets = AllAssets
+		opts.AllServices = AllServices
+		opts.AllLibraries = AllLibraries
+		if err := pushCode(systemInfo, client, opts); err != nil {
 			return err
 		}
 	}
@@ -1078,14 +1080,14 @@ func pushAllServices(systemInfo *types.System_meta, client *cb.DevClient) error 
  * Legacy behavior of push where each object is pushed individually.
  * This should be used on systems that do not support system upload.
  */
-func pushCodeLegacy(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
-	if options.AllLibraries {
+func pushCodeLegacy(systemInfo *types.System_meta, client *cb.DevClient, options *cbfs.ZipOptions) error {
+	if options.AllAssets || options.AllLibraries {
 		if err := pushAllLibraries(systemInfo, client); err != nil {
 			return err
 		}
 	}
 
-	if options.AllServices {
+	if options.AllAssets || options.AllServices {
 		if err := pushAllServices(systemInfo, client); err != nil {
 			return err
 		}
@@ -2368,7 +2370,7 @@ func updateRole(systemInfo *types.System_meta, role map[string]interface{}, clie
 	return nil
 }
 
-func pushCode(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
+func pushCode(systemInfo *types.System_meta, client *cb.DevClient, options *cbfs.ZipOptions) error {
 	if systemUpload.DoesBackendSupportSystemUploadForCode(systemInfo, client) {
 		return pushSystemZip(systemInfo, client, options)
 	} else {

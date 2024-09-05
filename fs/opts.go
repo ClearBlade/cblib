@@ -317,34 +317,6 @@ func (s *ZipOptions) getUserEmails() []string {
 	return emails
 }
 
-// TODO: Move this
-// func getUserEmailById(wantedId string) (string, error) {
-// 	users, err := getUsers()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	for _, user := range users {
-// 		id, ok := user["user_id"].(string)
-// 		if !ok {
-// 			continue
-// 		}
-
-// 		if id != wantedId {
-// 			continue
-// 		}
-
-// 		email, ok := user["email"].(string)
-// 		if !ok {
-// 			continue
-// 		}
-
-// 		return email, nil
-// 	}
-
-// 	return "", fmt.Errorf("user with id %s not found", wantedId)
-// }
-
 func (s *ZipOptions) shouldPushWebhook(name string) bool {
 	if s.AllAssets || s.AllWebhooks {
 		return true
