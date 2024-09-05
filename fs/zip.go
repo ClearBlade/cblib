@@ -13,7 +13,7 @@ type SecretPrompter interface {
 	PromptForSecret(secretName string) string
 }
 
-func GetSystemZipBytes(rootDir string, prompter SecretPrompter, options ZipOptions) ([]byte, error) {
+func GetSystemZipBytes(rootDir string, prompter SecretPrompter, options *ZipOptions) ([]byte, error) {
 	path, err := writeSystemZip(rootDir, prompter, options)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func GetSystemZipBytes(rootDir string, prompter SecretPrompter, options ZipOptio
 	return os.ReadFile(path)
 }
 
-func writeSystemZip(rootDir string, prompter SecretPrompter, opts ZipOptions) (string, error) {
+func writeSystemZip(rootDir string, prompter SecretPrompter, opts *ZipOptions) (string, error) {
 	if rootDir == "" {
 		return "", fmt.Errorf("root directory is not set")
 	}
@@ -54,7 +54,7 @@ func writeSystemZip(rootDir string, prompter SecretPrompter, opts ZipOptions) (s
 type zipper struct {
 	prompter SecretPrompter
 	writer   *zip.Writer
-	opts     ZipOptions
+	opts     *ZipOptions
 }
 
 // ----------------------

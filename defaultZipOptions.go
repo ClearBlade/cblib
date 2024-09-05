@@ -6,7 +6,7 @@ import (
 	"github.com/clearblade/cblib/fs"
 )
 
-func DefaultZipOptions() *fs.ZipOptions {
+func defaultZipOptions() *fs.ZipOptions {
 	opts := fs.NewZipOptions(&mapper{})
 	opts.AllAssets = AllAssets
 	opts.AllAdaptors = AllAdaptors

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
+	"github.com/clearblade/cblib/fs"
 	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/models/systemUpload/dryRun"
 	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
@@ -127,19 +128,17 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 
+	// TODO: Need to update this
 	// Below version 5 we only support code services, so we need to do the legacy push
 	if version < 5 {
 		return doLegacyPush(cmd, client, systemInfo)
 	}
 
-	return pushSystemZip(systemInfo, client, systemPushOptions{
-		AllServices:  AllServices || AllAssets,
-		AllLibraries: AllLibraries || AllAssets,
-	})
+	return pushSystemZip(systemInfo, client, defaultZipOptions())
 }
 
-func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options systemPushOptions) error {
-	buffer, err := getSystemZipBytes(options)
+func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options *fs.ZipOptions) error {
+	buffer, err := fs.GetSystemZipBytes(rootDir, prompter, options)
 	if err != nil {
 		return err
 	}
