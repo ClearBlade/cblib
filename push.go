@@ -137,8 +137,14 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	return pushSystemZip(systemInfo, client, defaultZipOptions())
 }
 
+type prompter struct{}
+
+func (p prompter) PromptForSecret(prompt string) string {
+	return getOneItem(prompt, true)
+}
+
 func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options *fs.ZipOptions) error {
-	buffer, err := fs.GetSystemZipBytes(rootDir, prompter, options)
+	buffer, err := fs.GetSystemZipBytes(rootDir, prompter{}, options)
 	if err != nil {
 		return err
 	}
