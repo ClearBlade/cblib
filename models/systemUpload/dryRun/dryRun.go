@@ -5,32 +5,20 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/types"
 )
 
 type DryRun struct {
-	Errors            []string
-	LibrariesToCreate []string
-	LibrariesToUpdate []string
-	ServicesToCreate  []string
-	ServicesToUpdate  []string
+	*cb.SystemUploadDryRun
 }
 
-func New(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (*DryRun, error) {
-	dryRunResult, err := client.UploadToSystem(systemInfo.Key, buffer, true)
+func New(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (DryRun, error) {
+	dryRun, err := client.UploadToSystemDryRun(systemInfo.Key, buffer)
 	if err != nil {
-		return nil, err
+		return DryRun{}, err
 	}
 
-	run := dryRunResult.(map[string]interface{})
-	return &DryRun{
-		Errors:            systemUpload.ToStringArray(run["errors"]),
-		LibrariesToCreate: systemUpload.ToStringArray(run["libraries_to_create"]),
-		LibrariesToUpdate: systemUpload.ToStringArray(run["libraries_to_update"]),
-		ServicesToCreate:  systemUpload.ToStringArray(run["services_to_create"]),
-		ServicesToUpdate:  systemUpload.ToStringArray(run["services_to_update"]),
-	}, nil
+	return DryRun{dryRun}, nil
 }
 
 func (d *DryRun) String() string {

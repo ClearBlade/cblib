@@ -1,12 +1,14 @@
 module github.com/clearblade/cblib
 
-go 1.20
+go 1.22.2
+
+toolchain go1.22.7
 
 require (
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/clearblade/Go-SDK v0.0.0-20240513144909-d9f427ef7df7
+	github.com/clearblade/Go-SDK v0.0.0-20240905191138-a70933296467
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
-	github.com/mitchellh/mapstructure v1.3.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
 	github.com/stretchr/testify v1.6.1
 	github.com/totherme/unstructured v0.0.0-20170821094912-3faf2d56d8b8
@@ -15,7 +17,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/clearblade/go-utils v1.1.4 // indirect
+	github.com/clearblade/go-utils v1.1.5-0.20240513160427-a20563b372a5 // indirect
 	github.com/clearblade/mqtt_parsing v0.0.0-20160301165118-6ae49eac0961 // indirect
 	github.com/clearblade/paho.mqtt.golang v1.1.1-0.20221107221803-558038c7f9ad // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
