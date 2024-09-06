@@ -875,7 +875,7 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	}
 
 	fmt.Println("Pushing changes")
-	r, err := client.UploadToSystem(systemInfo.Key, buffer, false)
+	r, err := client.UploadToSystem(systemInfo.Key, buffer)
 	if err != nil {
 		return err
 	}
