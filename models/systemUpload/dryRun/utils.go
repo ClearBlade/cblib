@@ -5,8 +5,14 @@ import (
 	"strings"
 )
 
-func writeDryRunSection(sb *strings.Builder, title, contents string) {
-	sb.WriteString(fmt.Sprintf("-- %s --\n", title))
-	sb.WriteString(contents)
+type dryRunSection interface {
+	HasChanges() bool
+	Title() string
+	fmt.Stringer
+}
+
+func writeDryRunSection(sb *strings.Builder, section dryRunSection) {
+	sb.WriteString(fmt.Sprintf("-- %s --\n", section.Title()))
+	sb.WriteString(section.String())
 	sb.WriteString("\n\n")
 }

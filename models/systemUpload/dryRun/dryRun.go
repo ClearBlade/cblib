@@ -9,6 +9,7 @@ import (
 )
 
 type DryRun struct {
+	sections []dryRunSection
 	*cb.SystemUploadDryRun
 }
 
@@ -18,7 +19,14 @@ func New(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (Dr
 		return DryRun{}, err
 	}
 
-	return DryRun{dryRun}, nil
+	return DryRun{
+		SystemUploadDryRun: dryRun,
+		sections: []dryRunSection{
+			newAdaptorsSection(dryRun),
+			newLibrariesSection(dryRun),
+			newServicesSection(dryRun),
+		},
+	}, nil
 }
 
 func (d *DryRun) String() string {
@@ -32,12 +40,10 @@ func (d *DryRun) String() string {
 
 	sb := strings.Builder{}
 	sb.WriteString("The following changes will be made:\n")
-	if d.hasServiceChanges() {
-		writeDryRunSection(&sb, "SERVICES", d.ServicesString())
-	}
-
-	if d.hasLibraryChanges() {
-		writeDryRunSection(&sb, "LIBRARIES", d.LibrariesString())
+	for _, section := range d.sections {
+		if section.HasChanges() {
+			writeDryRunSection(&sb, section)
+		}
 	}
 
 	return sb.String()
@@ -48,47 +54,15 @@ func (d *DryRun) HasChanges() bool {
 		return false
 	}
 
-	return d.hasServiceChanges() || d.hasLibraryChanges()
+	for _, section := range d.sections {
+		if section.HasChanges() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (d *DryRun) HasErrors() bool {
 	return len(d.Errors) > 0
-}
-
-// ----------------------- SERVICES -----------------------
-func (d *DryRun) ServicesString() string {
-	sb := strings.Builder{}
-
-	for _, service := range d.ServicesToCreate {
-		sb.WriteString(fmt.Sprintf("Create %q\n", service))
-	}
-
-	for _, service := range d.ServicesToUpdate {
-		sb.WriteString(fmt.Sprintf("Update %q\n", service))
-	}
-
-	return sb.String()
-}
-
-func (d *DryRun) hasServiceChanges() bool {
-	return len(d.ServicesToCreate)+len(d.ServicesToUpdate) > 0
-}
-
-// ----------------------- LIBRARIES -----------------------
-func (d *DryRun) LibrariesString() string {
-	sb := strings.Builder{}
-
-	for _, library := range d.LibrariesToCreate {
-		sb.WriteString(fmt.Sprintf("Create %q\n", library))
-	}
-
-	for _, library := range d.LibrariesToUpdate {
-		sb.WriteString(fmt.Sprintf("Update %q\n", library))
-	}
-
-	return sb.String()
-}
-
-func (d *DryRun) hasLibraryChanges() bool {
-	return len(d.LibrariesToCreate)+len(d.LibrariesToUpdate) > 0
 }
