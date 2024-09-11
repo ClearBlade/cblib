@@ -40,14 +40,14 @@ func (a *adaptorsSection) String() string {
 	filesToCreate := makeAdaptorToFileMap(a.run.AdaptorFilesToCreate)
 	if len(filesToCreate) > 0 {
 		sb.WriteString("Files to Create:\n")
+		sb.WriteString(filesToCreate.String())
 	}
-	sb.WriteString(filesToCreate.String())
 
 	filesToUpdate := makeAdaptorToFileMap(a.run.AdaptorFilesToUpdate)
 	if len(filesToUpdate) > 0 {
 		sb.WriteString("Files to Update:\n")
+		sb.WriteString(filesToUpdate.String())
 	}
-	sb.WriteString(filesToUpdate.String())
 
 	return sb.String()
 }
@@ -67,7 +67,6 @@ func makeAdaptorToFileMap(files []cb.AdaptorFileUpdate) adaptorToFileMap {
 	return adaptorToFile
 }
 
-// TODO: Make this better
 func (a *adaptorToFileMap) String() string {
 	sb := strings.Builder{}
 
