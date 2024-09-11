@@ -78,6 +78,8 @@ func callHandlers(handler systemFileHandler, absPath, relPath string) bool {
 		callEdgeHandlers(handler, absPath, relPath)
 	case syspath.IsExternalDbPath(relPath):
 		callExternalDatabaseHandlers(handler, absPath, relPath)
+	case syspath.IsMessageHistoryStorageFile(relPath):
+		callMessageHistoryStorageHandlers(handler, absPath, relPath)
 	case syspath.IsMessageTypeTriggerPath(relPath):
 		callMessageTypeTriggersHandlers(handler, absPath, relPath)
 	case syspath.IsPluginPath(relPath):
@@ -164,6 +166,12 @@ func callEdgeHandlers(handler systemFileHandler, absPath, relPath string) {
 func callExternalDatabaseHandlers(handler systemFileHandler, absPath, relPath string) {
 	if name, err := syspath.GetExternalDbNameFromPath(relPath); err == nil {
 		handler.WalkExternalDatabase(absPath, relPath, name)
+	}
+}
+
+func callMessageHistoryStorageHandlers(handler systemFileHandler, absPath, relPath string) {
+	if syspath.IsMessageHistoryStorageFile(relPath) {
+		handler.WalkMessageHistoryStorage(absPath)
 	}
 }
 
