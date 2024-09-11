@@ -290,7 +290,6 @@ func (z *zipper) copyExternalDatabaseFileToZip(localPath string, zipPath string)
 			return nil, fmt.Errorf("external database file at %s missing credentials field", zipPath)
 		}
 
-		// TODO: Verify that this works setting the passwor dfield
 		password := z.prompter.PromptForSecret(fmt.Sprintf("Password for external database '%s'", name))
 		credentials["password"] = password
 		return json.Marshal(data)
