@@ -40,17 +40,17 @@ func GetAdaptorNameFromPath(path string) (string, error) {
 	return matches[1], nil
 }
 
-func GetAdaptorFileMetaNameFromPath(path string) (string, error) {
+func GetAdaptorFileMetaNameFromPath(path string) (string, string, error) {
 	matches := adaptorFileMetaRegex.FindStringSubmatch(path)
 	if matches == nil || len(matches) != 4 {
-		return "", fmt.Errorf("path %q is not an adaptor path", path)
+		return "", "", fmt.Errorf("path %q is not an adaptor path", path)
 	}
 
 	if matches[2] != matches[3] {
-		return "", fmt.Errorf("adaptor meta file name %q does not match directory name %q", matches[3], matches[2])
+		return "", "", fmt.Errorf("adaptor meta file name %q does not match directory name %q", matches[3], matches[2])
 	}
 
-	return matches[2], nil
+	return matches[1], matches[2], nil
 }
 
 func GetAdaptorFileDataNameFromPath(path string) (string, string, error) {

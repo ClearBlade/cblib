@@ -86,9 +86,8 @@ func doLegacyPush(cmd *SubCommand, client *cb.DevClient, systemInfo *types.Syste
 	if AllLibraries || AllServices || AllAssets {
 		didSomething = true
 		opts := cbfs.NewZipOptions(&mapper{})
-		opts.AllAssets = AllAssets
-		opts.AllServices = AllServices
-		opts.AllLibraries = AllLibraries
+		opts.AllServices = AllServices || AllAssets
+		opts.AllLibraries = AllLibraries || AllAssets
 		if err := pushCode(systemInfo, client, opts); err != nil {
 			return err
 		}

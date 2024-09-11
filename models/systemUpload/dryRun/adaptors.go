@@ -71,9 +71,9 @@ func (a *adaptorToFileMap) String() string {
 	sb := strings.Builder{}
 
 	for adaptor, files := range *a {
-		sb.WriteString(fmt.Sprintf("Adaptor %q\n", adaptor))
+		sb.WriteString(fmt.Sprintf("\tAdaptor %q\n", adaptor))
 		for _, file := range files {
-			sb.WriteString(fmt.Sprintf("\t%s\n", file))
+			sb.WriteString(fmt.Sprintf("\t\t%s\n", file))
 		}
 	}
 

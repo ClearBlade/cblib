@@ -10,6 +10,8 @@ import (
 
 type systemFileHandler interface {
 	WalkAdaptor(path, relPath string, adaptorName string)
+	WalkAdaptorFile(path, relPath string, adaptorName string)
+	WalkAdaptorFileMeta(path, relPath string, adaptorName string)
 	WalkBucketSetMeta(path, relPath string, bucketSetName string)
 	WalkBucketSetFile(path, relPath string, bucketFile *syspath.FullBucketPath)
 	WalkService(path, relPath string, serviceName string)
@@ -48,8 +50,8 @@ func walkSystemFiles(rootDir string, handler systemFileHandler) error {
 			return fmt.Errorf("could not make %s relative to %s: %w", absolutePath, rootDir, pathErr)
 		}
 
-		wasCalled := callHandlers(handler, path, absolutePath)
-		if d.IsDir() && !wasCalled {
+		wasCalled := callHandlers(handler, absolutePath, path)
+		if d.IsDir() && !wasCalled && path != "." {
 			return filepath.SkipDir
 		}
 
@@ -110,6 +112,10 @@ func callHandlers(handler systemFileHandler, absPath, relPath string) bool {
 func callAdaptorHandlers(handler systemFileHandler, absPath, relPath string) {
 	if name, err := syspath.GetAdaptorNameFromPath(relPath); err == nil {
 		handler.WalkAdaptor(absPath, relPath, name)
+	} else if name, _, err := syspath.GetAdaptorFileMetaNameFromPath(relPath); err == nil {
+		handler.WalkAdaptorFileMeta(absPath, relPath, name)
+	} else if name, _, err := syspath.GetAdaptorFileDataNameFromPath(relPath); err == nil {
+		handler.WalkAdaptorFile(absPath, relPath, name)
 	}
 }
 

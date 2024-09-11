@@ -598,26 +598,15 @@ func ContainsString(slice []string, str string) bool {
 }
 
 func getCollectionNameById(wantedId string) (string, error) {
-	collections, err := getCollections()
+	collections, err := getCollectionNameToId()
 	if err != nil {
 		return "", err
 	}
-	for _, collection := range collections {
-		id, ok := collection["collectionID"].(string)
-		if !ok {
-			continue
-		}
 
-		if id != wantedId {
-			continue
+	for name, id := range collections {
+		if id == wantedId {
+			return name, nil
 		}
-
-		name, ok := collection["name"].(string)
-		if !ok {
-			continue
-		}
-
-		return name, nil
 	}
 	return "", fmt.Errorf("collection with id %s not found", wantedId)
 }

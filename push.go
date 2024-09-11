@@ -128,7 +128,6 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return err
 	}
 
-	// TODO: Need to update this
 	// Below version 5 we only support code services, so we need to do the legacy push
 	if version < 5 {
 		return doLegacyPush(cmd, client, systemInfo)
@@ -144,6 +143,7 @@ func (p prompter) PromptForSecret(prompt string) string {
 }
 
 func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options *fs.ZipOptions) error {
+	fmt.Printf("Preparing to push system %s\n", systemInfo.Name)
 	buffer, err := fs.GetSystemZipBytes(rootDir, prompter{}, options)
 	if err != nil {
 		return err

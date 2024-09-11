@@ -164,7 +164,7 @@ func (s *ZipOptions) getCollectionNames() []string {
 
 	name, err := s.mapper.GetCollectionNameById(s.CollectionId)
 	if err != nil {
-		fmt.Printf("Not pushing collection id %q: %s", s.CollectionId, err)
+		fmt.Printf("Not pushing collection id %q: %s\n", s.CollectionId, err)
 		return names
 	}
 

@@ -1457,7 +1457,8 @@ func getLibrary(name string) (map[string]interface{}, error) {
 }
 
 func getSysMeta() (*types.System_meta, error) {
-	dict, err := getDict("system.json")
+	systemMetaFile := rootDir + "/system.json"
+	dict, err := getDict(systemMetaFile)
 	if err != nil {
 		return nil, err
 	}

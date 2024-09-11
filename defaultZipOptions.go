@@ -67,27 +67,15 @@ func (m *mapper) GetCollectionNameById(id string) (string, error) {
 }
 
 func (m *mapper) GetUserEmailById(wantedId string) (string, error) {
-	users, err := getUsers()
+	users, err := getUserEmailToId()
 	if err != nil {
 		return "", err
 	}
 
-	for _, user := range users {
-		id, ok := user["user_id"].(string)
-		if !ok {
-			continue
+	for email, id := range users {
+		if id == wantedId {
+			return email, nil
 		}
-
-		if id != wantedId {
-			continue
-		}
-
-		email, ok := user["email"].(string)
-		if !ok {
-			continue
-		}
-
-		return email, nil
 	}
 
 	return "", fmt.Errorf("user with id %s not found", wantedId)

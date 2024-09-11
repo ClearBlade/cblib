@@ -92,6 +92,18 @@ func (z *zipper) WalkAdaptor(path, relPath string, adaptorName string) {
 	}
 }
 
+func (z *zipper) WalkAdaptorFile(path, relPath string, adaptorName string) {
+	if z.opts.shouldPushAdaptor(adaptorName) {
+		z.copyFileToZip(path, relPath)
+	}
+}
+
+func (z *zipper) WalkAdaptorFileMeta(path, relPath string, adaptorName string) {
+	if z.opts.shouldPushAdaptor(adaptorName) {
+		z.copyFileToZip(path, relPath)
+	}
+}
+
 func (z *zipper) WalkBucketSetMeta(path, relPath string, bucketSetName string) {
 	if z.opts.shouldPushBucketSetMeta(bucketSetName) {
 		z.copyFileToZip(path, relPath)
