@@ -4,16 +4,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/clearblade/cblib/models/systemUpload"
+	cb "github.com/clearblade/Go-SDK"
 )
 
 type UploadResult struct {
-	Errors []string
+	*cb.SystemUploadChanges
 }
 
-func New(body interface{}) *UploadResult {
+func New(changes *cb.SystemUploadChanges) *UploadResult {
 	return &UploadResult{
-		Errors: systemUpload.ToStringArray(body.(map[string]interface{})["errors"]),
+		SystemUploadChanges: changes,
 	}
 }
 

@@ -27,8 +27,15 @@ type FullBucketPath struct {
 }
 
 func IsBucketSetPath(path string) bool {
-	return topLevelDirectoryIs(path, "bucket-sets") ||
-		topLevelDirectoryIs(path, "bucket-set-files")
+	return IsBucketSetMetaPath(path) || IsBucketSetFilePath(path)
+}
+
+func IsBucketSetMetaPath(path string) bool {
+	return topLevelDirectoryIs(path, "bucket-sets")
+}
+
+func IsBucketSetFilePath(path string) bool {
+	return topLevelDirectoryIs(path, "bucket-set-files")
 }
 
 func GetBucketSetNameFromPath(path string) (string, error) {

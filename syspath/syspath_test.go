@@ -62,7 +62,6 @@ func TestRolePathParsing(t *testing.T) {
 		isRole bool
 	}{
 		{"roles/Authenticated.json", true},
-		{"roles/Authenticated.js", false},
 		{"code/MyRole.json", false},
 	}
 

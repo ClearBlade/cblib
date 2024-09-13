@@ -1,6 +1,9 @@
 package syspath
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+)
 
 const (
 	rolePathRegexStr = `^roles\/[^\/]+\.json$`
@@ -15,6 +18,14 @@ func init() {
 }
 
 func IsRolePath(path string) bool {
+	return topLevelDirectoryIs(path, "roles")
+}
+
+func GetRoleNameFromPath(path string) (string, error) {
 	matches := rolePathRegex.FindStringSubmatch(path)
-	return len(matches) == 1
+	if len(matches) != 2 {
+		return "", fmt.Errorf("path %q is not a roles path", path)
+	}
+
+	return matches[1], nil
 }
