@@ -185,6 +185,7 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return err
 	}
 
+	updateIdMap(r)
 	return r.Error()
 }
 
@@ -200,7 +201,7 @@ func updateCollectionMap(result *cb.SystemUploadChanges) {
 			ID:   id,
 			Name: name,
 		}); err != nil {
-			fmt.Printf("Could not update collection map entry (%s to %s): %w\n", name, id, err)
+			fmt.Printf("Could not update collection map entry (%s to %s): %s\n", name, id, err)
 		}
 	}
 }
@@ -211,7 +212,7 @@ func updateUserMap(result *cb.SystemUploadChanges) {
 			UserID: id,
 			Email:  email,
 		}); err != nil {
-			fmt.Printf("Could not update user map entry (%s to %s): %w\n", email, id, err)
+			fmt.Printf("Could not update user map entry (%s to %s): %s\n", email, id, err)
 		}
 	}
 }
@@ -222,7 +223,7 @@ func updateRoleMap(result *cb.SystemUploadChanges) {
 			ID:   id,
 			Name: name,
 		}); err != nil {
-			fmt.Printf("Could not update role map entry (%s to %s): %w\n", name, id, err)
+			fmt.Printf("Could not update role map entry (%s to %s): %s\n", name, id, err)
 		}
 	}
 }
