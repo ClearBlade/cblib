@@ -7,7 +7,6 @@ import (
 	"github.com/clearblade/cblib/fs"
 	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/models/systemUpload/dryRun"
-	"github.com/clearblade/cblib/models/systemUpload/uploadResult"
 	"github.com/clearblade/cblib/types"
 )
 
@@ -149,7 +148,13 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return err
 	}
 
-	dryRun, err := dryRun.New(systemInfo, client, buffer)
+	fmt.Println("Doing dry run")
+	result, err := client.UploadToSystemDryRun(systemInfo.Key, buffer)
+	if err != nil {
+		return err
+	}
+
+	dryRun, err := dryRun.New(result)
 	if err != nil {
 		return err
 	}
@@ -180,5 +185,44 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return err
 	}
 
-	return uploadResult.New(r).Error()
+	return r.Error()
+}
+
+func updateIdMap(result *cb.SystemUploadChanges) {
+	updateCollectionMap(result)
+	updateUserMap(result)
+	updateRoleMap(result)
+}
+
+func updateCollectionMap(result *cb.SystemUploadChanges) {
+	for name, id := range result.CollectionNameToId {
+		if err := updateCollectionNameToId(CollectionInfo{
+			ID:   id,
+			Name: name,
+		}); err != nil {
+			fmt.Printf("Could not update collection map entry (%s to %s): %w\n", name, id, err)
+		}
+	}
+}
+
+func updateUserMap(result *cb.SystemUploadChanges) {
+	for email, id := range result.UserEmailToId {
+		if err := updateUserEmailToId(UserInfo{
+			UserID: id,
+			Email:  email,
+		}); err != nil {
+			fmt.Printf("Could not update user map entry (%s to %s): %w\n", email, id, err)
+		}
+	}
+}
+
+func updateRoleMap(result *cb.SystemUploadChanges) {
+	for name, id := range result.RoleNameToId {
+		if err := updateRoleNameToId(RoleInfo{
+			ID:   id,
+			Name: name,
+		}); err != nil {
+			fmt.Printf("Could not update role map entry (%s to %s): %w\n", name, id, err)
+		}
+	}
 }

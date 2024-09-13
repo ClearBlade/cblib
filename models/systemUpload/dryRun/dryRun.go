@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
-	"github.com/clearblade/cblib/types"
 )
 
 type DryRun struct {
@@ -13,12 +12,7 @@ type DryRun struct {
 	*cb.SystemUploadDryRun
 }
 
-func New(systemInfo *types.System_meta, client *cb.DevClient, buffer []byte) (DryRun, error) {
-	dryRun, err := client.UploadToSystemDryRun(systemInfo.Key, buffer)
-	if err != nil {
-		return DryRun{}, err
-	}
-
+func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 	return DryRun{
 		SystemUploadDryRun: dryRun,
 		sections: []dryRunSection{
