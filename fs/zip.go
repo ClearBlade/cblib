@@ -270,8 +270,8 @@ func (z *zipper) WalkWebhook(path, relPath string, webhookName string) {
  * Removes the 'items' from a collection file before copying it so that it just contains
  * the schema.
  */
-func (z *zipper) copyCollectionSchemaToZip(localPath string, zipPath string) error {
-	return z.copyFileToZipWithTransform(localPath, zipPath, func(content []byte) ([]byte, error) {
+func (z *zipper) copyCollectionSchemaToZip(localPath string, zipPath string) {
+	z.copyFileToZipWithTransformNoErr(localPath, zipPath, func(content []byte) ([]byte, error) {
 		var data map[string]interface{}
 		if err := json.Unmarshal(content, &data); err != nil {
 			return nil, err
@@ -285,8 +285,8 @@ func (z *zipper) copyCollectionSchemaToZip(localPath string, zipPath string) err
 /**
  * Prompts the user for the password before copying
  */
-func (z *zipper) copyExternalDatabaseFileToZip(localPath string, zipPath string) error {
-	return z.copyFileToZipWithTransform(localPath, zipPath, func(content []byte) ([]byte, error) {
+func (z *zipper) copyExternalDatabaseFileToZip(localPath string, zipPath string) {
+	z.copyFileToZipWithTransformNoErr(localPath, zipPath, func(content []byte) ([]byte, error) {
 		var data map[string]interface{}
 		if err := json.Unmarshal(content, &data); err != nil {
 			return nil, err
@@ -308,13 +308,19 @@ func (z *zipper) copyExternalDatabaseFileToZip(localPath string, zipPath string)
 	})
 }
 
-func (z *zipper) copyFileToZip(localPath string, zipPath string) error {
-	return z.copyFileToZipWithTransform(localPath, zipPath, func(content []byte) ([]byte, error) {
+func (z *zipper) copyFileToZip(localPath string, zipPath string) {
+	z.copyFileToZipWithTransformNoErr(localPath, zipPath, func(content []byte) ([]byte, error) {
 		return content, nil
 	})
 }
 
 type transformer func([]byte) ([]byte, error)
+
+func (z *zipper) copyFileToZipWithTransformNoErr(localPath string, zipPath string, transform transformer) {
+	if err := z.copyFileToZipWithTransform(localPath, zipPath, transform); err != nil {
+		fmt.Printf("Ignoring %q because it could not be copied to zip: %s", localPath, err)
+	}
+}
 
 func (z *zipper) copyFileToZipWithTransform(localPath string, zipPath string, transform transformer) error {
 	content, err := os.ReadFile(localPath)
