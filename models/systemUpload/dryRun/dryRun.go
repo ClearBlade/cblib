@@ -33,6 +33,7 @@ func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 			newSecretsSection(dryRun),
 			newServicesSection(dryRun),
 			newTimersSection(dryRun),
+			newTriggersSection(dryRun),
 		},
 	}, nil
 }
