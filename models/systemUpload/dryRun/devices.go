@@ -35,23 +35,13 @@ func (l *devicesSection) String() string {
 	}
 
 	if len(l.run.DeviceColumnsToAdd) > 0 {
-		sb.WriteString("Schema Columns to Add:\n")
-		for i, device := range l.run.DeviceColumnsToAdd {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(device)
-		}
+		sb.WriteString("Schema Columns to Add: ")
+		writeList(&sb, l.run.DeviceColumnsToAdd)
 	}
 
 	if len(l.run.DeviceColumnsToDelete) > 0 {
-		sb.WriteString("Schema Columns to Delete:\n")
-		for i, device := range l.run.DeviceColumnsToDelete {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(device)
-		}
+		sb.WriteString("Schema Columns to Delete: ")
+		writeList(&sb, l.run.DeviceColumnsToDelete)
 	}
 
 	return sb.String()

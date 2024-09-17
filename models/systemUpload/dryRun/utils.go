@@ -16,3 +16,13 @@ func writeDryRunSection(sb *strings.Builder, section dryRunSection) {
 	sb.WriteString(section.String())
 	sb.WriteString("\n\n")
 }
+
+func writeList(sb *strings.Builder, list []string) {
+	for i, item := range list {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(item)
+	}
+	sb.WriteString("\n")
+}
