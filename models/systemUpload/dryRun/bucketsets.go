@@ -33,7 +33,7 @@ func (a *bucketSetsSection) String() string {
 		sb.WriteString(fmt.Sprintf("Create %q\n", bucket))
 	}
 
-	for _, bucket := range a.run.BucketFilesToUpdate {
+	for _, bucket := range a.run.BucketsToUpdate {
 		sb.WriteString(fmt.Sprintf("Update %q\n", bucket))
 	}
 
