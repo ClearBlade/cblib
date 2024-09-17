@@ -26,3 +26,11 @@ func writeList(sb *strings.Builder, list []string) {
 	}
 	sb.WriteString("\n")
 }
+
+func mapList[T any, U any](list []T, doMap func(T) U) []U {
+	result := make([]U, len(list))
+	for i, item := range list {
+		result[i] = doMap(item)
+	}
+	return result
+}
