@@ -24,6 +24,7 @@ func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 			newEdgesSection(dryRun),
 			newExternalDatabasesSection(dryRun),
 			newMessageHistorySection(dryRun),
+			newMessageTypeTriggersSection(dryRun),
 			newLibrariesSection(dryRun),
 			newServicesSection(dryRun),
 		},

@@ -68,11 +68,11 @@ func makeBucketToFileMap(files []cb.BucketFileUpdate) bucketToFileMap {
 	return bucketToFile
 }
 
-func (a *bucketToFileMap) String() string {
+func (b *bucketToFileMap) String() string {
 	sb := strings.Builder{}
 
-	for adaptor, files := range *a {
-		sb.WriteString(fmt.Sprintf("\tBucket %q\n", adaptor))
+	for bucket, files := range *b {
+		sb.WriteString(fmt.Sprintf("\tBucket %q\n", bucket))
 		for _, file := range files {
 			sb.WriteString(fmt.Sprintf("\t\t%s\n", file))
 		}
