@@ -29,6 +29,7 @@ func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 			newPluginsSection(dryRun),
 			newPortalsSection(dryRun),
 			newRolesSection(dryRun),
+			newSecretsSection(dryRun),
 			newServicesSection(dryRun),
 		},
 	}, nil
