@@ -28,6 +28,7 @@ func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 			newMessageTypeTriggersSection(dryRun),
 			newPluginsSection(dryRun),
 			newPortalsSection(dryRun),
+			newRolesSection(dryRun),
 			newServicesSection(dryRun),
 		},
 	}, nil
