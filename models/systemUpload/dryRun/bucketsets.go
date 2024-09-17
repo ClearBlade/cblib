@@ -20,10 +20,10 @@ func (a *bucketSetsSection) Title() string {
 }
 
 func (a *bucketSetsSection) HasChanges() bool {
-	return (len(a.run.AdaptorFilesToCreate) +
-		len(a.run.AdaptorFilesToUpdate) +
-		len(a.run.AdaptorsToCreate) +
-		len(a.run.AdaptorsToUpdate)) > 0
+	return (len(a.run.BucketsToCreate) +
+		len(a.run.BucketsToUpdate) +
+		len(a.run.BucketFilesToCreate) +
+		len(a.run.BucketFilesToUpdate)) > 0
 }
 
 func (a *bucketSetsSection) String() string {

@@ -18,6 +18,7 @@ func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
 		sections: []dryRunSection{
 			newAdaptorsSection(dryRun),
 			newBucketSetsSection(dryRun),
+			newCollectionsSection(dryRun),
 			newLibrariesSection(dryRun),
 			newServicesSection(dryRun),
 		},
