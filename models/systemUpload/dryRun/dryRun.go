@@ -34,6 +34,8 @@ func New(run *cb.SystemUploadDryRun) (DryRun, error) {
 			newSimpleSection("SERVICES", run.ServicesToCreate, run.ServicesToUpdate),
 			newSimpleSection("TIMERS", run.TimersToCreate, run.TimersToUpdate),
 			newSimpleSection("TRIGGERS", run.TriggersToCreate, run.TriggersToUpdate),
+			newUsersSection(run),
+			newSimpleSection("WEBHOOKS", run.WebhooksToCreate, run.WebhooksToUpdate),
 		},
 	}, nil
 }
