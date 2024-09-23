@@ -12,13 +12,30 @@ type DryRun struct {
 	*cb.SystemUploadDryRun
 }
 
-func New(dryRun *cb.SystemUploadDryRun) (DryRun, error) {
+func New(run *cb.SystemUploadDryRun) (DryRun, error) {
 	return DryRun{
-		SystemUploadDryRun: dryRun,
+		SystemUploadDryRun: run,
 		sections: []dryRunSection{
-			newAdaptorsSection(dryRun),
-			newLibrariesSection(dryRun),
-			newServicesSection(dryRun),
+			newAdaptorsSection(run),
+			newBucketSetsSection(run),
+			newCollectionsSection(run),
+			newSimpleSection("DEPLOYMENTS", run.DeploymentsToCreate, run.DeploymentsToUpdate),
+			newDevicesSection(run),
+			newEdgesSection(run),
+			newSimpleSection("EXTERNAL DATABASES", run.ExternalDbsToCreate, run.ExternalDbsToUpdate),
+			newSimpleSection("LIBRARIES", run.LibrariesToCreate, run.LibrariesToUpdate),
+			newMessageHistorySection(run),
+			newMessageTypeTriggersSection(run),
+			newSimpleSection("PLUGINS", run.PluginsToCreate, run.PluginsToUpdate),
+			newSimpleSection("PORTALS", run.PluginsToCreate, run.PortalsToUpdate),
+			newSimpleSection("ROLES", run.RolesToCreate, run.RolesToUpdate),
+			newSimpleSection("SECRETS", run.SecretsToCreate, run.SecretsToUpdate),
+			newSimpleSection("SHARED CACHES", run.CachesToCreate, run.CachesToUpdate),
+			newSimpleSection("SERVICES", run.ServicesToCreate, run.ServicesToUpdate),
+			newSimpleSection("TIMERS", run.TimersToCreate, run.TimersToUpdate),
+			newSimpleSection("TRIGGERS", run.TriggersToCreate, run.TriggersToUpdate),
+			newUsersSection(run),
+			newSimpleSection("WEBHOOKS", run.WebhooksToCreate, run.WebhooksToUpdate),
 		},
 	}, nil
 }
