@@ -66,7 +66,8 @@ func TestRolePathParsing(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		isRole := IsRolePath(test.path)
+		_, err := GetRoleNameFromPath(test.path)
+		isRole := err == nil
 		if isRole != test.isRole {
 			t.Errorf("Expected isRolePath to return %v for %q, got: %v", test.isRole, test.path, isRole)
 		}
