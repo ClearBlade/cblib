@@ -129,7 +129,7 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 
 	// Below version 5 we only support code services, so we need to do the legacy push
 	if version < 5 {
-		return doLegacyPush(cmd, client, systemInfo)
+		return doLegacyPush(client, systemInfo)
 	}
 
 	return pushSystemZip(systemInfo, client, defaultZipOptions())

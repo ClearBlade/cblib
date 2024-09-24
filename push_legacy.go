@@ -25,7 +25,7 @@ import (
 	rt "github.com/clearblade/cblib/resourcetree"
 )
 
-func doLegacyPush(cmd *SubCommand, client *cb.DevClient, systemInfo *types.System_meta) error {
+func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 	didSomething := false
 	if AllRoles || AllAssets {
 		didSomething = true
