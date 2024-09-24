@@ -8,10 +8,11 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 
+	"github.com/clearblade/cblib/fs"
 	"github.com/clearblade/cblib/maputil"
-	"github.com/clearblade/cblib/models/bucketSetFiles"
 	libPkg "github.com/clearblade/cblib/models/libraries"
 	"github.com/clearblade/cblib/models/roles"
+	"github.com/clearblade/cblib/models/systemUpload"
 	"github.com/clearblade/cblib/types"
 )
 
@@ -101,10 +102,8 @@ type ImportConfig struct {
 	ExistingSystemKey    string // the system key of the existing system
 	ExistingSystemSecret string // the system secret of the existing system
 
-	ImportUsers            bool   // true if users should be imported
-	ImportRows             bool   // true if collection rows should be imported
-	DefaultUserPassword    string // default password for users that don't have one already
-	DefaultDeviceActiveKey string // default active key for devices that don't have one already
+	ImportUsers bool // true if users should be imported
+	ImportRows  bool // true if collection rows should be imported
 }
 
 // DefaultImportConfig contains the default configuration values for the import
@@ -127,10 +126,8 @@ var DefaultImportConfig = ImportConfig{
 	ExistingSystemKey:    "",
 	ExistingSystemSecret: "",
 
-	ImportUsers:            false,
-	ImportRows:             false,
-	DefaultUserPassword:    "",
-	DefaultDeviceActiveKey: "",
+	ImportUsers: false,
+	ImportRows:  false,
 }
 
 // MakeImportConfigFromGlobals creates a new ImportConfig instance from the
@@ -723,151 +720,40 @@ func enableLogs(service map[string]interface{}) bool {
 // i.e. plugins folder not found vs plugins import failed due to syntax error
 // https://clearblade.atlassian.net/browse/CBCOMM-227
 func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users []map[string]interface{}, cli *cb.DevClient) error {
-
-	// Common set of calls for a complete system import
-
-	logInfo("Importing collections...")
-	_, err := createCollections(config, systemInfo, cli)
+	version, err := systemUpload.GetSystemUploadVersion(systemInfo, cli)
 	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create collections: %s", err.Error())
+		return err
 	}
 
-	logInfo("Importing roles...")
-	err = createRoles(config, systemInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create roles: %s", err.Error())
+	// Below version 5 we only support code services, so we need to do the legacy push
+	if version < 5 {
+		return doLegacyPush(cmd, cli, systemInfo)
 	}
 
-	logInfo("Importing users...")
-	usersInfo, err := createUsers(config, systemInfo, users, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create users: %s", err.Error())
-	}
-
-	logInfo("Importing code libraries...")
-	if err := createLibraries(config, systemInfo, cli); err != nil {
-		serr, _ := err.(*os.PathError)
-		if err != serr {
-			return err
-		} else {
-			fmt.Printf("Path Error importing libraries: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
-			fmt.Printf("Warning: Could not import code libraries... -- ignoring\n")
-		}
-	}
-
-	logInfo("Importing shared caches...")
-	if _, err := createServiceCaches(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create shared caches: %s", err.Error())
-	}
-
-	logInfo("Importing code services...")
-	// Additonal modifications to the ImportIt functions
-	if err := createServices(config, systemInfo, cli); err != nil {
-		serr, _ := err.(*os.PathError)
-		if err != serr {
-			return err
-		} else {
-			fmt.Printf("Path Error importing services: Operation: %s Path %s, Error %s\n", serr.Op, serr.Path, serr.Err)
-			fmt.Printf("Warning: Could not import code services... -- ignoring\n")
-		}
-	}
-
-	logInfo("Importing triggers...")
-	_, err = createTriggers(config, systemInfo, usersInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create triggers: %s", err.Error())
-	}
-
-	logInfo("Importing timers...")
-	_, err = createTimers(config, systemInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create timers: %s", err.Error())
-	}
-
-	logInfo("Importing edges...")
-	if err := createEdges(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create edges: %s", err.Error())
-	}
-
-	logInfo("Importing devices...")
-	_, err = createDevices(config, systemInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create devices: %s", err.Error())
-	}
-
-	logInfo("Importing portals...")
-	_, err = createPortals(config, systemInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create portals: %s", err.Error())
-	}
-
-	logInfo("Importing plugins...")
-	_, err = createPlugins(config, systemInfo, cli)
-	if err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create plugins: %s", err.Error())
-	}
-
-	logInfo("Importing adaptors...")
-	if err := createAdaptors(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create adaptors: %s", err.Error())
-	}
-
-	logInfo("Importing deployments...")
-	if _, err := createDeployments(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create deployments: %s", err.Error())
-	}
-
-	logInfo("Importing webhooks...")
-	if _, err := createWebhooks(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create webhooks: %s", err.Error())
-	}
-
-	logInfo("Importing external databases...")
-	if _, err := createExternalDatabases(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create external databases: %s", err.Error())
-	}
-
-	logInfo("Importing bucket sets...")
-	if _, err := createBucketSets(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create bucket sets: %s", err.Error())
-	}
-
-	logInfo("Importing bucket set files...")
-	if err := bucketSetFiles.PushFilesForAllBucketSets(systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not import bucket set files: %s", err.Error())
-	}
-
-	logInfo("Importing secrets...")
-	if _, err := createSecrets(config, systemInfo, cli); err != nil {
-		//  Don't return an err, just warn -- so we keep back compat with old systems
-		fmt.Printf("Could not create secrets: %s", err.Error())
-	}
-
-	logInfo("Importing message history storage...")
-	if err := pushMessageHistoryStorage(systemInfo, cli); err != nil {
-		fmt.Printf("Could not import message history storage: %s", err.Error())
-	}
-
-	logInfo("Importing message type triggers...")
-	if err := pushMessageTypeTriggers(systemInfo, cli); err != nil {
-		fmt.Printf("Could not import message type triggers: %s", err.Error())
-	}
+	opts := fs.NewZipOptions(&mapper{})
+	opts.AllAdaptors = true
+	opts.AllBucketSets = true
+	opts.AllBucketSetFiles = true
+	opts.AllCollections = config.ImportRows
+	opts.AllCollectionSchemas = true
+	opts.AllServiceCaches = true
+	opts.AllDeployments = true
+	opts.AllDevices = true
+	opts.AllEdges = true
+	opts.AllExternalDatabases = true
+	opts.AllLibraries = true
+	opts.AllPlugins = true
+	opts.AllPortals = true
+	opts.AllRoles = true
+	opts.AllSecrets = true
+	opts.AllServices = true
+	opts.AllTimers = true
+	opts.AllTriggers = true
+	opts.AllUsers = config.ImportUsers
+	opts.AllWebhooks = true
+	opts.PushMessageHistoryStorage = true
+	opts.PushMessageTypeTriggers = true
+	opts.PushUserSchema = true
 
 	fmt.Printf(" Done\n")
 	logInfo(fmt.Sprintf("Success! New system key is: %s", systemInfo.Key))
@@ -942,39 +828,10 @@ func importSystem(config ImportConfig, systemPath string, cli *cb.DevClient) (*t
 	return systemInfo, nil
 }
 
-func ImportSystem(cli *cb.DevClient, systemPath string, userInfo map[string]interface{}) (*types.System_meta, error) {
-
-	// authorizes the client BEFORE going into the import process. The import
-	// process SHOULD NOT care about authorization
-	// TODO: If the cli passed above is already valid, we don't need to
-	// authorize again. Can we try removing this?
-	cli, err := authorizeUsingMetaInfo(userInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	// refactored userInfo into custom ImportConfig. That way we get rid of
-	// the weakly-typed userInfo object and use a strongly-typed ImportConfig
-	// instance
-	config := MakeImportConfigFromGlobals()
-	config.SystemName, _ = maputil.LookupString(userInfo, "systemName", "system_name")
-	config.IntoExistingSystem, _ = maputil.LookupBool(userInfo, "importIntoExistingSystem", "import_into_existing_system")
-	config.ExistingSystemKey, _ = maputil.LookupString(userInfo, "systemKey", "system_key")
-	config.ExistingSystemSecret, _ = maputil.LookupString(userInfo, "systemSecret", "system_secret")
-
-	importedSystem, err := ImportSystemUsingConfig(config, systemPath, cli)
-	if err != nil {
-		return nil, err
-	}
-
-	return importedSystem, nil
-}
-
 // ImportSystemUsingConfig imports the system rooted at the given path, using the
 // given config for different values. The given client should already be
 // authenticated and ready to go.
 func ImportSystemUsingConfig(config ImportConfig, systemPath string, cli *cb.DevClient) (*types.System_meta, error) {
-
 	systemInfo, err := importSystem(config, systemPath, cli)
 	if err != nil {
 		return nil, err
