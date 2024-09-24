@@ -38,6 +38,7 @@ var (
 	EdgeSchema                 bool
 	DeviceSchema               bool
 	UserSchema                 bool
+	PieceMeal                  bool
 	DataPageSize               int
 	BackoffMaxRetries          int
 	BackoffMaxInterval         time.Duration

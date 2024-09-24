@@ -34,6 +34,7 @@ func init() {
 		example:   example,
 	}
 
+	pushCommand.flags.BoolVar(&PieceMeal, "piecemeal", false, "perform push through many individual http requests instead of uploading a single zip")
 	pushCommand.flags.BoolVar(&UserSchema, "userschema", false, "push user table schema")
 	pushCommand.flags.BoolVar(&EdgeSchema, "edgeschema", false, "push edges table schema")
 	pushCommand.flags.BoolVar(&DeviceSchema, "deviceschema", false, "push devices table schema")
@@ -128,7 +129,7 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	}
 
 	// Below version 5 we only support code services, so we need to do the legacy push
-	if version < 5 {
+	if version < 5 || PieceMeal {
 		return doLegacyPush(cmd, client, systemInfo)
 	}
 
