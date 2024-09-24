@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	rolePathRegexStr = `^roles\/[^\/]+\.json$`
+	rolePathRegexStr = `^roles\/([^\/]+)\.json$`
 )
 
 var (
