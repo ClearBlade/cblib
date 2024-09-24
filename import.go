@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	importRows  bool
-	importUsers bool
+	importPiecemeal bool
+	importRows      bool
+	importUsers     bool
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 		run:       doImport,
 		example:   example,
 	}
+	myImportCommand.flags.BoolVar(&importPiecemeal, "piecemeal", false, "perform push through many individual http requests instead of uploading a single zip")
 	myImportCommand.flags.BoolVar(&importRows, "importrows", true, "imports all data into all collections")
 	myImportCommand.flags.BoolVar(&importUsers, "importusers", true, "imports all users into the system")
 	myImportCommand.flags.StringVar(&URL, "url", "https://platform.clearblade.com", "Clearblade Platform URL where system is hosted, ex https://platform.clearblade.com")
@@ -49,7 +51,7 @@ func init() {
 	AddCommand("im", myImportCommand)
 }
 
-func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
+func doImport(cmd *SubCommand, _ *cb.DevClient, _ ...string) error {
 	parseBackoffFlags()
 	systemPath, err := os.Getwd()
 	if err != nil {
@@ -65,7 +67,7 @@ func doImport(cmd *SubCommand, cli *cb.DevClient, args ...string) error {
 	promptAndFillMissingAuth(nil, skips)
 
 	// authorizes using global flags (import ignores cb meta)
-	cli, err = authorizeUsingGlobalCLIFlags()
+	cli, err := authorizeUsingGlobalCLIFlags()
 	if err != nil {
 		return err
 	}
@@ -98,8 +100,9 @@ type ImportConfig struct {
 	ExistingSystemKey    string // the system key of the existing system
 	ExistingSystemSecret string // the system secret of the existing system
 
-	ImportUsers bool // true if users should be imported
-	ImportRows  bool // true if collection rows should be imported
+	ImportUsers     bool // true if users should be imported
+	ImportRows      bool // true if collection rows should be imported
+	ImportPiecemeal bool // true if system upload endpoint should not be used
 }
 
 // DefaultImportConfig contains the default configuration values for the import
@@ -122,8 +125,9 @@ var DefaultImportConfig = ImportConfig{
 	ExistingSystemKey:    "",
 	ExistingSystemSecret: "",
 
-	ImportUsers: false,
-	ImportRows:  false,
+	ImportUsers:     false,
+	ImportRows:      false,
+	ImportPiecemeal: false,
 }
 
 // MakeImportConfigFromGlobals creates a new ImportConfig instance from the
@@ -132,10 +136,9 @@ var DefaultImportConfig = ImportConfig{
 // a pointer to an instance.
 func MakeImportConfigFromGlobals() ImportConfig {
 	config := DefaultImportConfig
-
-	// TODO: confirm which global to use
-	config.ImportUsers = importUsers // or ImportUsers global?
-	config.ImportRows = importRows   // or ImportRows global?
+	config.ImportUsers = importUsers
+	config.ImportRows = importRows
+	config.ImportPiecemeal = importPiecemeal
 
 	return config
 }
@@ -170,29 +173,6 @@ func createSystem(config ImportConfig, system *types.System_meta, client *cb.Dev
 	return system, nil
 }
 
-// Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
-// Note: Edge schemas are optional, so if it is not found, we log an error and continue
-func createEdges(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
-	edges, err := getEdges()
-	if err != nil {
-		return err
-	}
-	for _, edge := range edges {
-		fmt.Printf(" %s", edge["name"].(string))
-		edgeName := edge["name"].(string)
-		delete(edge, "name")
-		edge["system_key"] = systemInfo.Key
-		edge["system_secret"] = systemInfo.Secret
-		if err := createEdge(systemInfo.Key, edgeName, edge, client); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// TODO Handle more specific error for if folder doesnt exist
-// i.e. plugins folder not found vs plugins import failed due to syntax error
-// https://clearblade.atlassian.net/browse/CBCOMM-227
 func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users []map[string]interface{}, cli *cb.DevClient) error {
 	version, err := systemUpload.GetSystemUploadVersion(systemInfo, cli)
 	if err != nil {
@@ -200,8 +180,8 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 	}
 
 	// Below version 5 we only support code services, so we need to do the legacy push
-	if version < 5 {
-		return doLegacyPush(cli, systemInfo)
+	if version < 5 || config.ImportPiecemeal {
+		return importAllAssetsLegacy(config, systemInfo, users, cli)
 	}
 
 	opts := fs.NewZipOptions(&mapper{})
@@ -228,6 +208,10 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 	opts.PushMessageHistoryStorage = true
 	opts.PushMessageTypeTriggers = true
 	opts.PushUserSchema = true
+
+	if err := pushSystemZip(systemInfo, cli, opts); err != nil {
+		return err
+	}
 
 	fmt.Printf(" Done\n")
 	logInfo(fmt.Sprintf("Success! New system key is: %s", systemInfo.Key))
