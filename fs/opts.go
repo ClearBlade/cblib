@@ -25,10 +25,11 @@ type ZipOptions struct {
 	AllServiceCaches bool
 	ServiceCacheName string
 
-	AllCollections   bool
-	CollectionName   string
-	CollectionId     string
-	CollectionSchema string
+	AllCollections       bool
+	AllCollectionSchemas bool
+	CollectionName       string
+	CollectionId         string
+	CollectionSchema     string
 
 	AllDeployments bool
 	DeploymentName string
@@ -178,7 +179,7 @@ func (s *ZipOptions) shouldPushCollectionSchemaOnly(name string) bool {
 		return false
 	}
 
-	return s.CollectionSchema == name
+	return s.AllCollectionSchemas || s.CollectionSchema == name
 }
 
 func (s *ZipOptions) shouldPushDeployment(name string) bool {
