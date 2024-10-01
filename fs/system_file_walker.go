@@ -50,63 +50,65 @@ func walkSystemFiles(rootDir string, handler systemFileHandler) error {
 			return fmt.Errorf("could not make %s relative to %s: %w", absolutePath, rootDir, pathErr)
 		}
 
-		wasCalled := callHandlers(handler, absolutePath, path)
-		if d.IsDir() && !wasCalled && path != "." {
+		// Skip directories we don't care about
+		if d.IsDir() && !isAssetPath(path) && path != "." {
 			return filepath.SkipDir
+		}
+
+		// Only call handlers on files
+		if !d.IsDir() && err == nil {
+			callHandler(handler, absolutePath, path)
 		}
 
 		return err
 	})
-
 }
 
-func callHandlers(handler systemFileHandler, absPath, relPath string) bool {
-	switch {
-	case syspath.IsAdaptorPath(relPath):
-		callAdaptorHandlers(handler, absPath, relPath)
-	case syspath.IsBucketSetMetaPath(relPath):
-		callBucketSetMetaHandlers(handler, absPath, relPath)
-	case syspath.IsBucketSetFilePath(relPath):
-		callBucketSetFileHandlers(handler, absPath, relPath)
-	case syspath.IsCodePath(relPath):
-		callCodeHandlers(handler, absPath, relPath)
-	case syspath.IsCollectionPath(relPath):
-		callCollectionHandlers(handler, absPath, relPath)
-	case syspath.IsDeploymentPath(relPath):
-		callDeploymentHandlers(handler, absPath, relPath)
-	case syspath.IsDevicePath(relPath):
-		callDeviceHandlers(handler, absPath, relPath)
-	case syspath.IsEdgePath(relPath):
-		callEdgeHandlers(handler, absPath, relPath)
-	case syspath.IsExternalDbPath(relPath):
-		callExternalDatabaseHandlers(handler, absPath, relPath)
-	case syspath.IsMessageHistoryStorageFile(relPath):
-		callMessageHistoryStorageHandlers(handler, absPath, relPath)
-	case syspath.IsMessageTypeTriggerPath(relPath):
-		callMessageTypeTriggersHandlers(handler, absPath, relPath)
-	case syspath.IsPluginPath(relPath):
-		callPluginHandlers(handler, absPath, relPath)
-	case syspath.IsPortalPath(relPath):
-		callPortalHandlers(handler, absPath, relPath)
-	case syspath.IsRolePath(relPath):
-		callRoleHandlers(handler, absPath, relPath)
-	case syspath.IsSecretPath(relPath):
-		callSecretHandlers(handler, absPath, relPath)
-	case syspath.IsServiceCachePath(relPath):
-		callServiceCacheHandlers(handler, absPath, relPath)
-	case syspath.IsTimerPath(relPath):
-		callTimerHandlers(handler, absPath, relPath)
-	case syspath.IsTriggerPath(relPath):
-		callTriggerHandlers(handler, absPath, relPath)
-	case syspath.IsUserPath(relPath):
-		callUserHandlers(handler, absPath, relPath)
-	case syspath.IsWebhookPath(relPath):
-		callWebhookHandlers(handler, absPath, relPath)
-	default:
-		return false
+type assetPathHandler struct {
+	isAssetPath       func(relPath string) bool
+	handleAssetAtPath func(systemFileHandler systemFileHandler, absPath, relPath string)
+}
+
+var assetHandlers = []assetPathHandler{
+	{syspath.IsAdaptorPath, callAdaptorHandlers},
+	{syspath.IsBucketSetMetaPath, callBucketSetMetaHandlers},
+	{syspath.IsBucketSetFilePath, callBucketSetFileHandlers},
+	{syspath.IsCodePath, callCodeHandlers},
+	{syspath.IsCollectionPath, callCollectionHandlers},
+	{syspath.IsDeploymentPath, callDeploymentHandlers},
+	{syspath.IsDevicePath, callDeviceHandlers},
+	{syspath.IsEdgePath, callEdgeHandlers},
+	{syspath.IsExternalDbPath, callExternalDatabaseHandlers},
+	{syspath.IsMessageHistoryStorageFile, callMessageHistoryStorageHandlers},
+	{syspath.IsMessageTypeTriggerPath, callMessageTypeTriggersHandlers},
+	{syspath.IsPluginPath, callPluginHandlers},
+	{syspath.IsPortalPath, callPortalHandlers},
+	{syspath.IsRolePath, callRoleHandlers},
+	{syspath.IsSecretPath, callSecretHandlers},
+	{syspath.IsServiceCachePath, callServiceCacheHandlers},
+	{syspath.IsTimerPath, callTimerHandlers},
+	{syspath.IsTriggerPath, callTriggerHandlers},
+	{syspath.IsUserPath, callUserHandlers},
+	{syspath.IsWebhookPath, callWebhookHandlers},
+}
+
+func isAssetPath(relPath string) bool {
+	for _, assetHandler := range assetHandlers {
+		if assetHandler.isAssetPath(relPath) {
+			return true
+		}
 	}
 
-	return true
+	return false
+}
+
+func callHandler(handler systemFileHandler, absPath, relPath string) {
+	for _, assetHandler := range assetHandlers {
+		if assetHandler.isAssetPath(relPath) {
+			assetHandler.handleAssetAtPath(handler, absPath, relPath)
+			return
+		}
+	}
 }
 
 func callAdaptorHandlers(handler systemFileHandler, absPath, relPath string) {
