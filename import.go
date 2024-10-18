@@ -74,6 +74,7 @@ func doImport(cmd *SubCommand, _ *cb.DevClient, _ ...string) error {
 
 	// creates import config and proceeds to import system
 	config := MakeImportConfigFromGlobals()
+	AutoApprove = true
 	_, err = ImportSystemUsingConfig(config, systemPath, cli)
 	if err != nil {
 		return err
