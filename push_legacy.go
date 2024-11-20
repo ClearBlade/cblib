@@ -1954,6 +1954,8 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 		"log_ttl_minutes":   10080,
 		"run_on_edge":       true,
 		"run_on_platform":   true,
+		"log_level":         "debug",
+		"engine_type":       0,
 	}
 	if loggingEnabled, ok := service["logging_enabled"]; ok {
 		ret["logging_enabled"] = loggingEnabled
@@ -1987,6 +1989,12 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	}
 	if run_on_platform, ok := service["run_on_platform"].(bool); ok {
 		ret["run_on_platform"] = run_on_platform
+	}
+	if log_level, ok := service["log_level"].(string); ok {
+		ret["log_level"] = log_level
+	}
+	if engine_type, ok := service["engine_type"].(float64); ok {
+		ret["engine_type"] = engine_type
 	}
 	return ret
 }

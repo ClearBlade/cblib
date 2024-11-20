@@ -800,6 +800,8 @@ func whitelistService(data map[string]interface{}) map[string]interface{} {
 		"log_ttl_minutes":   data["log_ttl_minutes"],
 		"run_on_edge":       data["run_on_edge"],
 		"run_on_platform":   data["run_on_platform"],
+		"log_level":         data["log_level"],
+		"engine_type":       data["engine_type"],
 	}
 }
 
