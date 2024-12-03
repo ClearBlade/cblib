@@ -2,7 +2,6 @@ package maputil
 
 import (
 	"fmt"
-	"os"
 )
 
 // --------------------------------
@@ -153,13 +152,11 @@ func GetASliceOfMaps(val interface{}) ([]map[string]interface{}, error) {
 	}
 }
 
-func GetMap(val interface{}) map[string]interface{} {
+func GetMap(val interface{}) (map[string]interface{}, error) {
 	switch val.(type) {
 	case map[string]interface{}:
-		return val.(map[string]interface{})
+		return val.(map[string]interface{}), nil
 	default:
-		fmt.Printf("permissions type must be a map, not %T\n", val)
-		os.Exit(1)
+		return nil, fmt.Errorf("permissions type must be a map, not %T\n", val)
 	}
-	return map[string]interface{}{}
 }
