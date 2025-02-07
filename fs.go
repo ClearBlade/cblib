@@ -786,23 +786,10 @@ func writeRole(name string, data map[string]interface{}) error {
 	return writeEntity(rolesDir, name, whitelistRole(data))
 }
 
-func whitelistService(data map[string]interface{}) map[string]interface{} {
-	return map[string]interface{}{
-		"auto_balance":      data["auto_balance"],
-		"auto_restart":      data["auto_restart"],
-		"concurrency":       data["concurrency"],
-		"dependencies":      data["dependencies"],
-		"execution_timeout": data["execution_timeout"],
-		"logging_enabled":   data["logging_enabled"],
-		"name":              data["name"],
-		"params":            data["params"],
-		"run_user":          data["run_user"],
-		"log_ttl_minutes":   data["log_ttl_minutes"],
-		"run_on_edge":       data["run_on_edge"],
-		"run_on_platform":   data["run_on_platform"],
-		"log_level":         data["log_level"],
-		"engine_type":       data["engine_type"],
-	}
+// Deletes fields from the service map that we dont want to write to disk
+func omitFields(data map[string]interface{}) {
+	delete(data, "version")
+	delete(data, "code")
 }
 
 func writeService(name string, data map[string]interface{}) error {
@@ -815,8 +802,8 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
-	serv := whitelistService(data)
-	return writeEntity(mySvcDir, name, serv)
+	omitFields(data)
+	return writeEntity(mySvcDir, name, data)
 }
 
 func writeBucketSet(name string, data map[string]interface{}) error {
