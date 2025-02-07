@@ -788,7 +788,7 @@ func writeRole(name string, data map[string]interface{}) error {
 
 // Deletes fields from the service map that we dont want to write to disk
 func omitServiceFields(data map[string]interface{}) {
-	delete(data, "version")
+	delete(data, "current_version")
 	delete(data, "code")
 }
 
