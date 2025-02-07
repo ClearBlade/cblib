@@ -787,7 +787,7 @@ func writeRole(name string, data map[string]interface{}) error {
 }
 
 // Deletes fields from the service map that we dont want to write to disk
-func omitFields(data map[string]interface{}) {
+func omitServiceFields(data map[string]interface{}) {
 	delete(data, "version")
 	delete(data, "code")
 }
@@ -802,7 +802,7 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
-	omitFields(data)
+	omitServiceFields(data)
 	return writeEntity(mySvcDir, name, data)
 }
 
