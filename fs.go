@@ -654,6 +654,7 @@ func whitelistWebhook(data map[string]interface{}) map[string]interface{} {
 		"description":  data["description"],
 		"name":         data["name"],
 		"service_name": data["service_name"],
+		"path":         data["path"],
 	}
 }
 
