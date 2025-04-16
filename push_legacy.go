@@ -1271,10 +1271,10 @@ func pushDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name strin
 	if err != nil {
 		return err
 	}
-	return updateDeployment(systemInfo, cli, name, dep)
+	return updateDeployment(systemInfo, cli, name, dep, PreserveEdges)
 }
 
-func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name string, dep map[string]interface{}) error {
+func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name string, dep map[string]interface{}, preserveEdges bool) error {
 	// fetch deployment
 	backendDep, err := cli.GetDeploymentByName(systemInfo.Key, name)
 	if err != nil {
@@ -1296,7 +1296,7 @@ func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name str
 	} else {
 
 		// diff backend deployment and local deployment
-		theDiff := diffDeployments(dep, backendDep)
+		theDiff := diffDeployments(dep, backendDep, preserveEdges)
 		if _, err := cli.UpdateDeploymentByName(systemInfo.Key, name, theDiff); err != nil {
 			return err
 		}
@@ -1305,17 +1305,23 @@ func updateDeployment(systemInfo *types.System_meta, cli *cb.DevClient, name str
 	return nil
 }
 
-func diffDeployments(localDep map[string]interface{}, backendDep map[string]interface{}) map[string]interface{} {
+func diffDeployments(localDep map[string]interface{}, backendDep map[string]interface{}, preserveEdges bool) map[string]interface{} {
 	assetDiff := listutil.CompareLists(localDep["assets"].([]interface{}), backendDep["assets"].([]interface{}), isAssetMatch)
 	edgeDiff := listutil.CompareLists(localDep["edges"].([]interface{}), backendDep["edges"].([]interface{}), isEdgeMatch)
+	edgesToAdd := edgeDiff.Added
+	edgesToRemove := edgeDiff.Removed
+	if preserveEdges {
+		edgesToAdd = []interface{}{}
+		edgesToRemove = []interface{}{}
+	}
 	return map[string]interface{}{
 		"assets": map[string]interface{}{
 			"add":    assetDiff.Added,
 			"remove": assetDiff.Removed,
 		},
 		"edges": map[string]interface{}{
-			"add":    edgeDiff.Added,
-			"remove": edgeDiff.Removed,
+			"add":    edgesToAdd,
+			"remove": edgesToRemove,
 		},
 	}
 }

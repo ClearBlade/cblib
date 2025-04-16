@@ -86,6 +86,7 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
+	pushCommand.flags.BoolVar(&PreserveEdges, "preserve-edges", false, "Preserve edges when pushing a deployment. When this flag is specified, the edges in the deployment will not be modified on the platform. Note: this option is only available when using the -piecemeal flag")
 
 	setBackoffFlags(pushCommand.flags)
 

@@ -65,6 +65,7 @@ var (
 	PluginName                 string
 	AdaptorName                string
 	DeploymentName             string
+	PreserveEdges              bool
 	ServiceCacheName           string
 	WebhookName                string
 	ExternalDatabaseName       string
