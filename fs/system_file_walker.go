@@ -79,7 +79,7 @@ var assetHandlers = []assetPathHandler{
 	{syspath.IsDevicePath, callDeviceHandlers},
 	{syspath.IsEdgePath, callEdgeHandlers},
 	{syspath.IsExternalDbPath, callExternalDatabaseHandlers},
-	{syspath.IsMessageHistoryStorageFile, callMessageHistoryStorageHandlers},
+	{syspath.IsMessageHistoryWhitelistPath, callMessageHistoryStorageHandlers},
 	{syspath.IsMessageTypeTriggerPath, callMessageTypeTriggersHandlers},
 	{syspath.IsPluginPath, callPluginHandlers},
 	{syspath.IsPortalPath, callPortalHandlers},
