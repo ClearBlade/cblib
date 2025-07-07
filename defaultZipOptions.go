@@ -20,7 +20,7 @@ func defaultZipOptions() *fs.ZipOptions {
 	opts.AllServiceCaches = AllServiceCaches
 	opts.ServiceCacheName = ServiceCacheName
 	opts.AllCollections = AllCollections
-	opts.AllCollectionSchemas = false
+	opts.AllCollectionSchemas = AllCollectionSchemas
 	opts.CollectionName = CollectionName
 	opts.CollectionId = CollectionId
 	opts.CollectionSchema = CollectionSchema

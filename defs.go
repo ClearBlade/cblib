@@ -89,6 +89,7 @@ var (
 	AllAdaptors                bool
 	AllDeployments             bool
 	AllCollections             bool
+	AllCollectionSchemas       bool
 	AllRoles                   bool
 	AllUsers                   bool
 	AllAssets                  bool
