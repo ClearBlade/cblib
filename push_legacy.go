@@ -1245,6 +1245,11 @@ func pushCollectionHypertableProperties(systemInfo *types.System_meta, cli *cb.D
 				},
 			})
 			if err != nil {
+				// just log a warning if we're trying to convert a collection on an older platform
+				if strings.Contains(err.Error(), "does not satisfy version constraints") {
+					fmt.Printf("Warning: Collection '%s' cannot be converted to a hypertable. Skipping hypertable properties update. Error: %s\n", name, err.Error())
+					return nil
+				}
 				return err
 			}
 		}
