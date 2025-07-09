@@ -313,7 +313,7 @@ func createCollections(config ImportConfig, systemInfo *types.System_meta, clien
 
 	for _, collection := range collections {
 		fmt.Printf(" %s\n", collection["name"].(string))
-		if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err != nil {
+		if info, err := CreateCollection(systemInfo, collection, config.ImportRows, client); err != nil {
 			return rtn, err
 		} else {
 			rtn = append(rtn, info)

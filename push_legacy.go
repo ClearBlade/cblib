@@ -1180,6 +1180,14 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		}
 	}
 
+	if err := pushCollectionHypertableProperties(systemInfo, cli, name, collection); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func pushCollectionHypertableProperties(systemInfo *types.System_meta, cli *cb.DevClient, name string, collection map[string]interface{}) error {
 	// check if collection map has a hypertable_properties key
 	hypertablePropertiesMap, ok := collection["hypertable_properties"].(map[string]interface{})
 	if ok {
@@ -1242,10 +1250,8 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		}
 
 	}
-
 	return nil
 }
-
 func NewHypertablePropertiesFromMap(hypertablePropertiesMap map[string]interface{}) (HypertableProperties, error) {
 	timeColumn, ok := hypertablePropertiesMap["time_column"].(string)
 	if !ok {
@@ -2237,7 +2243,7 @@ type RoleInfo struct {
 	Name string
 }
 
-func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
+func CreateCollection(systemInfo *types.System_meta, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
 	collectionName := collection["name"].(string)
 	isConnect := collections.IsConnectCollection(collection)
 	var colId string
@@ -2247,12 +2253,12 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		if err != nil {
 			return CollectionInfo{}, err
 		}
-		colId, err = client.NewConnectCollection(systemKey, col)
+		colId, err = client.NewConnectCollection(systemInfo.Key, col)
 		if err != nil {
 			return CollectionInfo{}, err
 		}
 	} else {
-		colId, err = client.NewCollection(systemKey, collectionName)
+		colId, err = client.NewCollection(systemInfo.Key, collectionName)
 		if err != nil {
 			return CollectionInfo{}, err
 		}
@@ -2292,13 +2298,17 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		for _, index := range indexInfo.Data {
 			err := doCreateIndex(
 				index,
-				func() error { return client.CreateUniqueIndex(systemKey, collectionName, index.Name) },
-				func() error { return client.CreateIndex(systemKey, collectionName, index.Name) },
+				func() error { return client.CreateUniqueIndex(systemInfo.Key, collectionName, index.Name) },
+				func() error { return client.CreateIndex(systemInfo.Key, collectionName, index.Name) },
 			)
 			if err != nil {
 				return CollectionInfo{}, err
 			}
 		}
+	}
+
+	if err := pushCollectionHypertableProperties(systemInfo, client, collectionName, collection); err != nil {
+		return CollectionInfo{}, err
 	}
 
 	if !pushItems {
