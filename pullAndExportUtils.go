@@ -6,6 +6,7 @@ import (
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/models/filestores"
 	"github.com/clearblade/cblib/types"
 )
 
@@ -405,11 +406,28 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		fmt.Printf("\n")
 	}
 
+	if assets.AllFileStores || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling all file stores")
+		if _, err := pullFileStores(systemInfo, client); err != nil {
+			logError(fmt.Sprintf("Failed to pull all file stores. %s", err.Error()))
+		}
+	}
+
 	if assets.BucketSetName != "" {
 		didSomething = true
 		logInfo(fmt.Sprintf("Pulling bucket set %+s\n", BucketSetName))
 		if _, err := pullAndWriteBucketSet(systemInfo, client, BucketSetName); err != nil {
 			logError(fmt.Sprintf("Failed to pull bucket set. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
+	if assets.FileStoreName != "" {
+		didSomething = true
+		logInfo(fmt.Sprintf("Pulling file store %+s\n", FileStoreName))
+		if _, err := pullAndWriteFileStore(systemInfo, client, FileStoreName); err != nil {
+			logError(fmt.Sprintf("Failed to pull file store. %s", err.Error()))
 		}
 		fmt.Printf("\n")
 	}
@@ -432,11 +450,38 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		fmt.Printf("\n")
 	}
 
+	if assets.FileStoreFiles != "" {
+		didSomething = true
+		if assets.FileStoreFileName != "" {
+			// Pull individual file within file store
+			logInfo(fmt.Sprintf("Pulling file store file %s in %s\n", FileStoreFileName, FileStoreFiles))
+			if err := filestores.PullFile(client, systemInfo.Key, FileStoreFiles, FileStoreFileName); err != nil {
+				logError(fmt.Sprintf("Failed to pull file store file. %s", err.Error()))
+			}
+		} else {
+			// Pull all files within the file store
+			logInfo(fmt.Sprintf("Pulling all files in file store %+s\n", FileStoreFiles))
+			if err := filestores.PullFiles(client, systemInfo.Key, FileStoreFiles); err != nil {
+				logError(fmt.Sprintf("Failed to pull file store files. %s", err.Error()))
+			}
+		}
+		fmt.Printf("\n")
+	}
+
 	if assets.AllBucketSetFiles || assets.AllAssets {
 		didSomething = true
 		logInfo("Pulling all files for all bucket sets")
 		if err := bucketSetFiles.PullFilesForAllBucketSets(systemInfo, client); err != nil {
 			logError(fmt.Sprintf("Failed to pull all bucket set files. %s", err.Error()))
+		}
+		fmt.Printf("\n")
+	}
+
+	if assets.AllFileStoreFiles || assets.AllAssets {
+		didSomething = true
+		logInfo("Pulling all files for all file stores")
+		if err := filestores.PullFilesForAllFileStores(client, systemInfo.Key); err != nil {
+			logError(fmt.Sprintf("Failed to pull all file store files. %s", err.Error()))
 		}
 		fmt.Printf("\n")
 	}
