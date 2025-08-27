@@ -104,6 +104,8 @@ func (z *zipper) WalkAdaptorFileMeta(path, relPath string, adaptorName string) {
 	}
 }
 
+// TODO: Prompt the user??
+// TODO: Update the to string for the dry run
 func (z *zipper) WalkFileStore(path, relPath string, fileStoreName string) {
 	if z.opts.shouldPushFileStore(fileStoreName) {
 		z.copyFileToZip(path, relPath)

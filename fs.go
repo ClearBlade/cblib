@@ -820,8 +820,7 @@ func writeBucketSet(name string, data map[string]interface{}) error {
 	return writeEntity(bucketSetsDir, name, whitelistBucketSet(data))
 }
 
-func writeFileStore(data cb.EncryptedFilestore) error {
-	data.StorageConfig = ""
+func writeFileStore(data *cb.Filestore) error {
 	if err := os.MkdirAll(fileStoresDir, 0777); err != nil {
 		return err
 	}

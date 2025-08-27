@@ -467,14 +467,14 @@ func pullBucketSets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{
 }
 
 // TDOO: UPDATE THE README
-func pullFileStores(sysMeta *types.System_meta, cli *cb.DevClient) ([]*cb.EncryptedFilestore, error) {
-	fileStores, err := cli.GetFilestores(sysMeta.Key)
+func pullFileStores(sysMeta *types.System_meta, cli *cb.DevClient) ([]*cb.Filestore, error) {
+	fileStores, err := cli.GetDecryptedFilestores(sysMeta.Key)
 	if err != nil {
 		return nil, fmt.Errorf("could not pull file stores out of system %s: %w", sysMeta.Key, err)
 	}
 
 	for _, fileStore := range fileStores {
-		err := writeFileStore(*fileStore)
+		err := writeFileStore(fileStore)
 		if err != nil {
 			return nil, err
 		}
@@ -493,12 +493,12 @@ func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name s
 	return bs, nil
 }
 
-func pullAndWriteFileStore(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*cb.EncryptedFilestore, error) {
-	fs, err := cli.GetFilestore(sysMeta.Key, name)
+func pullAndWriteFileStore(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*cb.Filestore, error) {
+	fs, err := cli.GetDecryptedFilestore(sysMeta.Key, name)
 	if err != nil {
 		return nil, err
 	}
-	if err = writeFileStore(*fs); err != nil {
+	if err = writeFileStore(fs); err != nil {
 		return nil, err
 	}
 	return fs, nil
