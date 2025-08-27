@@ -104,6 +104,18 @@ func (z *zipper) WalkAdaptorFileMeta(path, relPath string, adaptorName string) {
 	}
 }
 
+func (z *zipper) WalkFileStore(path, relPath string, fileStoreName string) {
+	if z.opts.shouldPushFileStore(fileStoreName) {
+		z.copyFileToZip(path, relPath)
+	}
+}
+
+func (z *zipper) WalkFileStoreFile(path, relPath string, fileStoreFile *syspath.FilestoreFilePath) {
+	if z.opts.shouldPushFileStoreFile(fileStoreFile) {
+		z.copyFileToZip(path, relPath)
+	}
+}
+
 func (z *zipper) WalkBucketSetMeta(path, relPath string, bucketSetName string) {
 	if z.opts.shouldPushBucketSetMeta(bucketSetName) {
 		z.copyFileToZip(path, relPath)
