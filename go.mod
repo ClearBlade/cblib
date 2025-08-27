@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/clearblade/Go-SDK v0.0.0-20250826202029-8409eefafa2a
+	github.com/clearblade/Go-SDK v0.0.0-20250827141621-2eac925f0330
 	github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
