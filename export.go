@@ -473,6 +473,7 @@ func pullFileStores(sysMeta *types.System_meta, cli *cb.DevClient) ([]*cb.Filest
 	}
 
 	for _, fileStore := range fileStores {
+		fmt.Printf(" %s", fileStore.Name)
 		err := writeFileStore(fileStore)
 		if err != nil {
 			return nil, err

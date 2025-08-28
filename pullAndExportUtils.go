@@ -412,6 +412,7 @@ func pullAssets(systemInfo *types.System_meta, client *cb.DevClient, assets Affe
 		if _, err := pullFileStores(systemInfo, client); err != nil {
 			logError(fmt.Sprintf("Failed to pull all file stores. %s", err.Error()))
 		}
+		fmt.Printf("\n")
 	}
 
 	if assets.BucketSetName != "" {
