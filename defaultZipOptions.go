@@ -32,6 +32,11 @@ func defaultZipOptions() *fs.ZipOptions {
 	opts.AllEdges = AllEdges
 	opts.EdgeName = EdgeName
 	opts.PushEdgeSchema = EdgeSchema
+	opts.AllFileStores = AllFileStores
+	opts.FileStoreName = FileStoreName
+	opts.AllFileStoreFiles = AllFileStoreFiles
+	opts.FileStoreFiles = FileStoreFiles
+	opts.FileStoreFileName = FileStoreFileName
 	opts.AllExternalDatabases = AllExternalDatabases
 	opts.ExternalDatabaseName = ExternalDatabaseName
 	opts.AllLibraries = AllLibraries

@@ -1213,14 +1213,6 @@ func getBucketSet(name string) (map[string]interface{}, error) {
 	return getObject(bucketSetsDir, name+".json")
 }
 
-func getFileStores() ([]map[string]any, error) {
-	return getObjectList(fileStoresDir, []string{})
-}
-
-func getFileStore(name string) (map[string]any, error) {
-	return getObject(fileStoresDir, name+".json")
-}
-
 func getSecrets() ([]map[string]interface{}, error) {
 	return getObjectList(secretsDir, []string{})
 }
