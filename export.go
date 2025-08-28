@@ -466,7 +466,6 @@ func pullBucketSets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{
 	return theBucketSets, nil
 }
 
-// TDOO: UPDATE THE README
 func pullFileStores(sysMeta *types.System_meta, cli *cb.DevClient) ([]*cb.Filestore, error) {
 	fileStores, err := cli.GetDecryptedFilestores(sysMeta.Key)
 	if err != nil {
