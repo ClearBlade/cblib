@@ -81,6 +81,8 @@ var assetHandlers = []assetPathHandler{
 	{syspath.IsDevicePath, callDeviceHandlers},
 	{syspath.IsEdgePath, callEdgeHandlers},
 	{syspath.IsExternalDbPath, callExternalDatabaseHandlers},
+	{syspath.IsFilestoreMetaPath, callFileStoreMetaHandlers},
+	{syspath.IsFilestoreFilePath, callFileStoreFileHandlers},
 	{syspath.IsMessageHistoryWhitelistPath, callMessageHistoryStorageHandlers},
 	{syspath.IsMessageTypeTriggerPath, callMessageTypeTriggersHandlers},
 	{syspath.IsPluginPath, callPluginHandlers},
@@ -176,6 +178,18 @@ func callEdgeHandlers(handler systemFileHandler, absPath, relPath string) {
 func callExternalDatabaseHandlers(handler systemFileHandler, absPath, relPath string) {
 	if name, err := syspath.GetExternalDbNameFromPath(relPath); err == nil {
 		handler.WalkExternalDatabase(absPath, relPath, name)
+	}
+}
+
+func callFileStoreMetaHandlers(handler systemFileHandler, absPath, relPath string) {
+	if name, err := syspath.GetFilestoreNameFromPath(relPath); err == nil {
+		handler.WalkFileStore(absPath, relPath, name)
+	}
+}
+
+func callFileStoreFileHandlers(handler systemFileHandler, absPath, relPath string) {
+	if parsedPath, err := syspath.ParseFileStorePath(relPath); err == nil {
+		handler.WalkFileStoreFile(absPath, relPath, parsedPath)
 	}
 }
 
