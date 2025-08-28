@@ -19,7 +19,6 @@ import (
 	bo "github.com/cenkalti/backoff/v4"
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/types"
-	"github.com/fatih/structs"
 )
 
 const BACKUP_DIRECTORY_SUFFIX = "_cb_bak"
@@ -610,10 +609,4 @@ func getCollectionNameById(wantedId string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("collection with id %s not found", wantedId)
-}
-
-func structToMap(incomingStruct interface{}) map[string]interface{} {
-	structObj := structs.New(incomingStruct)
-	structObj.TagName = "json"
-	return structObj.Map()
 }
