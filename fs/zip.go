@@ -19,8 +19,7 @@ func GetSystemZipBytes(rootDir string, prompter SecretPrompter, options *ZipOpti
 		return nil, err
 	}
 
-	// defer os.Remove(path)
-	fmt.Printf("PATH IS %s\n", path)
+	defer os.Remove(path)
 	return os.ReadFile(path)
 }
 
