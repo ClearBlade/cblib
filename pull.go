@@ -89,7 +89,7 @@ func init() {
 	pullCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to pull from bucket set box")
 	pullCommand.flags.StringVar(&FileStoreName, "file-store", "", "Name of file store to pull")
 	pullCommand.flags.StringVar(&FileStoreFiles, "file-store-files", "", "Name of file store to pull files from. Can be used in conjunction with -file-store-file")
-	pullCommand.flags.StringVar(&FileStoreFileName, "file-store-file", "", "Name of file to pull from file store box")
+	pullCommand.flags.StringVar(&FileStoreFileName, "file-store-file", "", "Name of file to pull from file store specified with -file-store-files")
 	pullCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to pull")
 
 	setBackoffFlags(pullCommand.flags)
