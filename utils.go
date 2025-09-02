@@ -568,7 +568,7 @@ func createCollectionIfNecessary(meta *types.System_meta, collection map[string]
 			return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, err
 		} else {
 			if c {
-				if _, err := CreateCollection(meta.Key, collection, options.pushItems, client); err != nil {
+				if _, err := CreateCollection(meta, collection, options.pushItems, client); err != nil {
 					return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, fmt.Errorf("Could not create collection %s: %s", collection_name, err.Error())
 				} else {
 					fmt.Printf("Successfully created new collection %s\n", collection_name)

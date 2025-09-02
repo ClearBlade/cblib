@@ -373,22 +373,6 @@ func pushOneService(systemInfo *types.System_meta, client *cb.DevClient, name st
 	return updateServiceWithRunAs(systemInfo.Key, name, service, client)
 }
 
-func getDefaultColumns(allColumns []interface{}) []string {
-
-	var defaultColumns []string
-	for col := range allColumns {
-
-		if !allColumns[col].(map[string]interface{})["UserDefined"].(bool) {
-
-			defaultColumns = append(defaultColumns, allColumns[col].(map[string]interface{})["ColumnName"].(string))
-
-		}
-
-	}
-
-	return defaultColumns
-}
-
 func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 	fmt.Printf("Pushing user schema\n")
 	userschema, err := getUserSchema()
@@ -1196,7 +1180,116 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		}
 	}
 
+	if err := pushCollectionHypertableProperties(systemInfo, cli, name, collection); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func pushCollectionHypertableProperties(systemInfo *types.System_meta, cli *cb.DevClient, name string, collection map[string]interface{}) error {
+	// check if collection map has a hypertable_properties key
+	hypertablePropertiesMap, ok := collection["hypertable_properties"].(map[string]interface{})
+	if ok {
+		localHypertableProperties, err := NewHypertablePropertiesFromMap(hypertablePropertiesMap)
+		if err != nil {
+			return err
+		}
+
+		allCollections, err := getAllCollectionsInfo(cli, systemInfo)
+		if err != nil {
+			return err
+		}
+
+		var collectionInfo CollectionInfo
+		found := false
+		for _, coll := range allCollections {
+			if coll.Name == name {
+				collectionInfo = coll
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("Unable to update hypertable info. Collection '%s' not found", name)
+		}
+
+		if collectionInfo.IsHypertable {
+			if collectionInfo.HyperTableProperties.ChunkTimeInterval.IntervalString == localHypertableProperties.ChunkTimeInterval.IntervalString && collectionInfo.HyperTableProperties.DataRetentionPolicy.IntervalString == localHypertableProperties.DataRetentionPolicy.IntervalString {
+				return nil
+			}
+
+			// update the hypertable properties
+			err = cli.UpdateHypertableProperties(systemInfo.Key, name, map[string]interface{}{
+				"chunk_time_interval": map[string]interface{}{
+					"interval_string": localHypertableProperties.ChunkTimeInterval.IntervalString,
+				},
+				"data_retention_policy": map[string]interface{}{
+					"interval_string": localHypertableProperties.DataRetentionPolicy.IntervalString,
+				},
+			})
+			if err != nil {
+				return err
+			}
+		} else {
+			// create the hypertable
+			err = cli.ConvertCollectionToHypertable(systemInfo.Key, name, map[string]interface{}{
+				"migrate_data": true,
+				"time_column":  localHypertableProperties.TimeColumn,
+				"chunk_time_interval": map[string]interface{}{
+					"interval_string": localHypertableProperties.ChunkTimeInterval.IntervalString,
+				},
+				"data_retention_policy": map[string]interface{}{
+					"interval_string": localHypertableProperties.DataRetentionPolicy.IntervalString,
+				},
+			})
+			if err != nil {
+				// just log a warning if we're trying to convert a collection on an older platform
+				if strings.Contains(err.Error(), "does not satisfy version constraints") {
+					fmt.Printf("Warning: Collection '%s' cannot be converted to a hypertable. Skipping hypertable properties update. Error: %s\n", name, err.Error())
+					return nil
+				}
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+func NewHypertablePropertiesFromMap(hypertablePropertiesMap map[string]interface{}) (HypertableProperties, error) {
+	timeColumn, ok := hypertablePropertiesMap["time_column"].(string)
+	if !ok {
+		return HypertableProperties{}, fmt.Errorf("time_column is not a string")
+	}
+	chunkTimeIntervalMap, ok := hypertablePropertiesMap["chunk_time_interval"].(map[string]interface{})
+	if !ok {
+		return HypertableProperties{}, fmt.Errorf("chunk_time_interval is not a map")
+	}
+	chunkTimeIntervalString, ok := chunkTimeIntervalMap["interval_string"].(string)
+	if !ok {
+		return HypertableProperties{}, fmt.Errorf("chunk_time_interval.interval_string is not a string")
+	}
+	chunkTimeInterval := HypertableChunkTimeInterval{
+		IntervalString: chunkTimeIntervalString,
+	}
+	dataRetentionPolicyMap, ok := hypertablePropertiesMap["data_retention_policy"].(map[string]interface{})
+	if !ok {
+		return HypertableProperties{}, fmt.Errorf("data_retention_policy is not a map")
+	}
+	dataRetentionPolicyString, ok := dataRetentionPolicyMap["interval_string"].(string)
+	if !ok {
+		return HypertableProperties{}, fmt.Errorf("data_retention_policy.interval_string is not a string")
+	}
+	dataRetentionPolicy := HypertableDataRetentionPolicy{
+		IntervalString: dataRetentionPolicyString,
+	}
+
+	return HypertableProperties{
+		TimeColumn:          timeColumn,
+		ChunkTimeInterval:   chunkTimeInterval,
+		DataRetentionPolicy: dataRetentionPolicy,
+	}, nil
 }
 
 func pushCollectionIndexes(systemInfo *types.System_meta, cli *cb.DevClient, name string) error {
@@ -1418,9 +1511,21 @@ func getAllCollectionsInfo(client *cb.DevClient, systemInfo *types.System_meta) 
 	}
 	var infoList []CollectionInfo
 	for i := 0; i < len(collections); i++ {
+		// check if the hypertable_properties key exists, if it does, cast it to a HyperTableProperties
+		var hypertableProperties HypertableProperties
+		isHypertable := false
+		if hypertablePropertiesInterface, ok := collections[i].(map[string]interface{})["hypertable_properties"]; ok {
+			hypertableProperties, err = NewHypertablePropertiesFromMap(hypertablePropertiesInterface.(map[string]interface{}))
+			if err != nil {
+				return nil, err
+			}
+			isHypertable = true
+		}
 		infoList = append(infoList, CollectionInfo{
-			ID:   collections[i].(map[string]interface{})["collectionID"].(string),
-			Name: collections[i].(map[string]interface{})["name"].(string),
+			ID:                   collections[i].(map[string]interface{})["collectionID"].(string),
+			Name:                 collections[i].(map[string]interface{})["name"].(string),
+			HyperTableProperties: hypertableProperties,
+			IsHypertable:         isHypertable,
 		})
 	}
 	return infoList, nil
@@ -1882,7 +1987,7 @@ func handleUpdateAdaptor(systemKey string, adaptor *models.Adaptor, client *cb.D
 	return nil
 }
 
-func findService(systemKey, serviceName string) (map[string]interface{}, error) {
+func findService(serviceName string) (map[string]interface{}, error) {
 	services, err := getServices()
 	if err != nil {
 		return nil, err
@@ -2118,8 +2223,24 @@ func updateCollection(meta *types.System_meta, collection map[string]interface{}
 }
 
 type CollectionInfo struct {
-	ID   string
-	Name string
+	ID                   string
+	Name                 string
+	HyperTableProperties HypertableProperties
+	IsHypertable         bool
+}
+
+type HypertableProperties struct {
+	TimeColumn          string                        `json:"time_column"`
+	ChunkTimeInterval   HypertableChunkTimeInterval   `json:"chunk_time_interval"`
+	DataRetentionPolicy HypertableDataRetentionPolicy `json:"data_retention_policy"`
+}
+
+type HypertableChunkTimeInterval struct {
+	IntervalString string `json:"interval_string"`
+}
+
+type HypertableDataRetentionPolicy struct {
+	IntervalString string `json:"interval_string"`
 }
 
 type RoleInfo struct {
@@ -2127,7 +2248,7 @@ type RoleInfo struct {
 	Name string
 }
 
-func CreateCollection(systemKey string, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
+func CreateCollection(systemInfo *types.System_meta, collection map[string]interface{}, pushItems bool, client *cb.DevClient) (CollectionInfo, error) {
 	collectionName := collection["name"].(string)
 	isConnect := collections.IsConnectCollection(collection)
 	var colId string
@@ -2137,12 +2258,12 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		if err != nil {
 			return CollectionInfo{}, err
 		}
-		colId, err = client.NewConnectCollection(systemKey, col)
+		colId, err = client.NewConnectCollection(systemInfo.Key, col)
 		if err != nil {
 			return CollectionInfo{}, err
 		}
 	} else {
-		colId, err = client.NewCollection(systemKey, collectionName)
+		colId, err = client.NewCollection(systemInfo.Key, collectionName)
 		if err != nil {
 			return CollectionInfo{}, err
 		}
@@ -2182,13 +2303,17 @@ func CreateCollection(systemKey string, collection map[string]interface{}, pushI
 		for _, index := range indexInfo.Data {
 			err := doCreateIndex(
 				index,
-				func() error { return client.CreateUniqueIndex(systemKey, collectionName, index.Name) },
-				func() error { return client.CreateIndex(systemKey, collectionName, index.Name) },
+				func() error { return client.CreateUniqueIndex(systemInfo.Key, collectionName, index.Name) },
+				func() error { return client.CreateIndex(systemInfo.Key, collectionName, index.Name) },
 			)
 			if err != nil {
 				return CollectionInfo{}, err
 			}
 		}
+	}
+
+	if err := pushCollectionHypertableProperties(systemInfo, client, collectionName, collection); err != nil {
+		return CollectionInfo{}, err
 	}
 
 	if !pushItems {

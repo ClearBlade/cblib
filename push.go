@@ -46,6 +46,7 @@ func init() {
 	pushCommand.flags.BoolVar(&AllPlugins, "all-plugins", false, "push all of the local plugins")
 	pushCommand.flags.BoolVar(&AllAdaptors, "all-adapters", false, "push all of the local adapters")
 	pushCommand.flags.BoolVar(&AllCollections, "all-collections", false, "push all of the local collections")
+	pushCommand.flags.BoolVar(&AllCollectionSchemas, "all-collection-schemas", false, "push all of the local collection schemas")
 	pushCommand.flags.BoolVar(&AllRoles, "all-roles", false, "push all of the local roles")
 	pushCommand.flags.BoolVar(&AllUsers, "all-users", false, "push all of the local users")
 	pushCommand.flags.BoolVar(&AllAssets, "all", false, "push all of the local assets")

@@ -13,7 +13,7 @@ import (
 	"github.com/clearblade/cblib/types"
 )
 
-func createRoles(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
+func createRoles(systemInfo *types.System_meta, client *cb.DevClient) error {
 
 	roles, err := getRoles()
 	if err != nil {
@@ -116,25 +116,16 @@ func createUsers(config ImportConfig, systemInfo *types.System_meta, users []map
 	return rtn, nil
 }
 
-func unMungeRoles(roles []string) []interface{} {
-	rval := []interface{}{}
-
-	for _, role := range roles {
-		rval = append(rval, role)
-	}
-	return rval
-}
-
 func updateTriggerInfo(trigger map[string]interface{}, usersInfo []UserInfo) {
 	replaceEmailWithUserIdInTriggerKeyValuePairs(trigger, usersInfo)
 }
 
-func createTriggerWithUpdatedInfo(config ImportConfig, sysKey string, trigger map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) (map[string]interface{}, error) {
+func createTriggerWithUpdatedInfo(sysKey string, trigger map[string]interface{}, usersInfo []UserInfo, client *cb.DevClient) (map[string]interface{}, error) {
 	updateTriggerInfo(trigger, usersInfo)
 	return createTrigger(sysKey, trigger, client)
 }
 
-func createTriggers(config ImportConfig, systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTriggers(systemInfo *types.System_meta, usersInfo []UserInfo, client *cb.DevClient) ([]map[string]interface{}, error) {
 	triggers, err := getTriggers()
 	if err != nil {
 		return nil, err
@@ -142,7 +133,7 @@ func createTriggers(config ImportConfig, systemInfo *types.System_meta, usersInf
 	triggersRval := make([]map[string]interface{}, len(triggers))
 	for idx, trigger := range triggers {
 		fmt.Printf(" %s", trigger["name"].(string))
-		trigVal, err := createTriggerWithUpdatedInfo(config, systemInfo.Key, trigger, usersInfo, client)
+		trigVal, err := createTriggerWithUpdatedInfo(systemInfo.Key, trigger, usersInfo, client)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +142,7 @@ func createTriggers(config ImportConfig, systemInfo *types.System_meta, usersInf
 	return triggersRval, nil
 }
 
-func createTimers(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createTimers(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	timers, err := getTimers()
 	if err != nil {
 		return nil, err
@@ -168,7 +159,7 @@ func createTimers(config ImportConfig, systemInfo *types.System_meta, client *cb
 	return timersRval, nil
 }
 
-func createDeployments(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDeployments(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	deployments, err := getDeployments()
 	if err != nil {
 		return nil, err
@@ -185,7 +176,7 @@ func createDeployments(config ImportConfig, systemInfo *types.System_meta, clien
 	return deploymentsRval, nil
 }
 
-func createServiceCaches(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createServiceCaches(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	caches, err := getServiceCaches()
 	if err != nil {
 		return nil, err
@@ -200,7 +191,7 @@ func createServiceCaches(config ImportConfig, systemInfo *types.System_meta, cli
 	return caches, nil
 }
 
-func createWebhooks(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createWebhooks(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	hooks, err := getWebhooks()
 	if err != nil {
 		return nil, err
@@ -215,7 +206,7 @@ func createWebhooks(config ImportConfig, systemInfo *types.System_meta, client *
 	return hooks, nil
 }
 
-func createExternalDatabases(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createExternalDatabases(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	externalDatabases, err := getExternalDatabases()
 	if err != nil {
 		return nil, err
@@ -230,7 +221,7 @@ func createExternalDatabases(config ImportConfig, systemInfo *types.System_meta,
 	return externalDatabases, nil
 }
 
-func createBucketSets(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createBucketSets(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	bucketSets, err := getBucketSets()
 	if err != nil {
 		return nil, err
@@ -245,7 +236,7 @@ func createBucketSets(config ImportConfig, systemInfo *types.System_meta, client
 	return bucketSets, nil
 }
 
-func createSecrets(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createSecrets(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	secrets, err := getSecrets()
 	if err != nil {
 		return nil, err
@@ -260,7 +251,7 @@ func createSecrets(config ImportConfig, systemInfo *types.System_meta, client *c
 	return secrets, nil
 }
 
-func createServices(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
+func createServices(systemInfo *types.System_meta, client *cb.DevClient) error {
 	services, err := getServices()
 	if err != nil {
 		fmt.Printf("getServices Failed: %s\n", err)
@@ -276,7 +267,7 @@ func createServices(config ImportConfig, systemInfo *types.System_meta, client *
 	return nil
 }
 
-func createLibraries(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
+func createLibraries(systemInfo *types.System_meta, client *cb.DevClient) error {
 	rawLibraries, err := getLibraries()
 	if err != nil {
 		return err
@@ -299,7 +290,7 @@ func createLibraries(config ImportConfig, systemInfo *types.System_meta, client 
 	return nil
 }
 
-func createAdaptors(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
+func createAdaptors(systemInfo *types.System_meta, client *cb.DevClient) error {
 	adaptors, err := getAdaptors(systemInfo.Key, client)
 	if err != nil {
 		return err
@@ -322,7 +313,7 @@ func createCollections(config ImportConfig, systemInfo *types.System_meta, clien
 
 	for _, collection := range collections {
 		fmt.Printf(" %s\n", collection["name"].(string))
-		if info, err := CreateCollection(systemInfo.Key, collection, config.ImportRows, client); err != nil {
+		if info, err := CreateCollection(systemInfo, collection, config.ImportRows, client); err != nil {
 			return rtn, err
 		} else {
 			rtn = append(rtn, info)
@@ -333,7 +324,7 @@ func createCollections(config ImportConfig, systemInfo *types.System_meta, clien
 
 // Reads Filesystem and makes HTTP calls to platform to create edges and edge columns
 // Note: Edge schemas are optional, so if it is not found, we log an error and continue
-func createEdges(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) error {
+func createEdges(systemInfo *types.System_meta, client *cb.DevClient) error {
 	edgesSchema, err := getEdgesSchema()
 	if err != nil {
 		// To ensure backwards-compatibility, we do not require
@@ -372,7 +363,7 @@ func createEdges(config ImportConfig, systemInfo *types.System_meta, client *cb.
 	return nil
 }
 
-func createDevices(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createDevices(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	schemaPresent := true
 	devicesSchema, err := getDevicesSchema()
 	if err != nil {
@@ -447,7 +438,7 @@ func createDevices(config ImportConfig, systemInfo *types.System_meta, client *c
 	return devicesRval, nil
 }
 
-func createPortals(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPortals(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	var portals []map[string]interface{}
 	var err error
 	if hasLegacyPortalDirectory() {
@@ -473,30 +464,7 @@ func createPortals(config ImportConfig, systemInfo *types.System_meta, client *c
 	return portalsRval, nil
 }
 
-func createEdgeDeployInfo(config ImportConfig, systemInfo, deployInfo map[string]interface{}, client *cb.DevClient) error {
-	deployList := deployInfo["deployInfo"].([]interface{})
-	sysKey := systemInfo["systemKey"].(string)
-
-	for _, deployOneIF := range deployList {
-		deployOne, ok := deployOneIF.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("Poorly structured edge deploy info")
-		}
-		platform := deployOne["platform"].(bool)
-		resName := deployOne["resource_identifier"].(string)
-		resType := deployOne["resource_type"].(string)
-
-		//  Go sdk expects the edge query to be in the Query format, not a string
-		edgeQueryStr := deployOne["edge"].(string)
-		_, err := client.CreateDeployResourcesForSystem(sysKey, resName, resType, platform, edgeQueryStr)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func createPlugins(config ImportConfig, systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
+func createPlugins(systemInfo *types.System_meta, client *cb.DevClient) ([]map[string]interface{}, error) {
 	plugins, err := getPlugins()
 	if err != nil {
 		return nil, err
@@ -511,22 +479,6 @@ func createPlugins(config ImportConfig, systemInfo *types.System_meta, client *c
 		pluginsRval[idx] = pluginVal
 	}
 	return pluginsRval, nil
-}
-
-func convertOldEdgeDeployInfo(info map[string]interface{}) (map[string][]string, error) {
-	rval := map[string][]string{
-		"service": {},
-		"library": {},
-		"trigger": {},
-	}
-	for resourceKey := range info {
-		stuff := strings.Split(resourceKey, "::")
-		if len(stuff) != 2 {
-			return nil, fmt.Errorf("Poorly formed edge sync info entry: '%s'", resourceKey)
-		}
-		rval[stuff[0]] = append(rval[stuff[0]], stuff[1])
-	}
-	return rval, nil
 }
 
 func enableLogs(service map[string]interface{}) bool {
@@ -556,7 +508,7 @@ func importAllAssetsLegacy(config ImportConfig, systemInfo *types.System_meta, u
 	}
 
 	logInfo("Importing roles...")
-	err = createRoles(config, systemInfo, cli)
+	err = createRoles(systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create roles: %s", err.Error())
@@ -570,7 +522,7 @@ func importAllAssetsLegacy(config ImportConfig, systemInfo *types.System_meta, u
 	}
 
 	logInfo("Importing code libraries...")
-	if err := createLibraries(config, systemInfo, cli); err != nil {
+	if err := createLibraries(systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
@@ -581,14 +533,14 @@ func importAllAssetsLegacy(config ImportConfig, systemInfo *types.System_meta, u
 	}
 
 	logInfo("Importing shared caches...")
-	if _, err := createServiceCaches(config, systemInfo, cli); err != nil {
+	if _, err := createServiceCaches(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create shared caches: %s", err.Error())
 	}
 
 	logInfo("Importing code services...")
 	// Additonal modifications to the ImportIt functions
-	if err := createServices(config, systemInfo, cli); err != nil {
+	if err := createServices(systemInfo, cli); err != nil {
 		serr, _ := err.(*os.PathError)
 		if err != serr {
 			return err
@@ -599,72 +551,72 @@ func importAllAssetsLegacy(config ImportConfig, systemInfo *types.System_meta, u
 	}
 
 	logInfo("Importing triggers...")
-	_, err = createTriggers(config, systemInfo, usersInfo, cli)
+	_, err = createTriggers(systemInfo, usersInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create triggers: %s", err.Error())
 	}
 
 	logInfo("Importing timers...")
-	_, err = createTimers(config, systemInfo, cli)
+	_, err = createTimers(systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create timers: %s", err.Error())
 	}
 
 	logInfo("Importing edges...")
-	if err := createEdges(config, systemInfo, cli); err != nil {
+	if err := createEdges(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create edges: %s", err.Error())
 	}
 
 	logInfo("Importing devices...")
-	_, err = createDevices(config, systemInfo, cli)
+	_, err = createDevices(systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create devices: %s", err.Error())
 	}
 
 	logInfo("Importing portals...")
-	_, err = createPortals(config, systemInfo, cli)
+	_, err = createPortals(systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create portals: %s", err.Error())
 	}
 
 	logInfo("Importing plugins...")
-	_, err = createPlugins(config, systemInfo, cli)
+	_, err = createPlugins(systemInfo, cli)
 	if err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create plugins: %s", err.Error())
 	}
 
 	logInfo("Importing adaptors...")
-	if err := createAdaptors(config, systemInfo, cli); err != nil {
+	if err := createAdaptors(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create adaptors: %s", err.Error())
 	}
 
 	logInfo("Importing deployments...")
-	if _, err := createDeployments(config, systemInfo, cli); err != nil {
+	if _, err := createDeployments(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create deployments: %s", err.Error())
 	}
 
 	logInfo("Importing webhooks...")
-	if _, err := createWebhooks(config, systemInfo, cli); err != nil {
+	if _, err := createWebhooks(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create webhooks: %s", err.Error())
 	}
 
 	logInfo("Importing external databases...")
-	if _, err := createExternalDatabases(config, systemInfo, cli); err != nil {
+	if _, err := createExternalDatabases(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create external databases: %s", err.Error())
 	}
 
 	logInfo("Importing bucket sets...")
-	if _, err := createBucketSets(config, systemInfo, cli); err != nil {
+	if _, err := createBucketSets(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create bucket sets: %s", err.Error())
 	}
@@ -676,7 +628,7 @@ func importAllAssetsLegacy(config ImportConfig, systemInfo *types.System_meta, u
 	}
 
 	logInfo("Importing secrets...")
-	if _, err := createSecrets(config, systemInfo, cli); err != nil {
+	if _, err := createSecrets(systemInfo, cli); err != nil {
 		//  Don't return an err, just warn -- so we keep back compat with old systems
 		fmt.Printf("Could not create secrets: %s", err.Error())
 	}

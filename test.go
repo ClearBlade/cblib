@@ -78,7 +78,7 @@ func doTest(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 }
 
 func doPushService(systemKey string, client *cb.DevClient) error {
-	svcMap, err := findService(systemKey, ServiceName)
+	svcMap, err := findService(ServiceName)
 	if err != nil {
 		if err.Error() == NotExistErrorString {
 			fmt.Printf("Service '%s' does not exist locally. Not pushing...", ServiceName)

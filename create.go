@@ -140,7 +140,7 @@ func createOneCollection(systemInfo *types.System_meta, client *cb.DevClient) er
 	if err != nil {
 		return err
 	}
-	info, err := CreateCollection(systemInfo.Key, collection, true, client)
+	info, err := CreateCollection(systemInfo, collection, true, client)
 	if err != nil {
 		return err
 	}
