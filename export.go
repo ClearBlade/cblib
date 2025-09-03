@@ -466,6 +466,22 @@ func pullBucketSets(sysMeta *types.System_meta, cli *cb.DevClient) ([]interface{
 	return theBucketSets, nil
 }
 
+func pullFileStores(sysMeta *types.System_meta, cli *cb.DevClient) ([]*cb.Filestore, error) {
+	fileStores, err := cli.GetDecryptedFilestores(sysMeta.Key)
+	if err != nil {
+		return nil, fmt.Errorf("could not pull file stores out of system %s: %w", sysMeta.Key, err)
+	}
+
+	for _, fileStore := range fileStores {
+		fmt.Printf(" %s", fileStore.Name)
+		err := writeFileStore(fileStore)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return fileStores, nil
+}
+
 func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name string) (map[string]interface{}, error) {
 	bs, err := cli.GetBucketSet(sysMeta.Key, name)
 	if err != nil {
@@ -475,6 +491,17 @@ func pullAndWriteBucketSet(sysMeta *types.System_meta, cli *cb.DevClient, name s
 		return nil, err
 	}
 	return bs, nil
+}
+
+func pullAndWriteFileStore(sysMeta *types.System_meta, cli *cb.DevClient, name string) (*cb.Filestore, error) {
+	fs, err := cli.GetDecryptedFilestore(sysMeta.Key, name)
+	if err != nil {
+		return nil, err
+	}
+	if err = writeFileStore(fs); err != nil {
+		return nil, err
+	}
+	return fs, nil
 }
 
 func pullSecrets(sysMeta *types.System_meta, cli *cb.DevClient) (map[string]interface{}, error) {

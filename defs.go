@@ -73,6 +73,9 @@ var (
 	BucketSetFiles             string
 	BucketSetBoxName           string
 	BucketSetFileName          string
+	FileStoreName              string
+	FileStoreFiles             string
+	FileStoreFileName          string
 	SecretName                 string
 	Message                    bool
 	Topic                      string
@@ -100,6 +103,8 @@ var (
 	AllExternalDatabases       bool
 	AllBucketSets              bool
 	AllBucketSetFiles          bool
+	AllFileStores              bool
+	AllFileStoreFiles          bool
 	AllSecrets                 bool
 	MessageHistoryStorage      bool
 	MessageTypeTriggers        bool
@@ -134,6 +139,8 @@ type AffectedAssets struct {
 	AllWebhooks           bool
 	AllExternalDatabases  bool
 	AllBucketSets         bool
+	AllFileStores         bool
+	AllFileStoreFiles     bool
 	AllSecrets            bool
 	MessageTypeTriggers   bool
 	DeviceSchema          bool
@@ -162,6 +169,9 @@ type AffectedAssets struct {
 	AllBucketSetFiles     bool
 	BucketSetBoxName      string
 	BucketSetFileName     string
+	FileStoreName         string
+	FileStoreFiles        string
+	FileStoreFileName     string
 	SecretName            string
 	ExportUsers           bool
 	ExportRows            bool
@@ -191,6 +201,8 @@ func createAffectedAssets() AffectedAssets {
 		AllTriggers:           AllTriggers,
 		AllTimers:             AllTimers,
 		AllBucketSets:         AllBucketSets,
+		AllFileStores:         AllFileStores,
+		AllFileStoreFiles:     AllFileStoreFiles,
 		AllSecrets:            AllSecrets,
 		CollectionSchema:      CollectionSchema,
 		ServiceName:           ServiceName,
@@ -218,6 +230,9 @@ func createAffectedAssets() AffectedAssets {
 		AllBucketSetFiles:     AllBucketSetFiles,
 		BucketSetBoxName:      BucketSetBoxName,
 		BucketSetFileName:     BucketSetFileName,
+		FileStoreName:         FileStoreName,
+		FileStoreFiles:        FileStoreFiles,
+		FileStoreFileName:     FileStoreFileName,
 		MessageHistoryStorage: MessageHistoryStorage,
 		MessageTypeTriggers:   MessageTypeTriggers,
 	}

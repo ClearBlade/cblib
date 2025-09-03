@@ -22,6 +22,13 @@ type ZipOptions struct {
 	BucketSetBoxName  string
 	BucketSetFileName string
 
+	AllFileStores bool
+	FileStoreName string
+
+	AllFileStoreFiles bool
+	FileStoreFiles    string
+	FileStoreFileName string
+
 	AllServiceCaches bool
 	ServiceCacheName string
 
@@ -122,6 +129,32 @@ func (s *ZipOptions) shouldPushBucketSetMeta(bucketName string) bool {
 
 	// Push the meta if any file for this bucket set is being pushed
 	return s.BucketSetName == bucketName || s.BucketSetFiles == bucketName
+}
+
+func (s *ZipOptions) shouldPushFileStoreFile(data *syspath.FilestoreFilePath) bool {
+	if s.AllAssets || s.AllFileStoreFiles {
+		return true
+	}
+
+	if s.FileStoreFiles != data.FilestoreName {
+		return false
+	}
+
+	// Empty means push all files in the file store
+	if s.FileStoreFileName == "" {
+		return true
+	}
+
+	return s.FileStoreFileName == data.RelativePath
+}
+
+func (s *ZipOptions) shouldPushFileStore(fileStoreName string) bool {
+	if s.AllAssets || s.AllFileStores || s.AllFileStoreFiles {
+		return true
+	}
+
+	// Push the meta if any file for this file store is being pushed
+	return s.FileStoreName == fileStoreName || s.FileStoreFiles == fileStoreName
 }
 
 func (s *ZipOptions) shouldPushService(name string) bool {

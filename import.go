@@ -196,6 +196,8 @@ func importAllAssets(config ImportConfig, systemInfo *types.System_meta, users [
 	opts.AllDevices = true
 	opts.AllEdges = true
 	opts.AllExternalDatabases = true
+	opts.AllFileStores = true
+	opts.AllFileStoreFiles = true
 	opts.AllLibraries = true
 	opts.AllPlugins = true
 	opts.AllPortals = true

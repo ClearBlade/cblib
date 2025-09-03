@@ -13,6 +13,7 @@ import (
 
 	"github.com/clearblade/cblib/models"
 	"github.com/clearblade/cblib/models/bucketSetFiles"
+	"github.com/clearblade/cblib/models/filestores"
 	rt "github.com/clearblade/cblib/resourcetree"
 	"github.com/clearblade/cblib/types"
 )
@@ -51,10 +52,11 @@ var (
 	webhooksDir              string
 	externalDatabasesDir     string
 	bucketSetsDir            string
+	fileStoresDir            string
 	secretsDir               string
 	cliHiddenDir             string
 	mapNameToIdDir           string
-	arrDir                   [24]string //this is used to set up the directory structure for a system
+	arrDir                   [26]string //this is used to set up the directory structure for a system
 )
 
 func SetRootDir(theRootDir string) {
@@ -80,6 +82,8 @@ func SetRootDir(theRootDir string) {
 	webhooksDir = rootDir + "/webhooks"
 	externalDatabasesDir = rootDir + "/external-databases"
 	bucketSetsDir = rootDir + "/bucket-sets"
+	fileStoresDir = rootDir + "/file-stores"
+	filestores.FileStoresFilesDir = rootDir + "/file-stores-files"
 	cliHiddenDir = rootDir + "/.cb-cli"
 	mapNameToIdDir = cliHiddenDir + "/map-name-to-id"
 	bucketSetFiles.BucketSetFilesDir = rootDir + "/bucket-set-files"
@@ -110,6 +114,8 @@ func SetRootDir(theRootDir string) {
 	arrDir[21] = bucketSetFiles.BucketSetFilesDir
 	arrDir[22] = secretsDir
 	arrDir[23] = messageTypeTriggersDir
+	arrDir[24] = fileStoresDir
+	arrDir[25] = filestores.FileStoresFilesDir
 }
 
 func setupDirectoryStructure() error {
@@ -812,6 +818,13 @@ func writeBucketSet(name string, data map[string]interface{}) error {
 		return err
 	}
 	return writeEntity(bucketSetsDir, name, whitelistBucketSet(data))
+}
+
+func writeFileStore(data *cb.Filestore) error {
+	if err := os.MkdirAll(fileStoresDir, 0777); err != nil {
+		return err
+	}
+	return writeEntity(fileStoresDir, data.Name, data)
 }
 
 func whitelistMessageHistoryStorageEntry(entry cb.GetMessageHistoryStorageEntry) cb.MessageHistoryStorageEntry {

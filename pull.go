@@ -56,6 +56,8 @@ func init() {
 	pullCommand.flags.BoolVar(&AllServiceCaches, "all-shared-caches", false, "pull all shared caches from system")
 	pullCommand.flags.BoolVar(&AllWebhooks, "all-webhooks", false, "pull all webhooks from system")
 	pullCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "pull all external databases from system")
+	pullCommand.flags.BoolVar(&AllFileStores, "all-file-stores", false, "pull all file stores from system")
+	pullCommand.flags.BoolVar(&AllFileStoreFiles, "all-file-store-files", false, "pull all files from all file stores from system")
 	pullCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "pull all bucket sets from system")
 	pullCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "pull all files from all bucket sets from system")
 	pullCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "pull all user secrets from system")
@@ -85,6 +87,9 @@ func init() {
 	pullCommand.flags.StringVar(&BucketSetFiles, "bucket-set-files", "", "Name of bucket set to pull files from. Can be used in conjunction with -box and -file")
 	pullCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pullCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to pull from bucket set box")
+	pullCommand.flags.StringVar(&FileStoreName, "file-store", "", "Name of file store to pull")
+	pullCommand.flags.StringVar(&FileStoreFiles, "file-store-files", "", "Name of file store to pull files from. Can be used in conjunction with -file-store-file")
+	pullCommand.flags.StringVar(&FileStoreFileName, "file-store-file", "", "Name of file to pull from file store specified with -file-store-files")
 	pullCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to pull")
 
 	setBackoffFlags(pullCommand.flags)

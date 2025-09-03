@@ -58,6 +58,8 @@ func init() {
 	pushCommand.flags.BoolVar(&AllExternalDatabases, "all-external-databases", false, "push all of the local external databases")
 	pushCommand.flags.BoolVar(&AllBucketSets, "all-bucket-sets", false, "push all of the local bucket sets")
 	pushCommand.flags.BoolVar(&AllBucketSetFiles, "all-bucket-set-files", false, "push all files from all local bucket sets")
+	pushCommand.flags.BoolVar(&AllFileStores, "all-file-stores", false, "push all of the local file stores")
+	pushCommand.flags.BoolVar(&AllFileStoreFiles, "all-file-store-files", false, "push all files from all local file stores")
 	pushCommand.flags.BoolVar(&AutoApprove, "auto-approve", false, "automatically answer yes to all prompts. Useful for creating new entities when they aren't found in the platform")
 	pushCommand.flags.BoolVar(&AllSecrets, "all-user-secrets", false, "push all user secrets")
 	pushCommand.flags.BoolVar(&MessageHistoryStorage, "message-history-storage", false, "push message history storage")
@@ -86,6 +88,9 @@ func init() {
 	pushCommand.flags.StringVar(&BucketSetFiles, "bucket-set-files", "", "Name of bucket set to push files to. Can be used in conjunction with -box and -file")
 	pushCommand.flags.StringVar(&BucketSetBoxName, "box", "", "Name of box to search in bucket set")
 	pushCommand.flags.StringVar(&BucketSetFileName, "file", "", "Name of file to push from bucket set box")
+	pushCommand.flags.StringVar(&FileStoreName, "file-store", "", "Name of file store to push")
+	pushCommand.flags.StringVar(&FileStoreFiles, "file-store-files", "", "Name of file store to push files to. Can be used in conjunction with -file-store-file")
+	pushCommand.flags.StringVar(&FileStoreFileName, "file-store-file", "", "Name of file to push from file store specified with -file-store-files")
 	pushCommand.flags.StringVar(&SecretName, "user-secret", "", "Name of user secret to push")
 	pushCommand.flags.BoolVar(&PreserveEdges, "preserve-edges", false, "Preserve edges when pushing a deployment. When this flag is specified, the edges in the deployment will not be modified on the platform. Note: this option is only available when using the -piecemeal flag")
 
