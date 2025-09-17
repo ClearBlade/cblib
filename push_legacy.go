@@ -124,6 +124,13 @@ func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 		}
 	}
 
+	if AllCollectionSchemas {
+		didSomething = true
+		if err := pushAllCollectionSchemas(systemInfo, client); err != nil {
+			return err
+		}
+	}
+
 	if CollectionName != "" {
 		didSomething = true
 		if err := pushOneCollection(systemInfo, client, CollectionName); err != nil {
@@ -474,6 +481,24 @@ func pushAllCollections(systemInfo *types.System_meta, client *cb.DevClient) err
 	for i := 0; i < len(allColls); i++ {
 		err := pushOneCollection(systemInfo, client, allColls[i]["name"].(string))
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func pushAllCollectionSchemas(systemInfo *types.System_meta, client *cb.DevClient) error {
+	allColls, err := getCollections()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(allColls); i++ {
+		collectionName := allColls[i]["name"].(string)
+		err = pushOneCollectionSchema(systemInfo, client, collectionName)
+		if err != nil {
+			return err
+		}
+		if err = pushCollectionIndexes(systemInfo, client, collectionName); err != nil {
 			return err
 		}
 	}
