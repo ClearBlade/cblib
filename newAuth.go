@@ -6,10 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,7 +21,7 @@ const (
 	urlPrompt          = "Platform URL"
 	msgurlPrompt       = "Messaging URL"
 	systemKeyPrompt    = "System Key"
-	browserLoginPrompt = "Login using Browser?"
+	browserLoginPrompt = "Login using Browser? (n|Y - Google Chrome supported)"
 	emailPrompt        = "Developer Email"
 	passwordPrompt     = "Developer Password"
 	callbackPort       = ":8080"
@@ -114,25 +112,6 @@ func (p *PromptSet) Has(flag PromptSet) bool {
 	return (*p)&flag != 0
 }
 
-func openBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start", url}
-	case "darwin": // macOS
-		cmd = "open"
-		args = []string{url}
-	default: // Linux and others
-		cmd = "xdg-open"
-		args = []string{url}
-	}
-
-	return exec.Command(cmd, args...).Start()
-}
-
 func promptAndFillMissingURL(defaultURL string) bool {
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
@@ -190,203 +169,90 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
-func retrieveTokenViaRedirect(url string) {
-	var finalToken string
-	var choice string
-	// A channel to receive the token and an error.
-	tokenChan := make(chan string)
-	errChan := make(chan error)
-	fmt.Printf("Akash URL: %s\n", URL)
-	loginURL := url + "/login"
-	redirectURI := "http://localhost" + callbackPort + "/callback"
-
-	// Set up a local web server to handle the redirect (for future OIDC)
-	server := &http.Server{Addr: callbackPort}
-
-	// The /callback handler remains, but we know it won't run for ClearBlade's current page.
-	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		// THIS LOGIC IS FOR FUTURE OIDC PROVIDERS.
-		token := r.URL.Query().Get("token")
-		if token == "" {
-			errChan <- fmt.Errorf("no token found in callback URL")
-			fmt.Fprintf(w, "<html><body><h1>Login Failed</h1><p>No token received.</p></body></html>")
-			return
-		}
-
-		fmt.Fprintf(w, "<html><body><h1>Login Successful!</h1><p>You can now close this tab.</p></body></html>")
-		tokenChan <- token
-	})
-
-	// Start the local web server in a new goroutine.
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
-			errChan <- err
-		}
-	}()
-	fmt.Printf("Akash loginURL: %s\n", loginURL)
-	fmt.Println("Launching browser for user login (ready for OIDC)...")
-	fmt.Printf("Login URL: %s?redirect_uri=%s\n", loginURL, redirectURI)
-
-	// Open the default browser tab.
-	// NOTE: We pass the redirect_uri to signal our intent, even if the current page ignores it.
-	if err := openBrowser(loginURL + "?redirect_uri=" + redirectURI); err != nil {
-		log.Fatalf("could not open browser: %v", err)
-	}
-
-	fmt.Println("Waiting for user to complete login in the browser (OIDC check)...")
-	fmt.Println("Waiting for up to 1 minute for an automated redirect.")
-
-	// Set up a context with a shorter timeout for the *OIDC redirect check*.
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-
-	// Wait for the token via the OIDC redirect, an error, or the timeout.
-	select {
-	case token := <-tokenChan:
-		// Success! This will happen when you switch to an OIDC provider.
-		fmt.Printf("\nLogin successful via automated redirect. Received token:\n%s\n", token)
-		// Go to shutdown section below.
-
-	case err := <-errChan:
-		fmt.Printf("\nAutomated login failed: %v\n", err)
-		goto manualLogin // Jump to manual input/API fallback
-
-	case <-ctx.Done():
-		fmt.Println("\nAutomated redirect timed out after 1 minute.")
-		// The current ClearBlade page doesn't redirect, so we proceed to manual input.
-		goto manualLogin
-	}
-
-	// If we successfully received the token via the channel, we skip the manual step.
-	// We also don't need to shutdown the server here because we hit the end of the function.
-	// The server shutdown is handled below.
-
-	// If we successfully received the token, we exit the main logic block and skip the manual section.
-	goto cleanup
-
-	// 2. Manual Token Input / API Fallback
-manualLogin:
-	fmt.Println("\n--- ClearBlade does not support automatic token passing. ---")
-	fmt.Println("--- You must now manually enter your token or credentials. ---")
-
-	// Option A: Ask user to manually paste the 'dev_token' from the network traffic.
-	// This is difficult for non-technical users, so Option B is better.
-
-	// **Option B: Fallback to the secure CLI/API login.**
-	// NOTE: You must insert the `authenticateUser` function here or import it.
-
-	// For now, let's use a simplified manual paste, as it's the closest to the browser experience:
-	fmt.Println("\nPLEASE NOTE: Since the browser tab didn't redirect, the only way to get the token is to:")
-	fmt.Println("1. Open your browser's Developer Tools (F12) on the login page.")
-	fmt.Println("2. Login with email/password.")
-	fmt.Println("3. Find the response from the '/admin/auth' request.")
-	fmt.Println("4. Copy the 'dev_token' value.")
-	fmt.Println("\nAlternatively, you can provide your credentials via the CLI:")
-	fmt.Print("Enter 'token' to paste the token, or 'api' to use the API login: ")
-
-	fmt.Fscanln(os.Stdin, &choice)
-
-	if choice == "token" {
-		fmt.Print("Paste 'dev_token' here and press Enter: ")
-		fmt.Fscanln(os.Stdin, &finalToken)
-	} else if choice == "api" {
-		// You'll need the authenticateUser function imported/defined here.
-		// Assuming you use the CLI authentication function from the previous answer.
-		// token, err := authenticateUser(URL)
-		// if err != nil { /* handle error */ }
-		// finalToken = token
-
-		// For simplicity in this example, we'll keep the manual paste.
-		fmt.Println("API login not implemented in this snippet. Please choose 'token'.")
-	}
-
-	if finalToken != "" {
-		tokenChan <- finalToken // Push the manually acquired token into the channel.
-	} else {
-		errChan <- fmt.Errorf("manual token input failed or was skipped")
-	}
-
-	// Wait for the manual token to be processed by the select statement.
-	select {
-	case token := <-tokenChan:
-		fmt.Printf("\nLogin successful via manual input. Received token:\n%s\n", token)
-	case err := <-errChan:
-		fmt.Printf("\nLogin failed: %v\n", err)
-	}
-
-	// 3. Cleanup (Server Shutdown)
-cleanup:
-	// Shut down the server gracefully.
-	fmt.Println("\nShutting down local server...")
-	if err := server.Shutdown(context.Background()); err != nil {
-		log.Printf("server shutdown failed: %v", err)
-	}
-	// NOTE: The browser tab still remains open and must be closed manually.
-}
-
 func retrieveTokenFromLocalStorage(url string) (string, error) {
-	// 1. Create a browser context with HEADLESS set to FALSE
+	shutdownGracePeriod := 10*time.Second
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("could not get user home directory: %w", err)
+	}
+	userDataDir := filepath.Join(userHomeDir, ".myapp", "chrome-profile")
+
+	// Create a browser context with HEADLESS set to FALSE
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
-		chromedp.NoFirstRun,
-		chromedp.NoDefaultBrowserCheck,
+		chromedp.UserDataDir(userDataDir), // <--- This line enables persistent profile storage
+        chromedp.NoFirstRun,
+        chromedp.NoDefaultBrowserCheck,
 		chromedp.Flag("headless", false),   // <-- THIS IS THE KEY CHANGE
 		chromedp.Flag("disable-gpu", true), // Good practice, especially on Windows/Linux
-	)
-	defer cancel()
+    )
 
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+	// Custom deferred function for graceful shutdown
+    defer func() {
+        // 1. Call the original cancel function to signal a shutdown
+        cancel() 
+        
+        // 2. Wait for the grace period. This gives Chrome time to clean up the profile directory.
+        time.Sleep(shutdownGracePeriod) 
+        
+        // Note: You *may* need to add logic here to explicitly kill the process
+        // if the warning persists, but the sleep often solves it on its own.
+    }()
+
+    defer cancel()
+
+    ctx, cancel := chromedp.NewContext(allocCtx)
+    defer cancel()
 
 	// Set a generous timeout for the entire manual login process
-	ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
+    ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
+    defer cancel()
 
-	var token string
-	var loginURL = url + "/login"
-	const tokenKey = "ngStorage-cb_platform_dev_token"
+    var token string
+    var loginURL = url + "/login"
+    const tokenKey = "ngStorage-cb_platform_dev_token"
 
 	// The JavaScript to execute to read the token
-	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
+    jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
 
 	// Launch the browser and navigate
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(loginURL),
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
-	}
+    err = chromedp.Run(ctx,
+        chromedp.Navigate(loginURL),
+    )
+    if err != nil {
+        return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
+    }
 
-	log.Println("A browser window has opened. Please complete the login manually.")
-	log.Printf("Waiting for token '%s' to be set in local storage...", tokenKey)
+    log.Println("A browser window has opened. Please complete the login manually.")
+    log.Printf("Waiting for token '%s' to be set in local storage...", tokenKey)
 
-	// 2. Poll the local storage until the token is found
+	// Poll the local storage until the token is found
 	// We'll poll every 1 second for the token.
-	for {
-		select {
-		case <-ctx.Done():
+    for {
+        select {
+        case <-ctx.Done():
 			// The overall 5-minute timeout was hit
-			return "", fmt.Errorf("login timeout reached before token was set")
-		default:
+            return "", fmt.Errorf("login timeout reached before token was set")
+        default:
 			// Execute JavaScript to read the local storage item
-			err := chromedp.Run(ctx,
-				chromedp.Evaluate(jsGetToken, &token),
-			)
-			if err != nil {
+            err := chromedp.Run(ctx,
+                chromedp.Evaluate(jsGetToken, &token),
+            )
+            if err != nil {
 				// Log the error but continue polling, as it might be a temporary state
-				log.Printf("Error during token check: %v. Retrying...", err)
-			}
+                log.Printf("Error during token check: %v. Retrying...", err)
+            }
 
-			if token != "" {
-				log.Printf("Token successfully retrieved: %s\n", token)
-				return token, nil
-			}
+            if token != "" {
+                log.Printf("Token successfully retrieved: %s\n", token)
+                return token, nil
+            }
 
 			// Wait 1 second before checking again
-			time.Sleep(1 * time.Second)
-		}
-	}
+            time.Sleep(1 * time.Second)
+        }
+    }
 }
+
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
