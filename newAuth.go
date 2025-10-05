@@ -170,7 +170,7 @@ func promptAndFillMissingPassword() bool {
 }
 
 func retrieveTokenFromLocalStorage(url string) (string, error) {
-	shutdownGracePeriod := 10*time.Second
+	shutdownGracePeriod := 2*time.Second
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get user home directory: %w", err)
@@ -184,21 +184,20 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
         chromedp.NoDefaultBrowserCheck,
 		chromedp.Flag("headless", false),   // <-- THIS IS THE KEY CHANGE
 		chromedp.Flag("disable-gpu", true), // Good practice, especially on Windows/Linux
+		chromedp.Flag("no-sandbox", true),
     )
 
 	// Custom deferred function for graceful shutdown
     defer func() {
-        // 1. Call the original cancel function to signal a shutdown
+        // Signal a shutdown to the ExecAllocator
         cancel() 
         
-        // 2. Wait for the grace period. This gives Chrome time to clean up the profile directory.
+        // Wait for the grace period. This is crucial for Chrome to clean up.
+        // It gives Chrome time to finish writing to the profile directory.
         time.Sleep(shutdownGracePeriod) 
-        
-        // Note: You *may* need to add logic here to explicitly kill the process
-        // if the warning persists, but the sleep often solves it on its own.
-    }()
 
-    defer cancel()
+        log.Println("Grace period for Chrome shutdown complete.")
+    }()
 
     ctx, cancel := chromedp.NewContext(allocCtx)
     defer cancel()
