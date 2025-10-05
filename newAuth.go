@@ -182,9 +182,10 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 		chromedp.UserDataDir(userDataDir), // <--- This line enables persistent profile storage
         chromedp.NoFirstRun,
         chromedp.NoDefaultBrowserCheck,
-		chromedp.Flag("headless", false),   // <-- THIS IS THE KEY CHANGE
-		chromedp.Flag("disable-gpu", true), // Good practice, especially on Windows/Linux
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("enable-automation", true),
     )
 
 	// Custom deferred function for graceful shutdown
