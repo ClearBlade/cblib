@@ -169,8 +169,20 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
+func promptForKeyPress() {
+	log.Println("=================================================================")
+	log.Println(">> ACTION REQUIRED: Press ENTER in the console to close the browser. <<")
+	log.Println("=================================================================")
+	
+	// Wait for user input
+	reader := bufio.NewReader(os.Stdin)
+	// ReadString blocks until a newline character is encountered.
+	// We ignore the returned string and error as we just need the blocking behavior.
+	_, _ = reader.ReadString('\n') 
+}
+
 func retrieveTokenFromLocalStorage(url string) (string, error) {
-	shutdownGracePeriod := 2*time.Second
+	shutdownGracePeriod := 2 * time.Second
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get user home directory: %w", err)
@@ -180,79 +192,83 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 	// Create a browser context with HEADLESS set to FALSE
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
 		chromedp.UserDataDir(userDataDir), // <--- This line enables persistent profile storage
-        chromedp.NoFirstRun,
-        chromedp.NoDefaultBrowserCheck,
-		chromedp.Flag("headless", false),
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Flag("headless", false), // Key change: browser UI will be visible
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("enable-automation", true),
-    )
+	)
 
 	// Custom deferred function for graceful shutdown
-    defer func() {
-        // Signal a shutdown to the ExecAllocator
-        cancel() 
-        
-        // Wait for the grace period. This is crucial for Chrome to clean up.
-        // It gives Chrome time to finish writing to the profile directory.
-        time.Sleep(shutdownGracePeriod) 
+	defer func() {
+		// Signal a shutdown to the ExecAllocator
+		cancel() 
+		
+		// Wait for the grace period. This is crucial for Chrome to clean up.
+		// It gives Chrome time to finish writing to the profile directory.
+		time.Sleep(shutdownGracePeriod) 
 
-        log.Println("Grace period for Chrome shutdown complete.")
-    }()
+		log.Println("Grace period for Chrome shutdown complete.")
+	}()
 
-    ctx, cancel := chromedp.NewContext(allocCtx)
-    defer cancel()
+	ctx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
 
 	// Set a generous timeout for the entire manual login process
-    ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
-    defer cancel()
+	ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
 
-    var token string
-    var loginURL = url + "/login"
-    const tokenKey = "ngStorage-cb_platform_dev_token"
+	var token string
+	var loginURL = url + "/login"
+	const tokenKey = "ngStorage-cb_platform_dev_token"
 
 	// The JavaScript to execute to read the token
-    jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
+	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
 
 	// Launch the browser and navigate
-    err = chromedp.Run(ctx,
-        chromedp.Navigate(loginURL),
-    )
-    if err != nil {
-        return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
-    }
+	err = chromedp.Run(ctx,
+		chromedp.Navigate(loginURL),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
+	}
 
-    log.Println("A browser window has opened. Please complete the login manually.")
-    log.Printf("Waiting for token '%s' to be set in local storage...", tokenKey)
+	log.Println("A browser window has opened. Please complete the login manually.")
+	log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
 
 	// Poll the local storage until the token is found
-	// We'll poll every 1 second for the token.
-    for {
-        select {
-        case <-ctx.Done():
+	for {
+		select {
+		case <-ctx.Done():
 			// The overall 5-minute timeout was hit
-            return "", fmt.Errorf("login timeout reached before token was set")
-        default:
+			return "", fmt.Errorf("login timeout reached before token was set")
+		default:
 			// Execute JavaScript to read the local storage item
-            err := chromedp.Run(ctx,
-                chromedp.Evaluate(jsGetToken, &token),
-            )
-            if err != nil {
+			err := chromedp.Run(ctx,
+				chromedp.Evaluate(jsGetToken, &token),
+			)
+			if err != nil {
 				// Log the error but continue polling, as it might be a temporary state
-                log.Printf("Error during token check: %v. Retrying...", err)
-            }
+				log.Printf("Error during token check: %v. Retrying...", err)
+			}
 
-            if token != "" {
-                log.Printf("Token successfully retrieved: %s\n", token)
-                return token, nil
-            }
+			if token != "" && token != "null" { // Check for "null" string too, which can happen if item isn't set
+				log.Printf("Token successfully retrieved: %s\n", token)
+				
+				// 1. Show the user a prompt to enter any key.
+				promptForKeyPress()
+
+				// 2. When the function returns, the deferred function runs, 
+				//    which calls cancel() to close the browser.
+				return token, nil
+			}
 
 			// Wait 1 second before checking again
-            time.Sleep(1 * time.Second)
-        }
-    }
+			time.Sleep(1 * time.Second)
+		}
+	}
 }
-
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
