@@ -170,9 +170,7 @@ func promptAndFillMissingPassword() bool {
 }
 
 func promptForKeyPress() {
-	log.Println("=================================================================")
-	log.Println(">> ACTION REQUIRED: Press ENTER in the console to close the browser. <<")
-	log.Println("=================================================================")
+	log.Println("Press ENTER to close the browser and continue.")
 
 	// Wait for user input
 	reader := bufio.NewReader(os.Stdin)
@@ -181,15 +179,9 @@ func promptForKeyPress() {
 	_, _ = reader.ReadString('\n')
 }
 
-// ** File Content for Corruption **
-// This small, empty JSON object is often enough to overwrite the critical
-// "Local State" and "Preferences" files, causing Chrome to reset its session status
-// without losing the actual login data stored elsewhere.
-const emptyJson = "{}"
-
 func retrieveTokenFromLocalStorage(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
-	shutdownGracePeriod := 5 * time.Second
+	// shutdownGracePeriod := 5 * time.Second
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get user home directory: %w", err)
@@ -223,16 +215,14 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 		cancel()
 
 		// Wait for the significantly longer grace period.
-		time.Sleep(shutdownGracePeriod)
+		// time.Sleep(shutdownGracePeriod)
 
-		log.Println("Grace period for Chrome shutdown complete.")
+		// log.Println("Grace period for Chrome shutdown complete.")
 
-		// MODIFICATION 1: CRITICAL FILE CORRUPTION (Failsafe)
-		// Overwrite the files that store the "exit_cleanly" status check.
-
+		// Overwrite the files that store the "exit_cleanly" status check with empty JSON objects.
 		// 1. Local State (at the root of the user data directory)
 		localStateFile := filepath.Join(userDataDir, "Local State")
-		if err := os.WriteFile(localStateFile, []byte(emptyJson), 0644); err != nil {
+		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to overwrite Local State file: %v", err)
 		} else {
 			log.Println("Successfully corrupted 'Local State' for clean startup.")
@@ -240,7 +230,7 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 
 		// 2. Preferences file (inside the custom profile directory)
 		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
-		if err := os.WriteFile(preferencesFile, []byte(emptyJson), 0644); err != nil {
+		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to overwrite Preferences file: %v", err)
 		} else {
 			log.Println("Successfully corrupted 'Preferences' file for clean startup.")
