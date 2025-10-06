@@ -173,43 +173,78 @@ func promptForKeyPress() {
 	log.Println("=================================================================")
 	log.Println(">> ACTION REQUIRED: Press ENTER in the console to close the browser. <<")
 	log.Println("=================================================================")
-	
+
 	// Wait for user input
 	reader := bufio.NewReader(os.Stdin)
 	// ReadString blocks until a newline character is encountered.
 	// We ignore the returned string and error as we just need the blocking behavior.
-	_, _ = reader.ReadString('\n') 
+	_, _ = reader.ReadString('\n')
 }
 
+// ** File Content for Corruption **
+// This small, empty JSON object is often enough to overwrite the critical
+// "Local State" and "Preferences" files, causing Chrome to reset its session status
+// without losing the actual login data stored elsewhere.
+const emptyJson = "{}"
+
 func retrieveTokenFromLocalStorage(url string) (string, error) {
-	shutdownGracePeriod := 2 * time.Second
+	// Retain the long grace period for maximum chance of natural cleanup
+	shutdownGracePeriod := 5 * time.Second
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get user home directory: %w", err)
 	}
 	userDataDir := filepath.Join(userHomeDir, ".myapp", "chrome-profile")
 
+	// Custom profile directory (retained for OIDC persistence)
+	const customProfileDir = "APP_OIDC"
+
+	// Pre-flight cleanup for common lock files
+	singletonLock := filepath.Join(userDataDir, "SingletonLock")
+	if _, err := os.Stat(singletonLock); err == nil {
+		log.Println("Found and removing stale SingletonLock.")
+		os.Remove(singletonLock)
+	}
+
 	// Create a browser context with HEADLESS set to FALSE
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
-		chromedp.UserDataDir(userDataDir), // <--- This line enables persistent profile storage
+		chromedp.UserDataDir(userDataDir),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
-		chromedp.Flag("headless", false), // Key change: browser UI will be visible
-		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("headless", false),
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("enable-automation", true),
+		chromedp.Flag("profile-directory", customProfileDir),
 	)
 
 	// Custom deferred function for graceful shutdown
 	defer func() {
 		// Signal a shutdown to the ExecAllocator
-		cancel() 
-		
-		// Wait for the grace period. This is crucial for Chrome to clean up.
-		// It gives Chrome time to finish writing to the profile directory.
-		time.Sleep(shutdownGracePeriod) 
+		cancel()
+
+		// Wait for the significantly longer grace period.
+		time.Sleep(shutdownGracePeriod)
 
 		log.Println("Grace period for Chrome shutdown complete.")
+
+		// MODIFICATION 1: CRITICAL FILE CORRUPTION (Failsafe)
+		// Overwrite the files that store the "exit_cleanly" status check.
+
+		// 1. Local State (at the root of the user data directory)
+		localStateFile := filepath.Join(userDataDir, "Local State")
+		if err := os.WriteFile(localStateFile, []byte(emptyJson), 0644); err != nil {
+			log.Printf("Warning: Failed to overwrite Local State file: %v", err)
+		} else {
+			log.Println("Successfully corrupted 'Local State' for clean startup.")
+		}
+
+		// 2. Preferences file (inside the custom profile directory)
+		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
+		if err := os.WriteFile(preferencesFile, []byte(emptyJson), 0644); err != nil {
+			log.Printf("Warning: Failed to overwrite Preferences file: %v", err)
+		} else {
+			log.Println("Successfully corrupted 'Preferences' file for clean startup.")
+		}
 	}()
 
 	ctx, cancel := chromedp.NewContext(allocCtx)
@@ -249,18 +284,17 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 				chromedp.Evaluate(jsGetToken, &token),
 			)
 			if err != nil {
-				// Log the error but continue polling, as it might be a temporary state
 				log.Printf("Error during token check: %v. Retrying...", err)
 			}
 
-			if token != "" && token != "null" { // Check for "null" string too, which can happen if item isn't set
+			if token != "" && token != "null" {
 				log.Printf("Token successfully retrieved: %s\n", token)
-				
+
 				// 1. Show the user a prompt to enter any key.
 				promptForKeyPress()
 
-				// 2. When the function returns, the deferred function runs, 
-				//    which calls cancel() to close the browser.
+				// 2. When the function returns, the deferred function runs,
+				//    which calls cancel() to close the browser, followed by file corruption.
 				return token, nil
 			}
 
