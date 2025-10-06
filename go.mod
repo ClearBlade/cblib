@@ -13,11 +13,13 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
 	github.com/stretchr/testify v1.6.1
+	github.com/tebeka/selenium v0.9.9
 	github.com/totherme/unstructured v0.0.0-20170821094912-3faf2d56d8b8
 	github.com/urfave/cli/v2 v2.3.0
 )
 
 require (
+	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/chromedp/cdproto v0.0.0-20250724212937-08a3db8b4327 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/clearblade/go-utils v1.1.5-0.20240513160427-a20563b372a5 // indirect
