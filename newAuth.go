@@ -219,21 +219,18 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 
 		// log.Println("Grace period for Chrome shutdown complete.")
 
-		// Overwrite the files that store the "exit_cleanly" status check with empty JSON objects.
+		// To avoid the "Chrome didn't shut down correctly." dialog box overwrite
+		// the files that store the "exit_cleanly" status check with empty JSON objects.
 		// 1. Local State (at the root of the user data directory)
 		localStateFile := filepath.Join(userDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
-			log.Printf("Warning: Failed to overwrite Local State file: %v", err)
-		} else {
-			log.Println("Successfully corrupted 'Local State' for clean startup.")
+			log.Printf("Warning: Failed to clear Local State file: %v", err)
 		}
 
 		// 2. Preferences file (inside the custom profile directory)
 		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
-			log.Printf("Warning: Failed to overwrite Preferences file: %v", err)
-		} else {
-			log.Println("Successfully corrupted 'Preferences' file for clean startup.")
+			log.Printf("Warning: Failed to clear Preferences file: %v", err)
 		}
 	}()
 
@@ -259,8 +256,8 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
 	}
 
-	log.Println("A browser window has opened. Please complete the login manually.")
-	log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
+	log.Println("Please login manually in the browser.")
+	// log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
 
 	// Poll the local storage until the token is found
 	for {
@@ -278,13 +275,13 @@ func retrieveTokenFromLocalStorage(url string) (string, error) {
 			}
 
 			if token != "" && token != "null" {
-				log.Printf("Token successfully retrieved: %s\n", token)
+				// log.Printf("Token successfully retrieved: %s\n", token)
 
-				// 1. Show the user a prompt to enter any key.
+				// Show the user a prompt to enter any key.
 				promptForKeyPress()
 
-				// 2. When the function returns, the deferred function runs,
-				//    which calls cancel() to close the browser, followed by file corruption.
+				// When the function returns, the deferred function runs,
+				// which calls cancel() to close the browser, followed by file corruption.
 				return token, nil
 			}
 
@@ -346,7 +343,6 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 // authorizeUsingGlobalCLIFlags creates a new clearblade client by using the
 // global flags passed to the CLI program.
 func authorizeUsingGlobalCLIFlags() (*cb.DevClient, error) {
-	fmt.Printf("Akash URL: %s\nDevToken: %s\n", URL, DevToken)
 	return authorizeUsing(URL, MsgURL, Email, Password, DevToken)
 }
 
