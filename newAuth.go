@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -179,6 +181,64 @@ func promptForKeyPress() {
 	_, _ = reader.ReadString('\n')
 }
 
+func getDefaultBrowser() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		return getDefaultBrowserWindows()
+	case "darwin":
+		return getDefaultBrowserMac()
+	case "linux":
+		return getDefaultBrowserLinux()
+	default:
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+}
+
+func getDefaultBrowserWindows() (string, error) {
+	cmd := exec.Command("reg", "query", `HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice`, "/v", "ProgId")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "ProgId") {
+			parts := strings.Fields(line)
+			if len(parts) >= 3 {
+				return parts[2], nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("default browser not found in registry")
+}
+
+func getDefaultBrowserMac() (string, error) {
+	cmd := exec.Command("plutil", "-extract", "LSHandlers", "xml1", "-o", "-", "~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to read LSHandlers: %v", err)
+	}
+	// Simplified: parsing this requires more effort. Alternatively:
+	cmd = exec.Command("/usr/bin/python3", "-c", "import LaunchServices; print(LaunchServices.LSCopyDefaultHandlerForURLScheme('http'))")
+	output, err = cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func getDefaultBrowserLinux() (string, error) {
+	cmd := exec.Command("xdg-settings", "get", "default-web-browser")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	// shutdownGracePeriod := 5 * time.Second
@@ -323,7 +383,20 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 			promptAndFillMissingPassword()
 		}
 	} else {
-		token, err := retrieveTokenFromLocalStorageChrome(URL)
+		browser, err := getDefaultBrowser()
+		if err != nil {
+			fmt.Printf("Error finding default browser: %s", err)
+		}
+		lowerBrowser := strings.ToLower(browser)
+
+		var token string
+		if strings.Contains(lowerBrowser, "chrome") {
+			token, err = retrieveTokenFromLocalStorageChrome(URL)
+		} else if strings.Contains(lowerBrowser, "firefox") {
+			fmt.Println("Firefox implementation coming!")
+		} else {
+			fmt.Println("Either Chrome or Firefox must be installed for login with browser.")
+		}
 		if err == nil {
 			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
 		}
