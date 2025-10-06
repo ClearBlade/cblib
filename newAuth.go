@@ -179,7 +179,7 @@ func promptForKeyPress() {
 	_, _ = reader.ReadString('\n')
 }
 
-func retrieveTokenFromLocalStorage(url string) (string, error) {
+func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	// shutdownGracePeriod := 5 * time.Second
 	userHomeDir, err := os.UserHomeDir()
@@ -323,8 +323,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 			promptAndFillMissingPassword()
 		}
 	} else {
-		// retrieveTokenViaRedirect(URL)
-		token, err := retrieveTokenFromLocalStorage(URL)
+		token, err := retrieveTokenFromLocalStorageChrome(URL)
 		if err == nil {
 			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
 		}
