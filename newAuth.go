@@ -179,64 +179,6 @@ func promptForBrowserLogin() {
 	_, _ = reader.ReadString('\n')
 }
 
-// func getDefaultBrowser() (string, error) {
-// 	switch runtime.GOOS {
-// 	case "windows":
-// 		return getDefaultBrowserWindows()
-// 	case "darwin":
-// 		return getDefaultBrowserMac()
-// 	case "linux":
-// 		return getDefaultBrowserLinux()
-// 	default:
-// 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-// 	}
-// }
-
-// func getDefaultBrowserWindows() (string, error) {
-// 	cmd := exec.Command("reg", "query", `HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice`, "/v", "ProgId")
-// 	output, err := cmd.Output()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	lines := strings.Split(string(output), "\n")
-// 	for _, line := range lines {
-// 		if strings.Contains(line, "ProgId") {
-// 			parts := strings.Fields(line)
-// 			if len(parts) >= 3 {
-// 				return parts[2], nil
-// 			}
-// 		}
-// 	}
-
-// 	return "", fmt.Errorf("default browser not found in registry")
-// }
-
-// func getDefaultBrowserMac() (string, error) {
-// 	cmd := exec.Command("plutil", "-extract", "LSHandlers", "xml1", "-o", "-", "~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist")
-// 	output, err := cmd.CombinedOutput()
-// 	if err != nil {
-// 		return "", fmt.Errorf("failed to read LSHandlers: %v", err)
-// 	}
-// 	// Simplified: parsing this requires more effort. Alternatively:
-// 	cmd = exec.Command("/usr/bin/python3", "-c", "import LaunchServices; print(LaunchServices.LSCopyDefaultHandlerForURLScheme('http'))")
-// 	output, err = cmd.Output()
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return strings.TrimSpace(string(output)), nil
-// }
-
-// func getDefaultBrowserLinux() (string, error) {
-// 	cmd := exec.Command("xdg-settings", "get", "default-web-browser")
-// 	output, err := cmd.Output()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	return strings.TrimSpace(string(output)), nil
-// }
-
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	// shutdownGracePeriod := 5 * time.Second
@@ -272,20 +214,13 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		// Signal a shutdown to the ExecAllocator
 		cancel()
 
-		// Wait for the significantly longer grace period.
-		// time.Sleep(shutdownGracePeriod)
-
-		// log.Println("Grace period for Chrome shutdown complete.")
-
-		// To avoid the "Chrome didn't shut down correctly." dialog box overwrite
-		// the files that store the "exit_cleanly" status check with empty JSON objects.
-		// 1. Local State (at the root of the user data directory)
+		// Local State (at the root of the user data directory)
 		localStateFile := filepath.Join(userDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to clear Local State file: %v", err)
 		}
 
-		// 2. Preferences file (inside the custom profile directory)
+		// Preferences file (inside the custom profile directory)
 		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to clear Preferences file: %v", err)
