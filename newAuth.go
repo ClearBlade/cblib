@@ -169,8 +169,8 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
-func promptForKeyPress() {
-	log.Println("Press ENTER to close the browser and continue.")
+func promptForBrowserLogin() {
+	log.Println("Login manually in the browser. Then press ENTER to close the browser and continue.")
 
 	// Wait for user input
 	reader := bufio.NewReader(os.Stdin)
@@ -314,7 +314,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
 	}
 
-	log.Println("Please login manually in the browser.")
+	// log.Println("Please login manually in the browser.")
 	// log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
 
 	// Poll the local storage until the token is found
@@ -333,14 +333,15 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if token != "" && token != "null" {
-				// log.Printf("Token successfully retrieved: %s\n", token)
+				log.Printf("Successfully logged into %s.\n", URL)
 
 				// Show the user a prompt to enter any key.
-				promptForKeyPress()
 
 				// When the function returns, the deferred function runs,
 				// which calls cancel() to close the browser, followed by file corruption.
 				return token, nil
+			} else {
+				promptForBrowserLogin()
 			}
 
 			// Wait 1 second before checking again
