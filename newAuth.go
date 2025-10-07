@@ -181,7 +181,7 @@ func promptForBrowserLogin() {
 
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
-	// shutdownGracePeriod := 5 * time.Second
+	shutdownGracePeriod := 2 * time.Second
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not get user home directory: %w", err)
@@ -213,6 +213,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 	// Custom deferred function for graceful shutdown
 	defer func() {
+
 		// Signal a shutdown to the ExecAllocator
 		cancel()
 
@@ -287,6 +288,10 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 					// Wait for user input
 					reader := bufio.NewReader(os.Stdin)
 					_, _ = reader.ReadString('\n')
+
+					log.Printf("Closing browser. Please wait.\n")
+					// Let Chrome process complete
+					time.Sleep(shutdownGracePeriod)
 				}
 
 				return token, nil
