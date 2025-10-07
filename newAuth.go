@@ -190,6 +190,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 	// Custom profile directory (retained for OIDC persistence)
 	const customProfileDir = "APP_OIDC"
+	// const customProfileDir = "Default"
 
 	// Pre-flight cleanup for common lock files
 	singletonLock := filepath.Join(userDataDir, "SingletonLock")
@@ -207,6 +208,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("enable-automation", true),
 		chromedp.Flag("profile-directory", customProfileDir),
+		// chromedp.Flag("disable-features", "ProfileSeparation"),
 	)
 
 	// Custom deferred function for graceful shutdown
@@ -252,6 +254,10 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// log.Println("Please login manually in the browser.")
 	// log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
 
+	// browserLoginNeeded := false
+	browserLoginStarted := false
+	tokentRetrieved := false
+
 	// Poll the local storage until the token is found
 	for {
 		select {
@@ -268,15 +274,28 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if token != "" && token != "null" {
+				tokentRetrieved = true
 				log.Printf("Successfully logged into %s.\n", URL)
 
 				// Show the user a prompt to enter any key.
 
 				// When the function returns, the deferred function runs,
 				// which calls cancel() to close the browser, followed by file corruption.
+
+				if browserLoginStarted {
+					log.Printf("Complete any activity in the browser, then click ENTER to close the browser and continue.\n")
+					// Wait for user input
+					reader := bufio.NewReader(os.Stdin)
+					_, _ = reader.ReadString('\n')
+				}
+
 				return token, nil
-			} else {
-				promptForBrowserLogin()
+
+			}
+
+			if !tokentRetrieved && !browserLoginStarted {
+				log.Printf("Login manually in the browser")
+				browserLoginStarted = true
 			}
 
 			// Wait 1 second before checking again
