@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,7 +184,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Pre-flight cleanup for common lock files
 	singletonLock := filepath.Join(userDataDir, "SingletonLock")
 	if _, err := os.Stat(singletonLock); err == nil {
-		log.Println("Found and removing stale SingletonLock.")
+		// fmt.Println("Found and removing stale SingletonLock.")
 		os.Remove(singletonLock)
 	}
 
@@ -210,14 +209,14 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		localStateFile := filepath.Join(userDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
-			log.Printf("Warning: Failed to clear Local State file: %v", err)
+			fmt.Printf("Warning: Failed to clear Local State file: %v", err)
 		}
 
 		// Preferences file (inside the custom profile directory)
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
-			log.Printf("Warning: Failed to clear Preferences file: %v", err)
+			fmt.Printf("Warning: Failed to clear Preferences file: %v", err)
 		}
 	}()
 
@@ -258,20 +257,20 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 				chromedp.Evaluate(jsGetToken, &token),
 			)
 			if err != nil {
-				log.Printf("Error during token check: %v. Retrying...", err)
+				fmt.Printf("Error during token check: %v. Retrying...", err)
 			}
 
 			if token != "" && token != "null" {
 				tokenRetrieved = true
-				log.Printf("Logging into %s.\n", URL)
+				fmt.Printf("Logged into %s.\n", URL)
 
 				if browserLoginStarted {
-					log.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
+					fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
 					// Wait for user input
 					reader := bufio.NewReader(os.Stdin)
 					_, _ = reader.ReadString('\n')
 
-					log.Printf("Closing browser. Please wait.\n")
+					fmt.Printf("Closing browser. Please wait.\n")
 					// A few seconds wait to let Chrome complete internal processes
 					time.Sleep(shutdownGracePeriod)
 				}
@@ -281,7 +280,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if !tokenRetrieved && !browserLoginStarted {
-				log.Printf("Login manually in the browser.")
+				fmt.Printf("Login manually in the browser.")
 				browserLoginStarted = true
 			}
 
@@ -340,7 +339,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 		if err == nil {
 			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
 		} else {
-			log.Printf("Login failed: %v", err)
+			fmt.Printf("Login failed: %v", err)
 		}
 	}
 
