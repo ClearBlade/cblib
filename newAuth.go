@@ -169,16 +169,6 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
-func promptForBrowserLogin() {
-	log.Println("Login manually in the browser. Then press ENTER to close the browser and continue.")
-
-	// Wait for user input
-	reader := bufio.NewReader(os.Stdin)
-	// ReadString blocks until a newline character is encountered.
-	// We ignore the returned string and error as we just need the blocking behavior.
-	_, _ = reader.ReadString('\n')
-}
-
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	shutdownGracePeriod := 2 * time.Second
@@ -189,8 +179,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	userDataDir := filepath.Join(userHomeDir, ".myapp", "chrome-profile")
 
 	// Custom profile directory (retained for OIDC persistence)
-	const customProfileDir = "APP_OIDC"
-	// const customProfileDir = "Default"
+	// const customProfileDir = "APP_OIDC"
+	const customProfileDir = "Default"
 
 	// Pre-flight cleanup for common lock files
 	singletonLock := filepath.Join(userDataDir, "SingletonLock")
@@ -208,7 +198,6 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("enable-automation", true),
 		chromedp.Flag("profile-directory", customProfileDir),
-		// chromedp.Flag("disable-features", "ProfileSeparation"),
 	)
 
 	// Custom deferred function for graceful shutdown
@@ -218,12 +207,14 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		cancel()
 
 		// Local State (at the root of the user data directory)
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		localStateFile := filepath.Join(userDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to clear Local State file: %v", err)
 		}
 
 		// Preferences file (inside the custom profile directory)
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
 			log.Printf("Warning: Failed to clear Preferences file: %v", err)
@@ -233,7 +224,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
-	// Set a generous timeout for the entire manual login process
+	// Set long enough timeout for the entire manual login process
 	ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
@@ -241,7 +232,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	var loginURL = url + "/login"
 	const tokenKey = "ngStorage-cb_platform_dev_token"
 
-	// The JavaScript to execute to read the token
+	// JS function to read the token
 	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
 
 	// Launch the browser and navigate
@@ -252,12 +243,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
 	}
 
-	// log.Println("Please login manually in the browser.")
-	// log.Printf("Waiting for token '%s' to be set in local storage (polling every 1s)...", tokenKey)
-
-	// browserLoginNeeded := false
 	browserLoginStarted := false
-	tokentRetrieved := false
+	tokenRetrieved := false
 
 	// Poll the local storage until the token is found
 	for {
@@ -266,7 +253,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			// The overall 5-minute timeout was hit
 			return "", fmt.Errorf("login timeout reached before token was set")
 		default:
-			// Execute JavaScript to read the local storage item
+			// Execute JS to read the local storage item
 			err := chromedp.Run(ctx,
 				chromedp.Evaluate(jsGetToken, &token),
 			)
@@ -275,22 +262,17 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if token != "" && token != "null" {
-				tokentRetrieved = true
-				log.Printf("Successfully logged into %s.\n", URL)
-
-				// Show the user a prompt to enter any key.
-
-				// When the function returns, the deferred function runs,
-				// which calls cancel() to close the browser, followed by file corruption.
+				tokenRetrieved = true
+				log.Printf("Logging into %s.\n", URL)
 
 				if browserLoginStarted {
-					log.Printf("Complete any activity in the browser, then click ENTER to close the browser and continue.\n")
+					log.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
 					// Wait for user input
 					reader := bufio.NewReader(os.Stdin)
 					_, _ = reader.ReadString('\n')
 
 					log.Printf("Closing browser. Please wait.\n")
-					// Let Chrome process complete
+					// A few seconds wait to let Chrome complete internal processes
 					time.Sleep(shutdownGracePeriod)
 				}
 
@@ -298,8 +280,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 			}
 
-			if !tokentRetrieved && !browserLoginStarted {
-				log.Printf("Login manually in the browser")
+			if !tokenRetrieved && !browserLoginStarted {
+				log.Printf("Login manually in the browser.")
 				browserLoginStarted = true
 			}
 
