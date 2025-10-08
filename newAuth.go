@@ -322,20 +322,8 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 			promptAndFillMissingPassword()
 		}
 	} else {
-		// browser, err := getDefaultBrowser()
-		// if err != nil {
-		// 	fmt.Printf("Error finding default browser: %s", err)
-		// }
-		// lowerBrowser := strings.ToLower(browser)
-
-		// var token string
-		// if strings.Contains(lowerBrowser, "chrome") {
 		token, err := retrieveTokenFromLocalStorageChrome(URL)
-		// } else if strings.Contains(lowerBrowser, "firefox") {
-		// 	fmt.Println("Firefox implementation coming!")
-		// } else {
-		// 	fmt.Println("Either Chrome or Firefox must be installed for login with browser.")
-		// }
+
 		if err == nil {
 			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
 		} else {
