@@ -23,7 +23,7 @@ const (
 	systemKeyPrompt    = "System Key"
 	browserLoginPrompt = "Login using Browser? (n|Y - Only Google Chrome supported.)"
 	emailPrompt        = "Developer Email"
-	passwordPrompt     = "Developer Password"
+	passwordPrompt     = "Developer Password (will be hidden): "
 	callbackPort       = ":8080"
 )
 
