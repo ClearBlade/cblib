@@ -311,28 +311,30 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// 	promptAndFillMissingMsgURL(defaultMsgURL)
 	// }
 
-	BrowserLogin := promptAndFillMissingBrowserLogin(defaultBrowserLogin)
+	if DevToken == "" || DevToken == "null" {
+		BrowserLogin := promptAndFillMissingBrowserLogin(defaultBrowserLogin)
 
-	if BrowserLogin == "n" {
-		if !promptSet.Has(PromptSkipEmail) {
-			promptAndFillMissingEmail(defaultEmail)
-		}
+		if BrowserLogin == "n" {
+			if !promptSet.Has(PromptSkipEmail) {
+				promptAndFillMissingEmail(defaultEmail)
+			}
 
-		if !promptSet.Has(PromptSkipPassword) {
-			promptAndFillMissingPassword()
-		}
-	} else {
-		token, err := retrieveTokenFromLocalStorageChrome(URL)
-
-		if err == nil {
-			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
+			if !promptSet.Has(PromptSkipPassword) {
+				promptAndFillMissingPassword()
+			}
 		} else {
-			fmt.Printf("Login failed: %v", err)
-		}
-	}
+			token, err := retrieveTokenFromLocalStorageChrome(URL)
 
-	if !promptSet.Has(PromptSkipSystemKey) {
-		promptAndFillMissingSystemKey(defaultSystemKey)
+			if err == nil {
+				DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
+			} else {
+				fmt.Printf("Login failed: %v", err)
+			}
+		}
+
+		if !promptSet.Has(PromptSkipSystemKey) {
+			promptAndFillMissingSystemKey(defaultSystemKey)
+		}
 	}
 }
 
