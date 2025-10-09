@@ -112,11 +112,10 @@ func initRemote(cmd *SubCommand, systemMeta *types.System_meta, cli *cb.DevClien
 }
 
 type DefaultInfo struct {
-	url          string
-	email        string
-	systemKey    string
-	msgUrl       string
-	browserLogin string
+	url       string
+	email     string
+	systemKey string
+	msgUrl    string
 }
 
 func setupInitDefaults() *DefaultInfo {

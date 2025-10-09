@@ -135,8 +135,8 @@ func promptAndFillMissingURLAndMsgURL(defaultURL, defaultMsgURL string) (bool, b
 	return false, false
 }
 
-func promptAndFillMissingBrowserLogin(defaultBrowserLogin string) string {
-	BrowserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, defaultBrowserLogin), false), defaultBrowserLogin)
+func promptAndFillMissingBrowserLogin() string {
+	BrowserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, "Y"), false), "Y")
 	TrimLowerBrowserLogin := strings.ToLower(strings.TrimSpace(BrowserLogin))
 	if TrimLowerBrowserLogin == "no" || TrimLowerBrowserLogin == "n" {
 		return "n"
@@ -292,13 +292,12 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
-	var defaultURL, defaultEmail, defaultSystemKey, defaultBrowserLogin string
+	var defaultURL, defaultEmail, defaultSystemKey string
 	if defaults != nil {
 		defaultURL = defaults.url
 		// defaultMsgURL = defaults.msgUrl
 		defaultEmail = defaults.email
 		defaultSystemKey = defaults.systemKey
-		defaultBrowserLogin = defaults.browserLogin
 	}
 
 	if !promptSet.Has(PromptSkipURL) {
@@ -312,7 +311,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// }
 
 	if DevToken == "" || DevToken == "null" {
-		BrowserLogin := promptAndFillMissingBrowserLogin(defaultBrowserLogin)
+		BrowserLogin := promptAndFillMissingBrowserLogin()
 
 		if BrowserLogin == "n" {
 			if !promptSet.Has(PromptSkipEmail) {
