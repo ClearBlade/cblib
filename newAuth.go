@@ -26,20 +26,6 @@ const (
 	callbackPort       = ":8080"
 )
 
-// AuthRequest mirrors the payload of the ClearBlade login POST request.
-type AuthRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-// AuthResponse mirrors the successful response body from the ClearBlade login.
-type AuthResponse struct {
-	DevToken     string `json:"dev_token"`
-	ExpiresAt    int64  `json:"expires_at"`
-	IsTwoFactor  bool   `json:"is_two_factor"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 func initAuthFlags() {
 	flag.StringVar(&URL, "platform-url", "", "Clearblade platform url for target system")
 	flag.StringVar(&MsgURL, "messaging-url", "", "Clearblade messaging url for target system")
