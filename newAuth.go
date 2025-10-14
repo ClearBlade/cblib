@@ -296,7 +296,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// 	promptAndFillMissingMsgURL(defaultMsgURL)
 	// }
 
-	if DevToken == "" || DevToken == "null" {
+	if (DevToken == "" || DevToken == "null") && ((Email == "" || Email == "null") || (Password == "" || Password == "null")) {
 		BrowserLogin := promptAndFillMissingBrowserLogin()
 
 		if BrowserLogin == "n" {
