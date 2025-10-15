@@ -158,18 +158,15 @@ func promptAndFillMissingPassword() bool {
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	shutdownGracePeriod := 2 * time.Second
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("could not get user home directory: %w", err)
-	}
-	userDataDir := filepath.Join(userHomeDir, ".myapp", "chrome-profile")
+	tempDir := os.TempDir()
+	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
 
 	// Custom profile directory (retained for OIDC persistence)
 	// const customProfileDir = "APP_OIDC"
 	const customProfileDir = "Default"
 
 	// Pre-flight cleanup for common lock files
-	singletonLock := filepath.Join(userDataDir, "SingletonLock")
+	singletonLock := filepath.Join(tempDataDir, "SingletonLock")
 	if _, err := os.Stat(singletonLock); err == nil {
 		// fmt.Println("Found and removing stale SingletonLock.")
 		os.Remove(singletonLock)
@@ -177,7 +174,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 	// Create a browser context with HEADLESS set to FALSE
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
-		chromedp.UserDataDir(userDataDir),
+		chromedp.UserDataDir(tempDataDir),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
 		chromedp.Flag("headless", false),
@@ -194,14 +191,14 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 		// Local State (at the root of the user data directory)
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
-		localStateFile := filepath.Join(userDataDir, "Local State")
+		localStateFile := filepath.Join(tempDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
 			fmt.Printf("Warning: Failed to clear Local State file: %v", err)
 		}
 
 		// Preferences file (inside the custom profile directory)
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
-		preferencesFile := filepath.Join(userDataDir, customProfileDir, "Preferences")
+		preferencesFile := filepath.Join(tempDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
 			fmt.Printf("Warning: Failed to clear Preferences file: %v", err)
 		}
@@ -222,7 +219,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
 
 	// Launch the browser and navigate
-	err = chromedp.Run(ctx,
+	err := chromedp.Run(ctx,
 		chromedp.Navigate(loginURL),
 	)
 	if err != nil {
