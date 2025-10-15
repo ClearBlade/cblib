@@ -156,7 +156,7 @@ func promptAndFillMissingPassword() bool {
 
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
-	shutdownGracePeriod := 2 * time.Second
+	shutdownGracePeriod := 3 * time.Second
 	tempDir := os.TempDir()
 	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
 
@@ -192,14 +192,14 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		localStateFile := filepath.Join(tempDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
-			fmt.Printf("Warning: Failed to clear Local State file: %v", err)
+			fmt.Printf("Warning: Failed to clear Local State file: %v\n", err)
 		}
 
 		// Preferences file (inside the custom profile directory)
 		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
 		preferencesFile := filepath.Join(tempDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
-			fmt.Printf("Warning: Failed to clear Preferences file: %v", err)
+			fmt.Printf("Warning: Failed to clear Preferences file: %v\n", err)
 		}
 	}()
 
@@ -240,7 +240,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 				chromedp.Evaluate(jsGetToken, &token),
 			)
 			if err != nil {
-				fmt.Printf("Error during token check: %v. Retrying...", err)
+				fmt.Printf("Error during token check: %v. Retrying...\n", err)
 			}
 
 			if !isBlankOrNull(token) {
@@ -263,7 +263,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if !tokenRetrieved && !browserLoginStarted {
-				fmt.Printf("Login manually in the browser.")
+				fmt.Println("Login manually in the browser.")
 				browserLoginStarted = true
 			}
 
@@ -275,7 +275,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
-	var defaultURL, defaultEmail, defaultSystemKey string
+	var defaultURL, defaultEmail, defaultSystemKey, token string
+	var err error
 	if defaults != nil {
 		defaultURL = defaults.url
 		// defaultMsgURL = defaults.msgUrl
@@ -305,18 +306,20 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 				promptAndFillMissingPassword()
 			}
 		} else {
-			token, err := retrieveTokenFromLocalStorageChrome(URL)
+			token, err = retrieveTokenFromLocalStorageChrome(URL)
 
 			if err == nil {
 				DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
 			} else {
-				fmt.Printf("Login failed: %v", err)
+				fmt.Printf("Login failed: %v\n", err)
 			}
 		}
 	}
 
-	if !promptSet.Has(PromptSkipSystemKey) {
-		promptAndFillMissingSystemKey(defaultSystemKey)
+	if err == nil {
+		if !promptSet.Has(PromptSkipSystemKey) {
+			promptAndFillMissingSystemKey(defaultSystemKey)
+		}
 	}
 }
 
@@ -403,7 +406,7 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 		}
 
 	} else {
-		errmsg := fmt.Errorf("must provide either password or token")
+		errmsg := fmt.Errorf("must either provide password / token or login using browser")
 		return nil, errmsg
 	}
 
