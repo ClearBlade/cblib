@@ -97,6 +97,10 @@ func (p *PromptSet) Has(flag PromptSet) bool {
 	return (*p)&flag != 0
 }
 
+func isBlankOrNull(param string) bool {
+	return param == "" || param == "null"
+}
+
 func promptAndFillMissingURL(defaultURL string) bool {
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
@@ -121,13 +125,10 @@ func promptAndFillMissingURLAndMsgURL(defaultURL, defaultMsgURL string) (bool, b
 	return false, false
 }
 
-func promptAndFillMissingBrowserLogin() string {
+func promptForBrowserLogin() bool {
 	BrowserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, ""), false), "Y")
 	TrimLowerBrowserLogin := strings.ToLower(strings.TrimSpace(BrowserLogin))
-	if TrimLowerBrowserLogin == "no" || TrimLowerBrowserLogin == "n" {
-		return "n"
-	}
-	return "y"
+	return TrimLowerBrowserLogin == "no" || TrimLowerBrowserLogin == "n"
 }
 
 func promptAndFillMissingEmail(defaultEmail string) bool {
@@ -246,7 +247,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 				fmt.Printf("Error during token check: %v. Retrying...", err)
 			}
 
-			if token != "" && token != "null" {
+			if !isBlankOrNull(token) {
 				tokenRetrieved = true
 				fmt.Printf("Logged into %s.\n", URL)
 
@@ -296,10 +297,10 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// 	promptAndFillMissingMsgURL(defaultMsgURL)
 	// }
 
-	if (DevToken == "" || DevToken == "null") && ((Email == "" || Email == "null") || (Password == "" || Password == "null")) {
-		BrowserLogin := promptAndFillMissingBrowserLogin()
+	if isBlankOrNull(DevToken) && (isBlankOrNull(Email) || isBlankOrNull(Password)) {
+		SkipBrowserLogin := promptForBrowserLogin()
 
-		if BrowserLogin == "n" {
+		if SkipBrowserLogin {
 			if !promptSet.Has(PromptSkipEmail) {
 				promptAndFillMissingEmail(defaultEmail)
 			}
@@ -316,10 +317,10 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 				fmt.Printf("Login failed: %v", err)
 			}
 		}
+	}
 
-		if !promptSet.Has(PromptSkipSystemKey) {
-			promptAndFillMissingSystemKey(defaultSystemKey)
-		}
+	if !promptSet.Has(PromptSkipSystemKey) {
+		promptAndFillMissingSystemKey(defaultSystemKey)
 	}
 }
 
