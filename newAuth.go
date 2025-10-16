@@ -189,14 +189,22 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		cancel()
 
 		// Local State (at the root of the user data directory)
-		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog.
+		// Getting rid of that dialog leads to a better user experience.
+		// Also "corrupting" this file is not too risky since the profile is in a
+		// temporary directory separate from the main profile AND a new browser instance
+		// is launched with every login attempt.
 		localStateFile := filepath.Join(tempDataDir, "Local State")
 		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
 			fmt.Printf("Warning: Failed to clear Local State file: %v\n", err)
 		}
 
 		// Preferences file (inside the custom profile directory)
-		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog.
+		// Getting rid of that dialog leads to a better user experience.
+		// Also "corrupting" this file is not too risky since the profile is in a
+		// temporary directory separate from the main profile AND a new browser instance
+		// is launched with every login attempt.
 		preferencesFile := filepath.Join(tempDataDir, customProfileDir, "Preferences")
 		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
 			fmt.Printf("Warning: Failed to clear Preferences file: %v\n", err)
