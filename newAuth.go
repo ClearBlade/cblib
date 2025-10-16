@@ -159,15 +159,11 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	shutdownGracePeriod := 3 * time.Second
 	tempDir := os.TempDir()
 	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
-
-	// Custom profile directory (retained for OIDC persistence)
-	// const customProfileDir = "APP_OIDC"
 	const customProfileDir = "Default"
 
 	// Pre-flight cleanup for common lock files
 	singletonLock := filepath.Join(tempDataDir, "SingletonLock")
 	if _, err := os.Stat(singletonLock); err == nil {
-		// fmt.Println("Found and removing stale SingletonLock.")
 		os.Remove(singletonLock)
 	}
 
@@ -230,7 +226,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		chromedp.Navigate(loginURL),
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to launch browser or navigate: %w", err)
+		return "", fmt.Errorf("failed to launch Chrome browser (ensure Chrome is installed): %w", err)
 	}
 
 	browserLoginStarted := false
@@ -271,7 +267,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 			}
 
 			if !tokenRetrieved && !browserLoginStarted {
-				fmt.Println("Login manually in the browser.")
+				fmt.Printf("Login manually in the browser.\n")
 				browserLoginStarted = true
 			}
 
@@ -323,7 +319,7 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 				// Browser login succeeded, continue to prompt for system key
 			} else {
 				// Browser login failed, abort and don't prompt for system key
-				fmt.Printf("Login failed: %v\n", err)
+				fmt.Printf("Browser login was not completed: %v\n", err)
 				return // Exit the function early without prompting for system key
 			}
 		}
