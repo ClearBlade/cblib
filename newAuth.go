@@ -154,7 +154,7 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
-func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
+func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	// 3 seconds was chosen because with shorter times it seemed that the token
 	// was NOT persisting in Local Storage. Strangely the CURRENT login WOULD work
@@ -167,13 +167,11 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
 	const customProfileDir = "Default"
 
-	// Pre-flight cleanup for common lock files
 	singletonLock := filepath.Join(tempDataDir, "SingletonLock")
 	if _, err := os.Stat(singletonLock); err == nil {
 		os.Remove(singletonLock)
 	}
 
-	// Create a browser context with HEADLESS set to FALSE
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
 		chromedp.UserDataDir(tempDataDir),
 		chromedp.NoFirstRun,
@@ -184,10 +182,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		chromedp.Flag("profile-directory", customProfileDir),
 	)
 
-	// Custom deferred function for graceful shutdown
 	defer func() {
-
-		// Signal a shutdown to the ExecAllocator
 		cancel()
 
 		// Local State (at the root of the user data directory)
@@ -216,18 +211,16 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	ctx, ctxCancel := chromedp.NewContext(allocCtx)
 	defer ctxCancel()
 
-	// Set long enough timeout for the entire manual login process
+	// 5min timeout should be long enough to complete manual login process
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer timeoutCancel()
 
 	var token string
 	var loginURL = url + "/login"
-	const tokenKey = "ngStorage-cb_platform_dev_token" // This is the key with which the browser stores the ClearBlade auth token in its Local Storage
+	const chromeLocStorCBtokenKey = "ngStorage-cb_platform_dev_token"
 
-	// JS function to read the token
-	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
+	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, chromeLocStorCBtokenKey)
 
-	// Launch the browser and navigate
 	err := chromedp.Run(timeoutCtx,
 		chromedp.Navigate(loginURL),
 	)
@@ -238,14 +231,11 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	browserLoginStarted := false
 	tokenRetrieved := false
 
-	// Poll the local storage until the token is found
 	for {
 		select {
 		case <-timeoutCtx.Done():
-			// The overall 5-minute timeout was hit
 			return "", fmt.Errorf("login timeout reached before token was set")
 		default:
-			// Execute JS to read the local storage item
 			err := chromedp.Run(timeoutCtx,
 				chromedp.Evaluate(jsGetToken, &token),
 			)
@@ -259,17 +249,15 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 				if browserLoginStarted {
 					fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
-					// Wait for user input
 					reader := bufio.NewReader(os.Stdin)
 					_, _ = reader.ReadString('\n')
 
 					fmt.Printf("Closing browser. Please wait.\n")
-					// A few seconds wait to let Chrome complete internal processes
+
 					time.Sleep(shutdownGracePeriod)
 				}
 
 				return token, nil
-
 			}
 
 			if !tokenRetrieved && !browserLoginStarted {
@@ -277,7 +265,6 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 				browserLoginStarted = true
 			}
 
-			// Wait 1 second before checking again
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -318,16 +305,16 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 			// Browser login was never initiated, continue to prompt for system key
 		} else {
 			// Browser login was initiated
-			token, err = retrieveTokenFromLocalStorageChrome(URL)
+			token, err = retrieveTokenFromChromeLocalStorage(URL)
 
-			if err == nil {
-				DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
-				// Browser login succeeded, continue to prompt for system key
-			} else {
+			if err != nil {
 				// Browser login failed, abort and don't prompt for system key
 				fmt.Printf("Browser login was not completed: %v\n", err)
 				return // Exit the function early without prompting for system key
 			}
+
+			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
+			// Browser login succeeded, continue to prompt for system key
 		}
 	}
 
