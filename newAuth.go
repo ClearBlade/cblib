@@ -156,6 +156,12 @@ func promptAndFillMissingPassword() bool {
 
 func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
+	// 3 seconds was chosen because with shorter times it seemed that the token
+	// was NOT persisting in Local Storage. Strangely the CURRENT login WOULD work
+	// (i.e. the token must have been found in Local Storage), but upon SUBSEQUENT
+	// login attempts the token was NOT found. Not sure if there is a process that
+	// needs to complete to make sure the Local Storage is "locked". With 3 seconds
+	// I found the token was ALWAYS present upon subsequent login attempts.
 	shutdownGracePeriod := 3 * time.Second
 	tempDir := os.TempDir()
 	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
@@ -216,7 +222,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 
 	var token string
 	var loginURL = url + "/login"
-	const tokenKey = "ngStorage-cb_platform_dev_token"
+	const tokenKey = "ngStorage-cb_platform_dev_token" // This is the key with which the browser stores the ClearBlade auth token in its Local Storage
 
 	// JS function to read the token
 	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
