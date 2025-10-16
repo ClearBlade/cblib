@@ -207,8 +207,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	defer ctxCancel()
 
 	// Set long enough timeout for the entire manual login process
-	ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer timeoutCancel()
 
 	var token string
 	var loginURL = url + "/login"
@@ -218,7 +218,7 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, tokenKey)
 
 	// Launch the browser and navigate
-	err := chromedp.Run(ctx,
+	err := chromedp.Run(timeoutCtx,
 		chromedp.Navigate(loginURL),
 	)
 	if err != nil {
@@ -231,12 +231,12 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 	// Poll the local storage until the token is found
 	for {
 		select {
-		case <-ctx.Done():
+		case <-timeoutCtx.Done():
 			// The overall 5-minute timeout was hit
 			return "", fmt.Errorf("login timeout reached before token was set")
 		default:
 			// Execute JS to read the local storage item
-			err := chromedp.Run(ctx,
+			err := chromedp.Run(timeoutCtx,
 				chromedp.Evaluate(jsGetToken, &token),
 			)
 			if err != nil {
