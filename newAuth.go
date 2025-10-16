@@ -125,9 +125,9 @@ func promptAndFillMissingURLAndMsgURL(defaultURL, defaultMsgURL string) (bool, b
 }
 
 func promptIfSkipBrowserLogin() bool {
-	BrowserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, ""), false), "Y")
-	TrimLowerBrowserLogin := strings.ToLower(strings.TrimSpace(BrowserLogin))
-	return TrimLowerBrowserLogin == "no" || TrimLowerBrowserLogin == "n"
+	browserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, ""), false), "Y")
+	trimLowerBrowserLogin := strings.ToLower(strings.TrimSpace(browserLogin))
+	return trimLowerBrowserLogin == "no" || trimLowerBrowserLogin == "n"
 }
 
 func promptAndFillMissingEmail(defaultEmail string) bool {
