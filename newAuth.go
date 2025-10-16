@@ -203,8 +203,8 @@ func retrieveTokenFromLocalStorageChrome(url string) (string, error) {
 		}
 	}()
 
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+	ctx, ctxCancel := chromedp.NewContext(allocCtx)
+	defer ctxCancel()
 
 	// Set long enough timeout for the entire manual login process
 	ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
@@ -305,21 +305,24 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 			if !promptSet.Has(PromptSkipPassword) {
 				promptAndFillMissingPassword()
 			}
+			// Browser login was never initiated, continue to prompt for system key
 		} else {
+			// Browser login was initiated
 			token, err = retrieveTokenFromLocalStorageChrome(URL)
 
 			if err == nil {
 				DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
+				// Browser login succeeded, continue to prompt for system key
 			} else {
+				// Browser login failed, abort and don't prompt for system key
 				fmt.Printf("Login failed: %v\n", err)
+				return // Exit the function early without prompting for system key
 			}
 		}
 	}
 
-	if err == nil {
-		if !promptSet.Has(PromptSkipSystemKey) {
-			promptAndFillMissingSystemKey(defaultSystemKey)
-		}
+	if !promptSet.Has(PromptSkipSystemKey) {
+		promptAndFillMissingSystemKey(defaultSystemKey)
 	}
 }
 
