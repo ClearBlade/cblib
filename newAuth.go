@@ -154,6 +154,44 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
+func handleLoginTimeout() error {
+	return fmt.Errorf("login timeout reached before token was set")
+}
+
+func attemptTokenRetrieval(ctx context.Context, jsGetToken string) string {
+	var token string
+	err := chromedp.Run(ctx,
+		chromedp.Evaluate(jsGetToken, &token),
+	)
+	if err != nil {
+		fmt.Printf("Error during token check: %v. Retrying...\n", err)
+	}
+	return token
+}
+
+func hasValidToken(token string) bool {
+	return !isBlankOrNull(token)
+}
+
+func notifyLoginSuccess() {
+	fmt.Printf("Logged into %s.\n", URL)
+}
+
+func waitForUserConfirmation() {
+	fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
+	reader := bufio.NewReader(os.Stdin)
+	_, _ = reader.ReadString('\n')
+	fmt.Printf("Closing browser. Please wait.\n")
+}
+
+func shouldPromptUserLogin(tokenRetrieved, browserLoginStarted bool) bool {
+	return !tokenRetrieved && !browserLoginStarted
+}
+
+func promptUserForManualLogin() {
+	fmt.Printf("Login manually in the browser.\n")
+}
+
 func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 	// Retain the long grace period for maximum chance of natural cleanup
 	// 3 seconds was chosen because with shorter times it seemed that the token
@@ -234,34 +272,24 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 	for {
 		select {
 		case <-timeoutCtx.Done():
-			return "", fmt.Errorf("login timeout reached before token was set")
+			return "", handleLoginTimeout()
 		default:
-			err := chromedp.Run(timeoutCtx,
-				chromedp.Evaluate(jsGetToken, &token),
-			)
-			if err != nil {
-				fmt.Printf("Error during token check: %v. Retrying...\n", err)
-			}
+			token = attemptTokenRetrieval(timeoutCtx, jsGetToken)
 
-			if !isBlankOrNull(token) {
+			if hasValidToken(token) {
 				tokenRetrieved = true
-				fmt.Printf("Logged into %s.\n", URL)
+				notifyLoginSuccess()
 
 				if browserLoginStarted {
-					fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
-					reader := bufio.NewReader(os.Stdin)
-					_, _ = reader.ReadString('\n')
-
-					fmt.Printf("Closing browser. Please wait.\n")
-
+					waitForUserConfirmation()
 					time.Sleep(shutdownGracePeriod)
 				}
 
 				return token, nil
 			}
 
-			if !tokenRetrieved && !browserLoginStarted {
-				fmt.Printf("Login manually in the browser.\n")
+			if shouldPromptUserLogin(tokenRetrieved, browserLoginStarted) {
+				promptUserForManualLogin()
 				browserLoginStarted = true
 			}
 
