@@ -154,11 +154,9 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
-func handleLoginTimeout() error {
-	return fmt.Errorf("login timeout reached before token was set")
-}
-
-func attemptTokenRetrieval(ctx context.Context, jsGetToken string) string {
+func attemptTokenRetrieval(ctx context.Context) string {
+	const chromeLocalStorageCBtokenKey = "ngStorage-cb_platform_dev_token"
+	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, chromeLocalStorageCBtokenKey)
 	var token string
 	err := chromedp.Run(ctx,
 		chromedp.Evaluate(jsGetToken, &token),
@@ -169,27 +167,11 @@ func attemptTokenRetrieval(ctx context.Context, jsGetToken string) string {
 	return token
 }
 
-func hasValidToken(token string) bool {
-	return !isBlankOrNull(token)
-}
-
-func notifyLoginSuccess() {
-	fmt.Printf("Logged into %s.\n", URL)
-}
-
 func waitForUserConfirmation() {
 	fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
 	reader := bufio.NewReader(os.Stdin)
 	_, _ = reader.ReadString('\n')
 	fmt.Printf("Closing browser. Please wait.\n")
-}
-
-func shouldPromptUserLogin(tokenRetrieved, browserLoginStarted bool) bool {
-	return !tokenRetrieved && !browserLoginStarted
-}
-
-func promptUserForManualLogin() {
-	fmt.Printf("Login manually in the browser.\n")
 }
 
 func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
@@ -255,9 +237,6 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 
 	var token string
 	var loginURL = url + "/login"
-	const chromeLocStorCBtokenKey = "ngStorage-cb_platform_dev_token"
-
-	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, chromeLocStorCBtokenKey)
 
 	err := chromedp.Run(timeoutCtx,
 		chromedp.Navigate(loginURL),
@@ -272,13 +251,14 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 	for {
 		select {
 		case <-timeoutCtx.Done():
-			return "", handleLoginTimeout()
+			fmt.Printf("login timeout reached before token was set")
+			return "", fmt.Errorf("login timeout reached before token was set")
 		default:
-			token = attemptTokenRetrieval(timeoutCtx, jsGetToken)
+			token = attemptTokenRetrieval(timeoutCtx)
 
-			if hasValidToken(token) {
+			if !isBlankOrNull(token) {
 				tokenRetrieved = true
-				notifyLoginSuccess()
+				fmt.Printf("Logged into %s.\n", URL)
 
 				if browserLoginStarted {
 					waitForUserConfirmation()
@@ -288,8 +268,9 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 				return token, nil
 			}
 
-			if shouldPromptUserLogin(tokenRetrieved, browserLoginStarted) {
-				promptUserForManualLogin()
+			shouldPromptUserLogin := !tokenRetrieved && !browserLoginStarted
+			if shouldPromptUserLogin {
+				fmt.Printf("Login manually in the browser.\n")
 				browserLoginStarted = true
 			}
 
