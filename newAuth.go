@@ -2,22 +2,27 @@ package cblib
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bgentry/speakeasy"
+	"github.com/chromedp/chromedp"
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/maputil"
 )
 
 const (
-	urlPrompt       = "Platform URL"
-	msgurlPrompt    = "Messaging URL"
-	systemKeyPrompt = "System Key"
-	emailPrompt     = "Developer Email"
-	passwordPrompt  = "Developer password: "
+	urlPrompt          = "Platform URL"
+	msgurlPrompt       = "Messaging URL"
+	systemKeyPrompt    = "System Key"
+	browserLoginPrompt = "Login using Browser? (n|Y - Only Google Chrome supported.)"
+	emailPrompt        = "Developer Email"
+	passwordPrompt     = "Developer Password (will be hidden): "
 )
 
 func initAuthFlags() {
@@ -91,6 +96,10 @@ func (p *PromptSet) Has(flag PromptSet) bool {
 	return (*p)&flag != 0
 }
 
+func isBlankOrNull(param string) bool {
+	return param == "" || param == "null"
+}
+
 func promptAndFillMissingURL(defaultURL string) bool {
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
@@ -113,6 +122,12 @@ func promptAndFillMissingURLAndMsgURL(defaultURL, defaultMsgURL string) (bool, b
 		return true, promptAndFillMissingMsgURL(defaultMsgURL)
 	}
 	return false, false
+}
+
+func promptIfSkipBrowserLogin() bool {
+	browserLogin := getAnswer(getOneItem(buildPrompt(browserLoginPrompt, ""), false), "Y")
+	trimLowerBrowserLogin := strings.ToLower(strings.TrimSpace(browserLogin))
+	return trimLowerBrowserLogin == "no" || trimLowerBrowserLogin == "n"
 }
 
 func promptAndFillMissingEmail(defaultEmail string) bool {
@@ -139,9 +154,135 @@ func promptAndFillMissingPassword() bool {
 	return false
 }
 
+func attemptTokenRetrieval(ctx context.Context) string {
+	const chromeLocalStorageCBtokenKey = "ngStorage-cb_platform_dev_token"
+	jsGetToken := fmt.Sprintf(`localStorage.getItem("%s");`, chromeLocalStorageCBtokenKey)
+	var token string
+	err := chromedp.Run(ctx,
+		chromedp.Evaluate(jsGetToken, &token),
+	)
+	if err != nil {
+		fmt.Printf("Error during token check: %v. Retrying...\n", err)
+	}
+	return token
+}
+
+func waitForUserConfirmation() {
+	fmt.Printf("Complete any activity in the browser. Then click ENTER to close the browser and continue.\n")
+	reader := bufio.NewReader(os.Stdin)
+	_, _ = reader.ReadString('\n')
+	fmt.Printf("Closing browser. Please wait.\n")
+}
+
+func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
+	// Retain the long grace period for maximum chance of natural cleanup
+	// 3 seconds was chosen because with shorter times it seemed that the token
+	// was NOT persisting in Local Storage. Strangely the CURRENT login WOULD work
+	// (i.e. the token must have been found in Local Storage), but upon SUBSEQUENT
+	// login attempts the token was NOT found. Not sure if there is a process that
+	// needs to complete to make sure the Local Storage is "locked". With 3 seconds
+	// I found the token was ALWAYS present upon subsequent login attempts.
+	shutdownGracePeriod := 3 * time.Second
+	tempDir := os.TempDir()
+	tempDataDir := filepath.Join(tempDir, "cb-cli-chprof")
+	const customProfileDir = "Default"
+
+	singletonLock := filepath.Join(tempDataDir, "SingletonLock")
+	if _, err := os.Stat(singletonLock); err == nil {
+		os.Remove(singletonLock)
+	}
+
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(),
+		chromedp.UserDataDir(tempDataDir),
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Flag("headless", false),
+		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("enable-automation", true),
+		chromedp.Flag("profile-directory", customProfileDir),
+	)
+
+	defer func() {
+		cancel()
+
+		// Local State (at the root of the user data directory)
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog.
+		// Getting rid of that dialog leads to a better user experience.
+		// Also "corrupting" this file is not too risky since the profile is in a
+		// temporary directory separate from the main profile AND a new browser instance
+		// is launched with every login attempt.
+		localStateFile := filepath.Join(tempDataDir, "Local State")
+		if err := os.WriteFile(localStateFile, []byte("{}"), 0644); err != nil {
+			fmt.Printf("Warning: Failed to clear Local State file: %v\n", err)
+		}
+
+		// Preferences file (inside the custom profile directory)
+		// Writing empty object to prevent "Chrome didn't shut down correctly" dialog.
+		// Getting rid of that dialog leads to a better user experience.
+		// Also "corrupting" this file is not too risky since the profile is in a
+		// temporary directory separate from the main profile AND a new browser instance
+		// is launched with every login attempt.
+		preferencesFile := filepath.Join(tempDataDir, customProfileDir, "Preferences")
+		if err := os.WriteFile(preferencesFile, []byte("{}"), 0644); err != nil {
+			fmt.Printf("Warning: Failed to clear Preferences file: %v\n", err)
+		}
+	}()
+
+	ctx, ctxCancel := chromedp.NewContext(allocCtx)
+	defer ctxCancel()
+
+	// 5min timeout should be long enough to complete manual login process
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer timeoutCancel()
+
+	var token string
+	var loginURL = url + "/login"
+
+	err := chromedp.Run(timeoutCtx,
+		chromedp.Navigate(loginURL),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to launch Chrome browser (ensure Chrome is installed): %w", err)
+	}
+
+	browserLoginStarted := false
+	tokenRetrieved := false
+
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			fmt.Printf("login timeout reached before token was set")
+			return "", fmt.Errorf("login timeout reached before token was set")
+		default:
+			token = attemptTokenRetrieval(timeoutCtx)
+
+			if !isBlankOrNull(token) {
+				tokenRetrieved = true
+				fmt.Printf("Logged into %s.\n", URL)
+
+				if browserLoginStarted {
+					waitForUserConfirmation()
+					time.Sleep(shutdownGracePeriod)
+				}
+
+				return token, nil
+			}
+
+			shouldPromptUserLogin := !tokenRetrieved && !browserLoginStarted
+			if shouldPromptUserLogin {
+				fmt.Printf("Login manually in the browser.\n")
+				browserLoginStarted = true
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
 func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// var defaultURL, defaultMsgURL, defaultEmail, defaultSystemKey string
-	var defaultURL, defaultEmail, defaultSystemKey string
+	var defaultURL, defaultEmail, defaultSystemKey, token string
+	var err error
 	if defaults != nil {
 		defaultURL = defaults.url
 		// defaultMsgURL = defaults.msgUrl
@@ -159,16 +300,35 @@ func promptAndFillMissingAuth(defaults *DefaultInfo, promptSet PromptSet) {
 	// 	promptAndFillMissingMsgURL(defaultMsgURL)
 	// }
 
-	if !promptSet.Has(PromptSkipEmail) {
-		promptAndFillMissingEmail(defaultEmail)
+	if isBlankOrNull(DevToken) && (isBlankOrNull(Email) || isBlankOrNull(Password)) {
+		SkipBrowserLogin := promptIfSkipBrowserLogin()
+
+		if SkipBrowserLogin {
+			if !promptSet.Has(PromptSkipEmail) {
+				promptAndFillMissingEmail(defaultEmail)
+			}
+
+			if !promptSet.Has(PromptSkipPassword) {
+				promptAndFillMissingPassword()
+			}
+			// Browser login was never initiated, continue to prompt for system key
+		} else {
+			// Browser login was initiated
+			token, err = retrieveTokenFromChromeLocalStorage(URL)
+
+			if err != nil {
+				// Browser login failed, abort and don't prompt for system key
+				fmt.Printf("Browser login was not completed: %v\n", err)
+				return // Exit the function early without prompting for system key
+			}
+
+			DevToken = strings.Trim(token, "\"") // remove double-quotes from returned token
+			// Browser login succeeded, continue to prompt for system key
+		}
 	}
 
 	if !promptSet.Has(PromptSkipSystemKey) {
 		promptAndFillMissingSystemKey(defaultSystemKey)
-	}
-
-	if !promptSet.Has(PromptSkipPassword) {
-		promptAndFillMissingPassword()
 	}
 }
 
@@ -255,7 +415,7 @@ func authorizeUsing(platformURL, messagingURL, email, password, token string) (*
 		}
 
 	} else {
-		errmsg := fmt.Errorf("must provide either password or token")
+		errmsg := fmt.Errorf("must either provide password / token or login using browser")
 		return nil, errmsg
 	}
 
