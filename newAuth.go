@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"net/url"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/chromedp/chromedp"
@@ -100,10 +101,47 @@ func isBlankOrNull(param string) bool {
 	return param == "" || param == "null"
 }
 
+func normalizeURL(input string) (string, error) {
+	// Trim spaces
+	input = strings.TrimSpace(input)
+
+	// Add scheme if missing
+	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
+		input = "https://" + input
+	}
+
+	// Parse the URL
+	parsed, err := url.Parse(input)
+	if err != nil {
+		return "", err
+	}
+
+	// Remove trailing slash from path if present
+	parsed.Path = strings.TrimSuffix(parsed.Path, "/")
+
+	// Rebuild URL without trailing slash
+	normalized := parsed.Scheme + "://" + parsed.Host
+	if parsed.Path != "" {
+		normalized += parsed.Path
+	}
+	if parsed.RawQuery != "" {
+		normalized += "?" + parsed.RawQuery
+	}
+	if parsed.Fragment != "" {
+		normalized += "#" + parsed.Fragment
+	}
+
+	return normalized, nil
+}
+
 func promptAndFillMissingURL(defaultURL string) bool {
+	var err error
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
-		return true
+		URL, err = normalizeURL(URL)
+		if err != nil {
+			return true
+		}
 	}
 	return false
 }
