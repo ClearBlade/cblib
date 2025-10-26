@@ -281,7 +281,7 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 		chromedp.Navigate(loginURL),
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to launch Chrome browser (ensure Chrome is installed): %w", err)
+		return "", fmt.Errorf("failed to launch Chrome browser: %w", err)
 	}
 
 	browserLoginStarted := false
