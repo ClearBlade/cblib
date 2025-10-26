@@ -140,8 +140,9 @@ func promptAndFillMissingURL(defaultURL string) bool {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
 		URL, err = normalizeURL(URL)
 		if err != nil {
-			return true
+			return false
 		}
+		return true
 	}
 	return false
 }
