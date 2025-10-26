@@ -48,6 +48,7 @@ type systemFileHandler interface {
 func walkSystemFiles(rootDir string, handler systemFileHandler) error {
 	return filepath.WalkDir(rootDir, func(absolutePath string, d fs.DirEntry, err error) error {
 		path, pathErr := filepath.Rel(rootDir, absolutePath)
+		path = filepath.ToSlash(path) // Windows uses '\'; this line overwrites those with '/' as required for .zip
 		if pathErr != nil {
 			return fmt.Errorf("could not make %s relative to %s: %w", absolutePath, rootDir, pathErr)
 		}
