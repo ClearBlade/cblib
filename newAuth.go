@@ -5,11 +5,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"net/url"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/chromedp/chromedp"
@@ -105,33 +105,21 @@ func normalizeURL(input string) (string, error) {
 	// Trim spaces
 	input = strings.TrimSpace(input)
 
-	// Add scheme if missing
+	// 'Add https://' if no scheme is present
 	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
 		input = "https://" + input
 	}
 
-	// Parse the URL
+	// Parse to extract components and strip query/fragment
 	parsed, err := url.Parse(input)
 	if err != nil {
 		return "", err
 	}
 
-	// Remove trailing slash from path if present
-	parsed.Path = strings.TrimSuffix(parsed.Path, "/")
+	// Build URL: scheme + host + path (without trailing slash)
+	result := parsed.Scheme + "://" + parsed.Host + strings.TrimSuffix(parsed.Path, "/")
 
-	// Rebuild URL without trailing slash
-	normalized := parsed.Scheme + "://" + parsed.Host
-	if parsed.Path != "" {
-		normalized += parsed.Path
-	}
-	if parsed.RawQuery != "" {
-		normalized += "?" + parsed.RawQuery
-	}
-	if parsed.Fragment != "" {
-		normalized += "#" + parsed.Fragment
-	}
-
-	return normalized, nil
+	return result, nil
 }
 
 func promptAndFillMissingURL(defaultURL string) bool {
