@@ -105,7 +105,7 @@ func normalizeURL(input string) (string, error) {
 	// Trim spaces
 	input = strings.TrimSpace(input)
 
-	// 'Add https://' if no scheme is present
+	// Add 'https://' if no scheme is present
 	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
 		input = "https://" + input
 	}
