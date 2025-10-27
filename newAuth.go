@@ -116,8 +116,8 @@ func normalizeURL(input string) (string, error) {
 		return "", err
 	}
 
-	// Build URL: scheme + host + path (without trailing slash)
-	result := parsed.Scheme + "://" + parsed.Host + strings.TrimSuffix(parsed.Path, "/")
+	// Build URL: scheme + host (without trailing slash)
+	result := parsed.Scheme + "://" + strings.TrimSuffix(parsed.Host, "/")
 
 	return result, nil
 }
