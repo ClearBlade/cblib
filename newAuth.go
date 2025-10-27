@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -100,9 +101,35 @@ func isBlankOrNull(param string) bool {
 	return param == "" || param == "null"
 }
 
+func normalizeURL(input string) (string, error) {
+	// Trim spaces
+	input = strings.TrimSpace(input)
+
+	// Add 'https://' if no scheme is present
+	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
+		input = "https://" + input
+	}
+
+	// Parse to extract components and strip query/fragment
+	parsed, err := url.Parse(input)
+	if err != nil {
+		return "", err
+	}
+
+	// Build URL: scheme + host (without trailing slash)
+	result := parsed.Scheme + "://" + strings.TrimSuffix(parsed.Host, "/")
+
+	return result, nil
+}
+
 func promptAndFillMissingURL(defaultURL string) bool {
+	var err error
 	if URL == "" {
 		URL = getAnswer(getOneItem(buildPrompt(urlPrompt, defaultURL), false), defaultURL)
+		URL, err = normalizeURL(URL)
+		if err != nil {
+			return false
+		}
 		return true
 	}
 	return false
@@ -242,7 +269,7 @@ func retrieveTokenFromChromeLocalStorage(url string) (string, error) {
 		chromedp.Navigate(loginURL),
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to launch Chrome browser (ensure Chrome is installed): %w", err)
+		return "", fmt.Errorf("failed to launch Chrome browser: %w", err)
 	}
 
 	browserLoginStarted := false
