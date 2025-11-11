@@ -560,7 +560,7 @@ func createCollectionIfNecessary(meta *types.System_meta, collection map[string]
 		return CreateCollectionIfNecessaryOutput{collectionExistsOrWasCreated: false}, err
 	}
 
-	_, err = client.GetDataTotalByName(meta.Key, collection_name, cb.NewQuery())
+	_, err = client.GetColumnsByCollectionName(meta.Key, collection_name)
 	if err != nil {
 		fmt.Printf("Could not find collection '%s'. Error is - %s\n", collection_name, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new collection named %s?", collection_name))
