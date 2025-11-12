@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -627,7 +628,7 @@ func writeTimer(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(timersDir, 0777); err != nil {
 		return err
 	}
-	timerFileName := strings.ReplaceAll(name, "/", "__") // duration timers have '/' in their name, so this is needed to write the .json file
+	timerFileName := url.PathEscape(name) // duration timers have '/' in their name which causes trouble when writing the .json file
 	return writeEntity(timersDir, timerFileName, whitelistTimer(data))
 }
 
