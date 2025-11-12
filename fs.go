@@ -627,7 +627,8 @@ func writeTimer(name string, data map[string]interface{}) error {
 	if err := os.MkdirAll(timersDir, 0777); err != nil {
 		return err
 	}
-	return writeEntity(timersDir, name, whitelistTimer(data))
+	timerFileName := strings.ReplaceAll(name, "/", "__") // duration timers have '/' in their name, so this is needed to write the .json file
+	return writeEntity(timersDir, timerFileName, whitelistTimer(data))
 }
 
 func whitelistDeployment(data map[string]interface{}) map[string]interface{} {
