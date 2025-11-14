@@ -1371,7 +1371,8 @@ func getTrigger(name string) (map[string]interface{}, error) {
 }
 
 func getTimer(name string) (map[string]interface{}, error) {
-	return getObject(timersDir, name+".json")
+	timerFileName := url.PathEscape(name)
+	return getObject(timersDir, timerFileName+".json")
 }
 
 func getDevice(name string) (map[string]interface{}, error) {

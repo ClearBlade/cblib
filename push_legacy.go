@@ -1721,6 +1721,7 @@ func createTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 
 func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevClient) error {
 	timerName := timer["name"].(string)
+	fmt.Printf("timerName: %s\n", timerName)
 	delete(timer, "name")
 	startTime := timer["start_time"].(string)
 	if startTime == "Now" {
@@ -1728,6 +1729,7 @@ func updateTimer(systemKey string, timer map[string]interface{}, client *cb.DevC
 	}
 
 	if _, err := pullTimer(systemKey, timerName, client); err != nil {
+		fmt.Printf("timerName: %s\n", timerName)
 		fmt.Printf("Could not find timer '%s'. Error is - %s\n", timerName, err.Error())
 		c, err := confirmPrompt(fmt.Sprintf("Would you like to create a new timer named %s?", timerName))
 		if err != nil {
