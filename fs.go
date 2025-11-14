@@ -1154,8 +1154,18 @@ func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
 			fmt.Printf("ioutil.ReadFile failed: %s\n", err)
 			return nil, err
 		}
+		_, err = os.Stat(myRootDir + "/" + realDirName + ".js.map")
+		if err == nil {
+			bytsMap, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js.map")
+			if err != nil {
+				fmt.Printf("ioutil.ReadFile for source map failed: %s\n", err)
+				return nil, err
+			}
+			myObj["sourceMap"] = string(bytsMap)
+		}
 		myObj["code"] = string(byts)
 		delete(myObj, "source")
+		fmt.Printf("myObj: %+v\n", myObj)
 		rval = append(rval, myObj)
 	}
 	return rval, nil

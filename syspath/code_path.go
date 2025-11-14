@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	servicePathRegexStr = `^code\/services\/([^\/]+)\/([^\/]+)\.(?:js|json)$`
+	servicePathRegexStr = `^code\/services\/([^\/]+)\/([^\/]+)\.(?:js|json|js.map)$`
 	libraryPathRegexStr = `^code\/libraries\/([^\/]+)\/([^\/]+)\.(?:js|json)$`
 )
 
