@@ -2,6 +2,7 @@ package cblib
 
 import (
 	"fmt"
+	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/models"
@@ -9,7 +10,8 @@ import (
 )
 
 var (
-	PULL_ALL_USERS = "%PULL_ALL_USERS%"
+	PULL_ALL_USERS           = "%PULL_ALL_USERS%"
+	FORBIDDEN_CHARS_IN_NAMES = "/"
 )
 
 func init() {
@@ -351,11 +353,16 @@ func PullAndWriteTimers(sysMeta *types.System_meta, cli *cb.DevClient) ([]map[st
 	timers := []map[string]interface{}{}
 	for _, timer := range theTimers {
 		thisTimer := timer.(map[string]interface{})
-		fmt.Printf(" %s", thisTimer["name"].(string))
-		timers = append(timers, thisTimer)
-		err = writeTimer(thisTimer["name"].(string), thisTimer)
-		if err != nil {
-			return nil, err
+		thisTimerName := thisTimer["name"].(string)
+		fmt.Printf("\n%s ", thisTimerName)
+		if strings.ContainsAny(thisTimerName, FORBIDDEN_CHARS_IN_NAMES) {
+			fmt.Printf(" (skipped: forbidden char in name)")
+		} else {
+			timers = append(timers, thisTimer)
+			err = writeTimer(thisTimerName, thisTimer)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return timers, nil
