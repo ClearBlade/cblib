@@ -809,8 +809,8 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
-	_, ok := data["source_map"]
-	if ok {
+	sourceMap, ok := data["source_map"].(string)
+	if ok && sourceMap != "" {
 		if err := ioutil.WriteFile(mySvcDir+"/"+name+".js.map", []byte(data["source_map"].(string)), 0666); err != nil {
 			return err
 		}
@@ -942,8 +942,8 @@ func writeLibrary(name string, data map[string]interface{}) error {
 	if err := ioutil.WriteFile(myLibDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
 	}
-	_, ok := data["source_map"]
-	if ok {
+	sourceMap, ok := data["source_map"].(string)
+	if ok && sourceMap != "" {
 		if err := ioutil.WriteFile(myLibDir+"/"+name+".js.map", []byte(data["source_map"].(string)), 0666); err != nil {
 			return err
 		}
