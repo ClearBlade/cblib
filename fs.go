@@ -1178,7 +1178,6 @@ func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
 		}
 		myObj["code"] = string(byts)
 		delete(myObj, "source")
-		fmt.Printf("myObj: %+v\n", myObj)
 		rval = append(rval, myObj)
 	}
 	return rval, nil
