@@ -3,6 +3,7 @@ package cblib
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -1175,6 +1176,9 @@ func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
 				return nil, err
 			}
 			myObj["source_map"] = string(bytsMap)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("os.Stat for source map failed: %s\n", err)
+			return nil, err
 		}
 		myObj["code"] = string(byts)
 		delete(myObj, "source")
@@ -1468,6 +1472,9 @@ func getService(name string) (map[string]interface{}, error) {
 			return nil, err
 		}
 		svcMap["source_map"] = string(bytsMap)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("os.Stat for source map failed: %s\n", err)
+		return nil, err
 	}
 	svcMap["code"] = string(byts)
 	return svcMap, nil
@@ -1494,6 +1501,9 @@ func getLibrary(name string) (map[string]interface{}, error) {
 			return nil, err
 		}
 		libMap["source_map"] = string(bytsMap)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("os.Stat for source map failed: %s\n", err)
+		return nil, err
 	}
 	libMap["code"] = string(byts)
 	return libMap, nil
