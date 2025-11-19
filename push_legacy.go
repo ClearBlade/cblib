@@ -2079,19 +2079,23 @@ func mkSvcParams(params []interface{}) []string {
 
 func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	ret := map[string]interface{}{
-		"logging_enabled":   false,
-		"execution_timeout": 60,
-		"parameters":        make([]interface{}, 0),
-		"auto_balance":      false,
-		"auto_restart":      false,
-		"concurrency":       0,
-		"dependencies":      "",
-		"run_user":          "",
-		"log_ttl_minutes":   10080,
-		"run_on_edge":       true,
-		"run_on_platform":   true,
-		"log_level":         "debug",
-		"engine_type":       0,
+		"logging_enabled":       false,
+		"execution_timeout":     60,
+		"parameters":            make([]interface{}, 0),
+		"auto_balance":          false,
+		"auto_scale":            false,
+		"min_scale_concurrency": 0,
+		"max_scale_concurrency": 0,
+		"topics":                []string{},
+		"auto_restart":          false,
+		"concurrency":           0,
+		"dependencies":          "",
+		"run_user":              "",
+		"log_ttl_minutes":       10080,
+		"run_on_edge":           true,
+		"run_on_platform":       true,
+		"log_level":             "debug",
+		"engine_type":           0,
 	}
 	if loggingEnabled, ok := service["logging_enabled"]; ok {
 		ret["logging_enabled"] = loggingEnabled
@@ -2107,6 +2111,18 @@ func getServiceBody(service map[string]interface{}) map[string]interface{} {
 	}
 	if autoBalance, ok := service["auto_balance"].(bool); ok {
 		ret["auto_balance"] = autoBalance
+	}
+	if autoScale, ok := service["auto_scale"].(bool); ok {
+		ret["auto_scale"] = autoScale
+	}
+	if minScaleConcurrency, ok := service["min_scale_concurrency"].(float64); ok {
+		ret["min_scale_concurrency"] = minScaleConcurrency
+	}
+	if maxScaleConcurrency, ok := service["max_scale_concurrency"].(float64); ok {
+		ret["max_scale_concurrency"] = maxScaleConcurrency
+	}
+	if topics, ok := service["topics"].([]string); ok {
+		ret["topics"] = topics
 	}
 	if autoRestart, ok := service["auto_restart"].(bool); ok {
 		ret["auto_restart"] = autoRestart
