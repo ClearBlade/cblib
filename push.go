@@ -168,7 +168,7 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	}
 
 	if dryRun.HasErrors() {
-		return fmt.Errorf(dryRun.String())
+		return fmt.Errorf("%s", dryRun.String())
 	}
 
 	if !dryRun.HasChanges() {
