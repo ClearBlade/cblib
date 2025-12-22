@@ -368,12 +368,19 @@ func writeEntity(dirName, fileName string, stuff interface{}) error {
 }
 
 func whitelistCollection(data map[string]interface{}, items []interface{}) map[string]interface{} {
-	return map[string]interface{}{
+	collection := map[string]interface{}{
 		"items":   items,
 		"name":    data["name"],
 		"schema":  data["schema"],
 		"indexes": data["indexes"],
 	}
+
+	props, ok := data["hypertable_properties"].(map[string]interface{})
+	if ok {
+		collection["hypertable_properties"] = props
+	}
+
+	return collection
 }
 
 func writeCollectionNameToId(data map[string]interface{}) error {
