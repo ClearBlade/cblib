@@ -27,6 +27,10 @@ func IsJsonFile(path string) bool {
 	return getFileExtension(path) == "json"
 }
 
+func IsJsMapFile(path string) bool {
+	return getFileExtension(path) == "map"
+}
+
 func GetFileName(path string) string {
 	_, fileName := pth.Split(path)
 	return fileName

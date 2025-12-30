@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	servicePathRegexStr = `^code\/services\/([^\/]+)\/([^\/]+)\.(?:js|json)$`
-	libraryPathRegexStr = `^code\/libraries\/([^\/]+)\/([^\/]+)\.(?:js|json)$`
+	servicePathRegexStr = `^code\/services\/([^\/]+)\/([^\/]+)\.(?:js|json|js\.map)$`
+	libraryPathRegexStr = `^code\/libraries\/([^\/]+)\/([^\/]+)\.(?:js|json|js\.map)$`
 )
 
 var (

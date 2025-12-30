@@ -3,6 +3,7 @@ package cblib
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -816,6 +817,13 @@ func writeService(name string, data map[string]interface{}) error {
 		return err
 	}
 
+	sourceMap, ok := data["source_map"].(string)
+	if ok && sourceMap != "" {
+		if err := ioutil.WriteFile(mySvcDir+"/"+name+".js.map", []byte(data["source_map"].(string)), 0666); err != nil {
+			return err
+		}
+	}
+
 	omitServiceFields(data)
 	return writeEntity(mySvcDir, name, data)
 }
@@ -941,6 +949,12 @@ func writeLibrary(name string, data map[string]interface{}) error {
 	}
 	if err := ioutil.WriteFile(myLibDir+"/"+name+".js", []byte(data["code"].(string)), 0666); err != nil {
 		return err
+	}
+	sourceMap, ok := data["source_map"].(string)
+	if ok && sourceMap != "" {
+		if err := ioutil.WriteFile(myLibDir+"/"+name+".js.map", []byte(data["source_map"].(string)), 0666); err != nil {
+			return err
+		}
 	}
 	return writeEntity(myLibDir, name, whitelistLibrary(data))
 }
@@ -1159,6 +1173,18 @@ func getCodeStuff(dirName string) ([]map[string]interface{}, error) {
 		byts, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js")
 		if err != nil {
 			fmt.Printf("ioutil.ReadFile failed: %s\n", err)
+			return nil, err
+		}
+		_, err = os.Stat(myRootDir + "/" + realDirName + ".js.map")
+		if err == nil {
+			bytsMap, err := ioutil.ReadFile(myRootDir + "/" + realDirName + ".js.map")
+			if err != nil {
+				fmt.Printf("ioutil.ReadFile for source map failed: %s\n", err)
+				return nil, err
+			}
+			myObj["source_map"] = string(bytsMap)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("os.Stat for source map failed: %s\n", err)
 			return nil, err
 		}
 		myObj["code"] = string(byts)
@@ -1435,6 +1461,7 @@ func getCollection(name string) (map[string]interface{}, error) {
 func getService(name string) (map[string]interface{}, error) {
 	svcRootDir := svcDir + "/" + name
 	codeFile := name + ".js"
+	sourceMapFile := name + ".js.map"
 	schemaFile := name + ".json"
 
 	svcMap, err := getObject(svcRootDir, schemaFile)
@@ -1445,6 +1472,17 @@ func getService(name string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = os.Stat(svcRootDir + "/" + sourceMapFile)
+	if err == nil {
+		bytsMap, err := ioutil.ReadFile(svcRootDir + "/" + sourceMapFile)
+		if err != nil {
+			return nil, err
+		}
+		svcMap["source_map"] = string(bytsMap)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("os.Stat for source map failed: %s\n", err)
+		return nil, err
+	}
 	svcMap["code"] = string(byts)
 	return svcMap, nil
 }
@@ -1452,6 +1490,7 @@ func getService(name string) (map[string]interface{}, error) {
 func getLibrary(name string) (map[string]interface{}, error) {
 	libRootDir := libDir + "/" + name
 	codeFile := name + ".js"
+	sourceMapFile := name + ".js.map"
 	schemaFile := name + ".json"
 
 	libMap, err := getObject(libRootDir, schemaFile)
@@ -1460,6 +1499,17 @@ func getLibrary(name string) (map[string]interface{}, error) {
 	}
 	byts, err := ioutil.ReadFile(libRootDir + "/" + codeFile)
 	if err != nil {
+		return nil, err
+	}
+	_, err = os.Stat(libRootDir + "/" + sourceMapFile)
+	if err == nil {
+		bytsMap, err := ioutil.ReadFile(libRootDir + "/" + sourceMapFile)
+		if err != nil {
+			return nil, err
+		}
+		libMap["source_map"] = string(bytsMap)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("os.Stat for source map failed: %s\n", err)
 		return nil, err
 	}
 	libMap["code"] = string(byts)
