@@ -39,18 +39,9 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 
 		switch key {
 		case "CodeServices":
-			services, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("bad format for services permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("services", out, valIF); err != nil {
+				return nil, err
 			}
-			svcs := make([]map[string]interface{}, len(services))
-			for idx, mapVal := range services {
-				svcs[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
-			}
-			out["services"] = removeDuplicatePermissions(svcs, "name")
 		case "Collections":
 			collections, err := maputil.GetASliceOfMaps(valIF)
 			if err != nil {
@@ -88,44 +79,21 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 				out["system_services"] = map[string]interface{}{"permissions": val["Level"]}
 			}
 		case "Portals":
-			portals, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("bad format for portals permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("portals", out, valIF); err != nil {
+				return nil, err
 			}
-			ptls := make([]map[string]interface{}, len(portals))
-			for idx, mapVal := range portals {
-				ptls[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
+		case "EdgeRemoteAdmin":
+			if err := writeAssetLevelPermission("edgeremoteadmin", out, valIF); err != nil {
+				return nil, err
 			}
-			out["portals"] = removeDuplicatePermissions(ptls, "name")
 		case "ExternalDatabases":
-			externalDatabases, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("bad format for externalDatabases permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("externaldatabases", out, valIF); err != nil {
+				return nil, err
 			}
-			extDbs := make([]map[string]interface{}, len(externalDatabases))
-			for idx, mapVal := range externalDatabases {
-				extDbs[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
-			}
-			out["externaldatabases"] = removeDuplicatePermissions(extDbs, "name")
 		case "ServiceCaches":
-			serviceCaches, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("Bad format for serviceCaches permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("servicecaches", out, valIF); err != nil {
+				return nil, err
 			}
-			svcCaches := make([]map[string]interface{}, len(serviceCaches))
-			for idx, mapVal := range serviceCaches {
-				svcCaches[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
-			}
-			out["servicecaches"] = removeDuplicatePermissions(svcCaches, "name")
 		case "Push":
 			if val, err := maputil.GetMap(valIF); err != nil {
 				return nil, err
@@ -133,18 +101,9 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 				out["push"] = map[string]interface{}{"permissions": val["Level"]}
 			}
 		case "Topics":
-			topics, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("Bad format for serviceCaches permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("topics", out, valIF); err != nil {
+				return nil, err
 			}
-			tpcs := make([]map[string]interface{}, len(topics))
-			for idx, mapVal := range topics {
-				tpcs[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
-			}
-			out["topics"] = tpcs
 		case "UsersList":
 			if val, err := maputil.GetMap(valIF); err != nil {
 				return nil, err
@@ -209,18 +168,19 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 				out["allexternaldatabases"] = map[string]interface{}{"permissions": val["Level"]}
 			}
 		case "Files":
-			files, err := maputil.GetASliceOfMaps(valIF)
-			if err != nil {
-				return nil, fmt.Errorf("Bad format for serviceCaches permissions, not a slice of maps: %T\n", valIF)
+			if err := writeAssetLevelPermission("files", out, valIF); err != nil {
+				return nil, err
 			}
-			theFiles := make([]map[string]interface{}, len(files))
-			for idx, mapVal := range files {
-				theFiles[idx] = map[string]interface{}{
-					"itemInfo":    map[string]interface{}{"name": mapVal["Name"]},
-					"permissions": mapVal["Level"],
-				}
+		case "Filestores":
+			if val, err := maputil.GetMap(valIF); err != nil {
+				return nil, err
+			} else {
+				out["filestores"] = map[string]interface{}{"permissions": val["Level"]}
 			}
-			out["files"] = removeDuplicatePermissions(theFiles, "name")
+		case "FileStoreFiles":
+			if err := writeAssetLevelPermission("filestorefiles", out, valIF); err != nil {
+				return nil, err
+			}
 		case "usersecrets":
 			if val, err := maputil.GetMap(valIF); err != nil {
 				return nil, err
@@ -238,6 +198,22 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 		}
 	}
 	return out, nil
+}
+
+func writeAssetLevelPermission(permName string, out map[string]any, valIF any) error {
+	assetPerms, err := maputil.GetASliceOfMaps(valIF)
+	if err != nil {
+		return fmt.Errorf("bad format for %s permissions, not a slice of maps: %T", permName, valIF)
+	}
+	formattedPerms := make([]map[string]interface{}, len(assetPerms))
+	for idx, mapVal := range assetPerms {
+		formattedPerms[idx] = map[string]any{
+			"itemInfo":    map[string]any{"name": mapVal["Name"]},
+			"permissions": mapVal["Level"],
+		}
+	}
+	out[permName] = removeDuplicatePermissions(formattedPerms, "name")
+	return nil
 }
 
 // it's possible that there are duplicate permissions
