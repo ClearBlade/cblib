@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"errors"
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -168,7 +169,7 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	}
 
 	if dryRun.HasErrors() {
-		return fmt.Errorf(dryRun.String())
+		return errors.New(dryRun.String())
 	}
 
 	if !dryRun.HasChanges() {

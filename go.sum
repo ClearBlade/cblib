@@ -9,10 +9,10 @@ github.com/chromedp/chromedp v0.14.1 h1:0uAbnxewy/Q+Bg7oafVePE/6EXEho9hnaC38f+TT
 github.com/chromedp/chromedp v0.14.1/go.mod h1:rHzAv60xDE7VNy/MYtTUrYreSc0ujt2O1/C3bzctYBo=
 github.com/chromedp/sysutil v1.1.0 h1:PUFNv5EcprjqXZD9nJb9b/c9ibAbxiYo4exNWZyipwM=
 github.com/chromedp/sysutil v1.1.0/go.mod h1:WiThHUdltqCNKGc4gaU50XgYjwjYIhKWoHGPTUfWTJ8=
-github.com/clearblade/Go-SDK v0.0.0-20250829145014-ec1c43d72f29 h1:Wpq7EHOdZTcO25ZUmcN5+dZZQTjojjiXI3pai3+tmJc=
-github.com/clearblade/Go-SDK v0.0.0-20250829145014-ec1c43d72f29/go.mod h1:3p+ysXnI08VdBAVYKe9dndqsRVSXvLgxQqZxLtp/mCo=
 github.com/clearblade/Go-SDK v0.0.0-20251229144222-b59ca7e97518 h1:jXzg1zYeUd49dKJoC82WbnF9vPofrgUlZJe0b79HC/I=
 github.com/clearblade/Go-SDK v0.0.0-20251229144222-b59ca7e97518/go.mod h1:3p+ysXnI08VdBAVYKe9dndqsRVSXvLgxQqZxLtp/mCo=
+github.com/clearblade/Go-SDK v0.0.0-20251230222414-744dff5c7cf0 h1:TrppqLV06r194tKuOUcCkFT3mixUL08A5J27NsM8vfM=
+github.com/clearblade/Go-SDK v0.0.0-20251230222414-744dff5c7cf0/go.mod h1:3p+ysXnI08VdBAVYKe9dndqsRVSXvLgxQqZxLtp/mCo=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c h1:KnJkP9fLFNyoV+pU3mXiRW5oLJdgDzVM/hWQhc0Scas=
 github.com/clearblade/cbjson v0.0.0-20160215162041-f1a77f1fc21c/go.mod h1:Pbu2bhtMVaWboL3mRaFQmGs8USG8uG4EAW2LB3SfCME=
 github.com/clearblade/go-utils v1.1.5-0.20240513160427-a20563b372a5 h1:bZ0WWsMfcukPazNfOG8rR/BXJieIDaF29YcJP0M1cu4=
