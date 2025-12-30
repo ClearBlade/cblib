@@ -1,6 +1,7 @@
 package cblib
 
 import (
+	"errors"
 	"fmt"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -48,7 +49,7 @@ func doExec(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 	}
 
 	if success, ok := resp["success"].(bool); ok && success == false {
-		return fmt.Errorf("%s", resp["results"].(string))
+		return errors.New(resp["results"].(string))
 	}
 
 	fmt.Println(resp)
