@@ -46,11 +46,17 @@ func (d *DryRun) String() string {
 		return fmt.Sprintf("cannot push: %s", strings.Join(d.Errors, "\n"))
 	}
 
-	if !d.HasChanges() {
-		return ""
+	sb := strings.Builder{}
+	if len(d.Warnings) > 0 {
+		for _, warning := range d.Warnings {
+			sb.WriteString(fmt.Sprintf("Warning: %s\n", warning))
+		}
 	}
 
-	sb := strings.Builder{}
+	if !d.HasChanges() {
+		return sb.String()
+	}
+
 	sb.WriteString("The following changes will be made:\n")
 	for _, section := range d.sections {
 		if section.HasChanges() {

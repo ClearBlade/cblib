@@ -145,7 +145,6 @@ func pullCollectionIndexes(sysMeta *types.System_meta, cli *cb.DevClient, name s
 
 func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string]interface{}, shouldExportRows, shouldExportItemId bool) (map[string]interface{}, error) {
 	fmt.Printf(" %s", co["name"].(string))
-
 	isConnect := collections.IsConnectCollection(co)
 
 	var columnsResp []interface{}
@@ -153,12 +152,9 @@ func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string
 	var indexes *rt.Indexes
 
 	if isConnect {
-
 		columnsResp = []interface{}{}
 		indexes = &rt.Indexes{}
-
 	} else {
-
 		columnsResp, err = pullCollectionColumns(sysMeta, cli, co["name"].(string))
 		if err != nil {
 			return nil, err
@@ -168,7 +164,6 @@ func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	//remove the item_id column if it is not supposed to be exported
@@ -186,7 +181,6 @@ func PullCollection(sysMeta *types.System_meta, cli *cb.DevClient, co map[string
 	co["schema"] = columnsResp
 	co["indexes"] = indexes
 	co["items"] = []interface{}{}
-
 	if !isConnect && shouldExportRows {
 		items, err := pullCollectionData(co, cli)
 		if err != nil {
