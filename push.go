@@ -67,6 +67,7 @@ func init() {
 	pushCommand.flags.BoolVar(&MessageTypeTriggers, "message-type-triggers", false, "push message type triggers")
 
 	pushCommand.flags.StringVar(&CollectionSchema, "collectionschema", "", "Name of collection schema to push")
+	pushCommand.flags.BoolVar(&ExcludeIndexes, "exclude-indexes", false, "Do not push indexes when pushing a collection schema via cb-cli push -collectionschema=<name> -piecemeal")
 	pushCommand.flags.StringVar(&ServiceName, "service", "", "Name of service to push")
 	pushCommand.flags.StringVar(&LibraryName, "library", "", "Name of library to push")
 	pushCommand.flags.StringVar(&CollectionName, "collection", "", "Name of collection to push")

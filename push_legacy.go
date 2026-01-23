@@ -119,8 +119,10 @@ func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 		if err := pushOneCollectionSchema(systemInfo, client, CollectionSchema); err != nil {
 			return err
 		}
-		if err := pushCollectionIndexes(systemInfo, client, CollectionSchema); err != nil {
-			return err
+		if !ExcludeIndexes {
+			if err := pushCollectionIndexes(systemInfo, client, CollectionSchema); err != nil {
+				return err
+			}
 		}
 	}
 

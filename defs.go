@@ -66,6 +66,7 @@ var (
 	AdaptorName                string
 	DeploymentName             string
 	PreserveEdges              bool
+	ExcludeIndexes             bool
 	ServiceCacheName           string
 	WebhookName                string
 	ExternalDatabaseName       string
