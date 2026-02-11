@@ -268,6 +268,41 @@ func getCode(dirName, fileName string) (string, error) {
 	return string(byts), nil
 }
 
+func checkColumnTypes(devicesSchema map[string]interface{}) error {
+	// Define the allowed types in a map for O(1) lookup
+	allowedTypes := map[string]bool{
+		"string": true, "int": true, "bigint": true, "float": true,
+		"double": true, "blob": true, "uuid": true, "timestamp": true,
+		"bool": true, "counter": true, "autoincrement": true,
+	}
+
+	// 1. Access the "columns" key
+	columns, ok := devicesSchema["columns"].([]interface{})
+	if !ok {
+		return fmt.Errorf("field 'columns' is missing or not an array")
+	}
+
+	// 2. Iterate through the columns
+	for i, item := range columns {
+		columnMap, ok := item.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("column at index %d is not a valid object", i)
+		}
+
+		// 3. Extract and validate ColumnType
+		if colType, exists := columnMap["ColumnType"]; exists {
+			// Convert to string to check against our allowed list
+			colTypeStr, isString := colType.(string)
+			if !isString || !allowedTypes[colTypeStr] {
+				return fmt.Errorf("invalid ColumnType found: %v", colType)
+			}
+			fmt.Printf("Validated ColumnType: %v\n", colTypeStr)
+		}
+	}
+
+	return nil
+}
+
 func getCollectionItems(collectionName string) ([]interface{}, error) {
 	fileName := "data/" + collectionName + ".json"
 	return getArray(fileName)
@@ -1263,11 +1298,27 @@ func getEdges() ([]map[string]interface{}, error) {
 }
 
 func getEdgesSchema() (map[string]interface{}, error) {
-	return getObject(edgesDir, "schema.json")
+	edgesSchema, edgesSchemaErr := getObject(edgesDir, "schema.json")
+	if edgesSchemaErr != nil {
+		return nil, edgesSchemaErr
+	}
+	columnTypesErr := checkColumnTypes(edgesSchema)
+	if columnTypesErr != nil {
+		return nil, columnTypesErr
+	}
+	return edgesSchema, nil
 }
 
 func getDevicesSchema() (map[string]interface{}, error) {
-	return getObject(devicesDir, "schema.json")
+	devicesSchema, devicesSchemaErr := getObject(devicesDir, "schema.json")
+	if devicesSchemaErr != nil {
+		return nil, devicesSchemaErr
+	}
+	columnTypesErr := checkColumnTypes(devicesSchema)
+	if columnTypesErr != nil {
+		return nil, columnTypesErr
+	}
+	return devicesSchema, nil
 }
 
 func getDevices() ([]map[string]interface{}, error) {
@@ -1364,7 +1415,15 @@ func getObject(dirName, objName string) (map[string]interface{}, error) {
 }
 
 func getUserSchema() (map[string]interface{}, error) {
-	return getObject(usersDir, "schema.json")
+	userSchema, userSchemaErr := getObject(usersDir, "schema.json")
+	if userSchemaErr != nil {
+		return nil, userSchemaErr
+	}
+	columnTypesErr := checkColumnTypes(userSchema)
+	if columnTypesErr != nil {
+		return nil, columnTypesErr
+	}
+	return userSchema, nil
 }
 
 func getRole(name string) (map[string]interface{}, error) {
