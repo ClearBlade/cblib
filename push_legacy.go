@@ -2237,7 +2237,7 @@ func updateCollection(meta *types.System_meta, collection map[string]interface{}
 		return err
 	}
 
-	fmt.Printf("Pushing collection data for '%s'", collection_name)
+	fmt.Printf("Pushing collection data for '%s'\n", collection_name)
 	items := collection["items"].([]interface{})
 	for _, row := range items {
 		query := cb.NewQuery()
