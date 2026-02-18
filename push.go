@@ -3,6 +3,7 @@ package cblib
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	cb "github.com/clearblade/Go-SDK"
@@ -206,6 +207,17 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	if err != nil {
 		return err
 	}
+
+	f, err := os.CreateTemp("", "cb_cli_push_*.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(buffer); err != nil {
+		return err
+	}
+
+	fmt.Printf("Wrote file to %s\n", f.Name())
 
 	fmt.Printf("Time taken to upload to system: %s\n", time.Since(t1))
 	t1 = time.Now()
