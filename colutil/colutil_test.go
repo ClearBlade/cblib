@@ -180,9 +180,41 @@ func Test_NormalizeType(t *testing.T) {
 
 func Test_IsValidColumnType(t *testing.T) {
 	validTypes := []string{
+		// App types
 		"string", "int", "bigint", "float", "double", "blob", "uuid", "timestamp", "bool", "counter", "autoincrement",
-		"text", "integer", "real", "boolean", "double precision", "bytea", "bigserial",
-		"character varying", "varchar", "timestamp without time zone",
+		// PostgreSQL native types
+		"int8",
+		"bigserial", "serial8",
+		"bit", "bit varying", "varbit",
+		"boolean",
+		"box",
+		"bytea",
+		"character", "char", "character varying", "varchar",
+		"cidr",
+		"circle",
+		"date",
+		"double precision", "float8", "float4",
+		"inet",
+		"integer", "int4", "int2",
+		"interval",
+		"json", "jsonb",
+		"line", "lseg",
+		"macaddr", "macaddr8",
+		"money",
+		"numeric", "decimal",
+		"path",
+		"pg_lsn", "pg_snapshot",
+		"point", "polygon",
+		"real",
+		"smallint",
+		"smallserial", "serial2",
+		"serial", "serial4",
+		"text",
+		"time", "time without time zone", "time with time zone", "timetz",
+		"timestamp without time zone", "timestamp with time zone", "timestamptz",
+		"tsquery", "tsvector",
+		"txid_snapshot",
+		"xml",
 	}
 	for _, typ := range validTypes {
 		if !isValidColumnType(typ) {
