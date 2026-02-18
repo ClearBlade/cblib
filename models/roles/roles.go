@@ -31,6 +31,7 @@ func PackageRoleForUpdate(roleID string, role map[string]interface{}, fetcher Co
 //
 // THis is a gigantic cluster. We need to fix and learn from this. -swm
 func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionIdFetcher) (map[string]interface{}, error) {
+	fmt.Printf("in: %+v\n", in)
 	out := map[string]interface{}{}
 	for key, valIF := range in {
 		if valIF == nil {
@@ -197,6 +198,7 @@ func ConvertPermissionsStructure(in map[string]interface{}, fetcher CollectionId
 
 		}
 	}
+	fmt.Printf("out: %+v\n", out)
 	return out, nil
 }
 

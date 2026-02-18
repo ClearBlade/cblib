@@ -1517,7 +1517,7 @@ func getLibrary(name string) (map[string]interface{}, error) {
 }
 
 func getSysMeta() (*types.System_meta, error) {
-	dict, err := getDict("system.json")
+	dict, err := getDict("/Users/matthew/Documents/cbcli/system.json")
 	if err != nil {
 		return nil, err
 	}

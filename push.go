@@ -3,6 +3,7 @@ package cblib
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/fs"
@@ -153,10 +154,15 @@ func (p prompter) PromptForSecret(prompt string) string {
 
 func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options *fs.ZipOptions) error {
 	fmt.Printf("Preparing to push system %s\n", systemInfo.Name)
+	t0 := time.Now()
+	t1 := time.Now()
 	buffer, err := fs.GetSystemZipBytes(rootDir, prompter{}, options)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("Time taken to get system zip: %s\n", time.Since(t1))
+	t1 = time.Now()
 
 	fmt.Println("Doing dry run")
 	result, err := client.UploadToSystemDryRun(systemInfo.Key, buffer)
@@ -164,11 +170,15 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return err
 	}
 
+	fmt.Printf("Time taken to do dry run: %s\n", time.Since(t1))
+	t1 = time.Now()
 	dryRun, err := dryRun.New(result)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Time taken to parse dry run: %s\n", time.Since(t1))
+	t1 = time.Now()
 	if dryRun.HasErrors() {
 		return errors.New(dryRun.String())
 	}
@@ -189,13 +199,21 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 		return nil
 	}
 
+	fmt.Printf("Time taken to accept dry run: %s\n", time.Since(t1))
+	t1 = time.Now()
 	fmt.Println("Pushing changes")
 	r, err := client.UploadToSystem(systemInfo.Key, buffer)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Time taken to upload to system: %s\n", time.Since(t1))
+	t1 = time.Now()
+
 	updateIdMap(r)
+
+	fmt.Printf("Time taken to update id map: %s\n", time.Since(t1))
+	fmt.Printf("Total time taken: %s\n", time.Since(t0))
 	return r.Error()
 }
 
