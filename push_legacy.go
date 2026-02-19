@@ -398,7 +398,10 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 		return fmt.Errorf("Error in schema definition. Pls check the format of schema...\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](userColumns))
+	diff, err := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](userColumns))
+	if err != nil {
+		return fmt.Errorf("Invalid user schema: %w", err)
+	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("User schema could not be updated. Deletion of column(s) failed: %s", err)
@@ -428,7 +431,10 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json. Value is: %+v - %+v\n", edgeschema["columns"], ok)
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](typedLocalSchema), convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
+	diff, err := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](typedLocalSchema), convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
+	if err != nil {
+		return fmt.Errorf("Invalid edge schema: %w", err)
+	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -459,7 +465,10 @@ func pushDevicesSchema(systemInfo *types.System_meta, client *cb.DevClient) erro
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
+	diff, err := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](allDeviceColumns))
+	if err != nil {
+		return err
+	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteDeviceColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -1195,7 +1204,10 @@ func pushCollectionSchema(systemInfo *types.System_meta, collection map[string]i
 		return fmt.Errorf("Error in schema definition. Please verify the format of the schema.json\n")
 	}
 
-	diff := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
+	diff, err := colutil.GetDiffForColumnsWithStaticListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](backendSchema), DefaultCollectionColumns)
+	if err != nil {
+		return err
+	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := cli.DeleteColumn(collID, diff.Removed[i]["ColumnName"].(string)); err != nil {
 			return fmt.Errorf("Unable to delete column '%s': %s", diff.Removed[i]["ColumnName"].(string), err.Error())
@@ -2225,7 +2237,7 @@ func updateCollection(meta *types.System_meta, collection map[string]interface{}
 		return err
 	}
 
-	fmt.Printf("Pushing collection data for '%s'", collection_name)
+	fmt.Printf("Pushing collection data for '%s'\n", collection_name)
 	items := collection["items"].([]interface{})
 	for _, row := range items {
 		query := cb.NewQuery()
