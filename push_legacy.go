@@ -400,7 +400,7 @@ func pushUserSchema(systemInfo *types.System_meta, client *cb.DevClient) error {
 
 	diff, err := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](localSchema), convertInterfaceSlice[map[string]interface{}](userColumns))
 	if err != nil {
-		return fmt.Errorf("Invalid user schema: %s", err)
+		return fmt.Errorf("Invalid user schema: %w", err)
 	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteUserColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
@@ -433,7 +433,7 @@ func pushEdgesSchema(systemInfo *types.System_meta, client *cb.DevClient) error 
 
 	diff, err := colutil.GetDiffForColumnsWithDynamicListOfDefaultColumns(convertInterfaceSlice[map[string]interface{}](typedLocalSchema), convertInterfaceSlice[map[string]interface{}](allEdgeColumns))
 	if err != nil {
-		return fmt.Errorf("Invalid edge schema: %s", err)
+		return fmt.Errorf("Invalid edge schema: %w", err)
 	}
 	for i := 0; i < len(diff.Removed); i++ {
 		if err := client.DeleteEdgeColumn(systemInfo.Key, diff.Removed[i]["ColumnName"].(string)); err != nil {
