@@ -150,24 +150,41 @@ func Test_NormalizeType(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"boolean", "bool"},
-		{"bool", "bool"},
-		{"integer", "int"},
-		{"int", "int"},
-		{"text", "string"},
+		// App types — pass through unchanged
 		{"string", "string"},
+		{"int", "int"},
+		{"bigint", "bigint"},
+		{"float", "float"},
+		{"double", "double"},
+		{"blob", "blob"},
+		{"bool", "bool"},
+		{"timestamp", "timestamp"},
+		{"uuid", "uuid"},
+		// PostgreSQL canonical types with ClearBlade equivalents
+		{"text", "string"},
 		{"character varying", "string"},
 		{"varchar", "string"},
+		{"integer", "int"},
 		{"real", "float"},
-		{"float", "float"},
 		{"double precision", "double"},
-		{"double", "double"},
 		{"bytea", "blob"},
-		{"blob", "blob"},
+		{"boolean", "bool"},
 		{"timestamp without time zone", "timestamp"},
-		{"timestamp", "timestamp"},
-		{"bigint", "bigint"},
-		{"uuid", "uuid"},
+		// Aliases that normalize to their ClearBlade app type equivalent
+		{"int4", "int"},
+		{"int8", "bigint"},
+		{"float4", "float"},
+		{"float8", "double"},
+		// Aliases that normalize to their canonical PostgreSQL form
+		{"serial8", "bigserial"},
+		{"varbit", "bit varying"},
+		{"char", "character"},
+		{"int2", "smallint"},
+		{"decimal", "numeric"},
+		{"serial2", "smallserial"},
+		{"serial4", "serial"},
+		{"timetz", "time with time zone"},
+		{"timestamptz", "timestamp with time zone"},
 	}
 
 	for _, tc := range tests {
