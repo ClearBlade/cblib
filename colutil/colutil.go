@@ -54,20 +54,42 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 func normalizeType(t string) string {
 	t = typeModifierRe.ReplaceAllString(t, "")
 	switch t {
+	// PostgreSQL types with ClearBlade app type equivalents
 	case "character varying", "varchar", "text":
 		return "string"
-	case "integer":
+	case "integer", "int4":
 		return "int"
-	case "real":
+	case "int8":
+		return "bigint"
+	case "real", "float4":
 		return "float"
+	case "double precision", "float8":
+		return "double"
 	case "bytea":
 		return "blob"
 	case "boolean":
 		return "bool"
-	case "double precision":
-		return "double"
 	case "timestamp without time zone":
 		return "timestamp"
+	// PostgreSQL aliases without ClearBlade equivalents — normalized to canonical form
+	case "serial8":
+		return "bigserial"
+	case "varbit":
+		return "bit varying"
+	case "char":
+		return "character"
+	case "int2":
+		return "smallint"
+	case "decimal":
+		return "numeric"
+	case "serial2":
+		return "smallserial"
+	case "serial4":
+		return "serial"
+	case "timetz":
+		return "time with time zone"
+	case "timestamptz":
+		return "timestamp with time zone"
 	default:
 		return t
 	}
