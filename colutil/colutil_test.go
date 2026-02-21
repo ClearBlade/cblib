@@ -297,6 +297,30 @@ func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
 	}
 }
 
+func Test_TypeModifiers_AcceptedAndNormalized(t *testing.T) {
+	// varchar(128) should be valid and match "string" on the backend
+	local := []map[string]interface{}{
+		{"ColumnName": "name", "ColumnType": "varchar(128)", "UserDefined": true},
+		{"ColumnName": "score", "ColumnType": "numeric(10,2)", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp(6) without time zone", "UserDefined": true},
+	}
+	backend := []map[string]interface{}{
+		{"ColumnName": "name", "ColumnType": "string", "UserDefined": true},
+		{"ColumnName": "score", "ColumnType": "numeric", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp", "UserDefined": true},
+	}
+	diff, err := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
+	if err != nil {
+		t.Fatalf("Unexpected error for types with modifiers: %s", err)
+	}
+	if len(diff.Removed) != 0 {
+		t.Errorf("Expected 0 removals but got %d — type modifier caused false removal", len(diff.Removed))
+	}
+	if len(diff.Added) != 0 {
+		t.Errorf("Expected 0 additions but got %d — type modifier caused false addition", len(diff.Added))
+	}
+}
+
 func Test_DiffWithInvalidType_ReturnsError(t *testing.T) {
 	local := []map[string]interface{}{
 		{"ColumnName": "bad_col", "ColumnType": "str", "UserDefined": true},
