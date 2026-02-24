@@ -31,7 +31,7 @@ func (idxdiff *IndexDiff) LenB() int {
 func (idxdiff *IndexDiff) Same(i, j int) bool {
 	a := idxdiff.A[i]
 	b := idxdiff.B[j]
-	return a.Name == b.Name && a.IndexType == b.IndexType && slices.Equal(a.Columns, b.Columns)
+	return a.Name == b.Name && a.IndexType == b.IndexType && slices.EqualFunc(a.Columns, b.Columns, indexColumnsEqual)
 }
 
 func (idxdiff *IndexDiff) Keep(i int) {
@@ -40,6 +40,16 @@ func (idxdiff *IndexDiff) Keep(i int) {
 
 func (idxdiff *IndexDiff) Drop(j int) {
 	idxdiff.Removed = append(idxdiff.Removed, idxdiff.B[j])
+}
+
+func indexColumnsEqual(a, b rt.IndexColumn) bool {
+	if a.Name != b.Name || a.Descending != b.Descending {
+		return false
+	}
+	if (a.NullsFirst == nil) != (b.NullsFirst == nil) {
+		return false
+	}
+	return a.NullsFirst == nil || *a.NullsFirst == *b.NullsFirst
 }
 
 // DiffIndexesFull takes two slices of indexes diffs them using *IndexDiff.
