@@ -1,6 +1,8 @@
 package index
 
 import (
+	"slices"
+
 	d "github.com/clearblade/cblib/diff"
 	rt "github.com/clearblade/cblib/resourcetree"
 )
@@ -29,7 +31,7 @@ func (idxdiff *IndexDiff) LenB() int {
 func (idxdiff *IndexDiff) Same(i, j int) bool {
 	a := idxdiff.A[i]
 	b := idxdiff.B[j]
-	return a.Name == b.Name && a.IndexType == b.IndexType
+	return a.Name == b.Name && a.IndexType == b.IndexType && slices.Equal(a.Columns, b.Columns)
 }
 
 func (idxdiff *IndexDiff) Keep(i int) {

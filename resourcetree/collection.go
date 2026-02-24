@@ -37,10 +37,18 @@ const (
 	IndexNonUnique = "Nonunique Index"
 )
 
+// IndexColumn represents a single column within an index.
+type IndexColumn struct {
+	Name       string `json:"name" mapstructure:"name"`
+	Descending bool   `json:"descending" mapstructure:"descending"`
+	NullsFirst *bool  `json:"nulls_first,omitempty" mapstructure:"nulls_first"`
+}
+
 // Index represents an index.
 type Index struct {
-	Name      string    `json:"name" mapstructure:"name"`
-	IndexType IndexType `json:"type" mapstructure:"type"`
+	Name      string        `json:"name" mapstructure:"name"`
+	IndexType IndexType     `json:"type" mapstructure:"type"`
+	Columns   []IndexColumn `json:"columns" mapstructure:"columns"`
 }
 
 // Indexes is a slice of Index.
