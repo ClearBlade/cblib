@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"slices"
 
 	d "github.com/clearblade/cblib/diff"
@@ -43,13 +44,18 @@ func (idxdiff *IndexDiff) Drop(j int) {
 }
 
 func indexColumnsEqual(a, b rt.IndexColumn) bool {
+	fmt.Printf("Comparing columns: %+v and %+v\n", a, b)
 	if a.Name != b.Name || a.Descending != b.Descending {
+		fmt.Printf("NOT EQUAL\n")
 		return false
 	}
 	if (a.NullsFirst == nil) != (b.NullsFirst == nil) {
+		fmt.Printf("NOT EQUAL\n")
 		return false
 	}
-	return a.NullsFirst == nil || *a.NullsFirst == *b.NullsFirst
+	areEqual := a.NullsFirst == nil || *a.NullsFirst == *b.NullsFirst
+	fmt.Printf("ARE EQUAL: %t\n", areEqual)
+	return areEqual
 }
 
 // DiffIndexesFull takes two slices of indexes diffs them using *IndexDiff.
