@@ -71,73 +71,19 @@ func normalizeType(t string) string {
 		return "bool"
 	case "timestamp without time zone":
 		return "timestamp"
-	// PostgreSQL aliases without ClearBlade equivalents — normalized to canonical form
-	case "serial8":
-		return "bigserial"
-	case "varbit":
-		return "bit varying"
-	case "char":
-		return "character"
-	case "int2":
-		return "smallint"
-	case "decimal":
-		return "numeric"
-	case "serial2":
-		return "smallserial"
-	case "serial4":
-		return "serial"
-	case "timetz":
-		return "time with time zone"
-	case "timestamptz":
-		return "timestamp with time zone"
 	default:
 		return t
 	}
 }
 
-// isValidColumnType checks whether a type string is a recognized app type or PostgreSQL type.
-// This matches the PsqlType() function in the clearblade server (postgres/dbOps.go).
+// isValidColumnType checks whether a type string is a valid ClearBlade app type.
+// Only the 10 app types (string, int, bool, timestamp, float, bigint, double,
+// jsonb, blob, uuid) plus the internal types counter and autoincrement are accepted.
 func isValidColumnType(t string) bool {
-	t = typeModifierRe.ReplaceAllString(t, "")
 	switch t {
-	// App types
-	case "string", "int", "bigint", "float", "double", "blob", "uuid", "timestamp", "bool", "counter", "autoincrement":
-		return true
-	// PostgreSQL native types.
-	// Note: "bigint", "uuid", "timestamp", "bool", "int", and "float" are omitted here
-	// because they are already matched as app types above.
-	case "int8",
-		"bigserial", "serial8",
-		"bit", "bit varying", "varbit",
-		"boolean",
-		"box",
-		"bytea",
-		"character", "char", "character varying", "varchar",
-		"cidr",
-		"circle",
-		"date",
-		"double precision", "float8", "float4",
-		"inet",
-		"integer", "int4", "int2",
-		"interval",
-		"json", "jsonb",
-		"line", "lseg",
-		"macaddr", "macaddr8",
-		"money",
-		"numeric", "decimal",
-		"path",
-		"pg_lsn", "pg_snapshot",
-		"point", "polygon",
-		"real",
-		"smallint",
-		"smallserial", "serial2",
-		"serial", "serial4",
-		"text",
-		"time", "time without time zone", "time with time zone", "timetz",
-		"timestamp without time zone", "timestamp with time zone", "timestamptz",
-		"tsquery", "tsvector",
-		"txid_snapshot",
-		"xml":
+	case "string", "int", "bool", "timestamp", "float", "bigint", "double",
+		"jsonb", "blob", "uuid",
+		"counter", "autoincrement":
 		return true
 	default:
 		return false

@@ -175,17 +175,7 @@ func Test_NormalizeType(t *testing.T) {
 		{"int8", "bigint"},
 		{"float4", "float"},
 		{"float8", "double"},
-		// Aliases that normalize to their canonical PostgreSQL form
-		{"serial8", "bigserial"},
-		{"varbit", "bit varying"},
-		{"char", "character"},
-		{"int2", "smallint"},
-		{"decimal", "numeric"},
-		{"serial2", "smallserial"},
-		{"serial4", "serial"},
-		{"timetz", "time with time zone"},
-		{"timestamptz", "timestamp with time zone"},
-	}
+		}
 
 	for _, tc := range tests {
 		result := normalizeType(tc.input)
@@ -197,41 +187,10 @@ func Test_NormalizeType(t *testing.T) {
 
 func Test_IsValidColumnType(t *testing.T) {
 	validTypes := []string{
-		// App types
-		"string", "int", "bigint", "float", "double", "blob", "uuid", "timestamp", "bool", "counter", "autoincrement",
-		// PostgreSQL native types
-		"int8",
-		"bigserial", "serial8",
-		"bit", "bit varying", "varbit",
-		"boolean",
-		"box",
-		"bytea",
-		"character", "char", "character varying", "varchar",
-		"cidr",
-		"circle",
-		"date",
-		"double precision", "float8", "float4",
-		"inet",
-		"integer", "int4", "int2",
-		"interval",
-		"json", "jsonb",
-		"line", "lseg",
-		"macaddr", "macaddr8",
-		"money",
-		"numeric", "decimal",
-		"path",
-		"pg_lsn", "pg_snapshot",
-		"point", "polygon",
-		"real",
-		"smallint",
-		"smallserial", "serial2",
-		"serial", "serial4",
-		"text",
-		"time", "time without time zone", "time with time zone", "timetz",
-		"timestamp without time zone", "timestamp with time zone", "timestamptz",
-		"tsquery", "tsvector",
-		"txid_snapshot",
-		"xml",
+		// The 10 ClearBlade app types
+		"string", "int", "bool", "timestamp", "float", "bigint", "double", "jsonb", "blob", "uuid",
+		// Internal types
+		"counter", "autoincrement",
 	}
 	for _, typ := range validTypes {
 		if !isValidColumnType(typ) {
@@ -239,7 +198,15 @@ func Test_IsValidColumnType(t *testing.T) {
 		}
 	}
 
-	invalidTypes := []string{"str", "bogus", "INT", "Bool", ""}
+	invalidTypes := []string{
+		// Nonsense
+		"str", "bogus", "INT", "Bool", "",
+		// PostgreSQL types — no longer valid as schema column types
+		"boolean", "text", "integer", "real", "double precision", "bytea",
+		"character varying", "varchar", "int4", "int8", "float4", "float8",
+		"timestamp without time zone", "smallint", "numeric", "json",
+		"bit", "date", "xml", "cidr", "timestamptz", "timestamp with time zone",
+	}
 	for _, typ := range invalidTypes {
 		if isValidColumnType(typ) {
 			t.Errorf("isValidColumnType(%q) = true, expected false", typ)
@@ -262,7 +229,7 @@ func Test_ValidateColumnTypes_AcceptsValid(t *testing.T) {
 	columns := []map[string]interface{}{
 		{"ColumnName": "col1", "ColumnType": "string"},
 		{"ColumnName": "col2", "ColumnType": "bool"},
-		{"ColumnName": "col3", "ColumnType": "boolean"},
+		{"ColumnName": "col3", "ColumnType": "jsonb"},
 	}
 	err := validateColumnTypes(columns)
 	if err != nil {
@@ -294,13 +261,13 @@ func Test_ColumnExists_NormalizesTypes(t *testing.T) {
 }
 
 func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
-	// Local schema uses PostgreSQL type "boolean", backend has app type "bool".
-	// These should be treated as the same column — no removal or addition.
+	// Local schema uses app type "bool"; backend (DB) has PostgreSQL type "boolean".
+	// normalizeType maps both to "bool" — no removal or addition.
 	local := []map[string]interface{}{
-		{"ColumnName": "active", "ColumnType": "boolean", "UserDefined": true},
+		{"ColumnName": "active", "ColumnType": "bool", "UserDefined": true},
 	}
 	backend := []map[string]interface{}{
-		{"ColumnName": "active", "ColumnType": "bool", "UserDefined": true},
+		{"ColumnName": "active", "ColumnType": "boolean", "UserDefined": true},
 	}
 	diff, err := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 	if err != nil {
@@ -314,21 +281,21 @@ func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
 	}
 }
 
-func Test_TypeModifiers_AcceptedAndNormalized(t *testing.T) {
-	// varchar(128) should be valid and match "string" on the backend
+func Test_TypeModifiers_BackendNormalized(t *testing.T) {
+	// The local schema uses app types (string, timestamp).
+	// The backend (DB) may return PostgreSQL types with modifiers.
+	// normalizeType strips the modifier and maps to the app type — no false removals.
 	local := []map[string]interface{}{
-		{"ColumnName": "name", "ColumnType": "varchar(128)", "UserDefined": true},
-		{"ColumnName": "score", "ColumnType": "numeric(10,2)", "UserDefined": true},
-		{"ColumnName": "created", "ColumnType": "timestamp(6) without time zone", "UserDefined": true},
+		{"ColumnName": "name", "ColumnType": "string", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp", "UserDefined": true},
 	}
 	backend := []map[string]interface{}{
-		{"ColumnName": "name", "ColumnType": "string", "UserDefined": true},
-		{"ColumnName": "score", "ColumnType": "numeric", "UserDefined": true},
-		{"ColumnName": "created", "ColumnType": "timestamp", "UserDefined": true},
+		{"ColumnName": "name", "ColumnType": "varchar(128)", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp(6) without time zone", "UserDefined": true},
 	}
 	diff, err := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 	if err != nil {
-		t.Fatalf("Unexpected error for types with modifiers: %s", err)
+		t.Fatalf("Unexpected error: %s", err)
 	}
 	if len(diff.Removed) != 0 {
 		t.Errorf("Expected 0 removals but got %d — type modifier caused false removal", len(diff.Removed))
