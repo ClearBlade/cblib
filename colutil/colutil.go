@@ -46,21 +46,24 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 }
 
 // normalizeType maps PostgreSQL native type names to app-level type names.
-// This matches the Typed() function in the clearblade server (postgres/dbOps.go).
+// This matches the ClearBladeType() function in the clearblade server (postgres/dbOps.go).
 func normalizeType(t string) string {
 	switch t {
+	// PostgreSQL types with ClearBlade app type equivalents
 	case "character varying", "varchar", "text":
 		return "string"
-	case "integer":
+	case "integer", "int4":
 		return "int"
-	case "real":
+	case "int8":
+		return "bigint"
+	case "real", "float4":
 		return "float"
+	case "double precision", "float8":
+		return "double"
 	case "bytea":
 		return "blob"
 	case "boolean":
 		return "bool"
-	case "double precision":
-		return "double"
 	case "timestamp without time zone":
 		return "timestamp"
 	default:
@@ -68,48 +71,14 @@ func normalizeType(t string) string {
 	}
 }
 
-// isValidColumnType checks whether a type string is a recognized app type or PostgreSQL type.
-// This matches the PsqlType() function in the clearblade server (postgres/dbOps.go).
+// isValidColumnType checks whether a type string is a valid ClearBlade app type.
+// Only the 10 app types (string, int, bool, timestamp, float, bigint, double,
+// jsonb, blob, uuid) plus the internal types counter and autoincrement are accepted.
 func isValidColumnType(t string) bool {
 	switch t {
-	// App types
-	case "string", "int", "bigint", "float", "double", "blob", "uuid", "timestamp", "bool", "counter", "autoincrement":
-		return true
-	// PostgreSQL native types.
-	// Note: "bigint", "uuid", "timestamp", "bool", "int", and "float" are omitted here
-	// because they are already matched as app types above.
-	case "int8",
-		"bigserial", "serial8",
-		"bit", "bit varying", "varbit",
-		"boolean",
-		"box",
-		"bytea",
-		"character", "char", "character varying", "varchar",
-		"cidr",
-		"circle",
-		"date",
-		"double precision", "float8", "float4",
-		"inet",
-		"integer", "int4", "int2",
-		"interval",
-		"json", "jsonb",
-		"line", "lseg",
-		"macaddr", "macaddr8",
-		"money",
-		"numeric", "decimal",
-		"path",
-		"pg_lsn", "pg_snapshot",
-		"point", "polygon",
-		"real",
-		"smallint",
-		"smallserial", "serial2",
-		"serial", "serial4",
-		"text",
-		"time", "time without time zone", "time with time zone", "timetz",
-		"timestamp without time zone", "timestamp with time zone", "timestamptz",
-		"tsquery", "tsvector",
-		"txid_snapshot",
-		"xml":
+	case "string", "int", "bool", "timestamp", "float", "bigint", "double",
+		"jsonb", "blob", "uuid",
+		"counter", "autoincrement":
 		return true
 	default:
 		return false

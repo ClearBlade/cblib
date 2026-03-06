@@ -150,25 +150,32 @@ func Test_NormalizeType(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"boolean", "bool"},
-		{"bool", "bool"},
-		{"integer", "int"},
-		{"int", "int"},
-		{"text", "string"},
+		// App types — pass through unchanged
 		{"string", "string"},
+		{"int", "int"},
+		{"bigint", "bigint"},
+		{"float", "float"},
+		{"double", "double"},
+		{"blob", "blob"},
+		{"bool", "bool"},
+		{"timestamp", "timestamp"},
+		{"uuid", "uuid"},
+		// PostgreSQL canonical types with ClearBlade equivalents
+		{"text", "string"},
 		{"character varying", "string"},
 		{"varchar", "string"},
+		{"integer", "int"},
 		{"real", "float"},
-		{"float", "float"},
 		{"double precision", "double"},
-		{"double", "double"},
 		{"bytea", "blob"},
-		{"blob", "blob"},
+		{"boolean", "bool"},
 		{"timestamp without time zone", "timestamp"},
-		{"timestamp", "timestamp"},
-		{"bigint", "bigint"},
-		{"uuid", "uuid"},
-	}
+		// Aliases that normalize to their ClearBlade app type equivalent
+		{"int4", "int"},
+		{"int8", "bigint"},
+		{"float4", "float"},
+		{"float8", "double"},
+		}
 
 	for _, tc := range tests {
 		result := normalizeType(tc.input)
@@ -180,41 +187,10 @@ func Test_NormalizeType(t *testing.T) {
 
 func Test_IsValidColumnType(t *testing.T) {
 	validTypes := []string{
-		// App types
-		"string", "int", "bigint", "float", "double", "blob", "uuid", "timestamp", "bool", "counter", "autoincrement",
-		// PostgreSQL native types
-		"int8",
-		"bigserial", "serial8",
-		"bit", "bit varying", "varbit",
-		"boolean",
-		"box",
-		"bytea",
-		"character", "char", "character varying", "varchar",
-		"cidr",
-		"circle",
-		"date",
-		"double precision", "float8", "float4",
-		"inet",
-		"integer", "int4", "int2",
-		"interval",
-		"json", "jsonb",
-		"line", "lseg",
-		"macaddr", "macaddr8",
-		"money",
-		"numeric", "decimal",
-		"path",
-		"pg_lsn", "pg_snapshot",
-		"point", "polygon",
-		"real",
-		"smallint",
-		"smallserial", "serial2",
-		"serial", "serial4",
-		"text",
-		"time", "time without time zone", "time with time zone", "timetz",
-		"timestamp without time zone", "timestamp with time zone", "timestamptz",
-		"tsquery", "tsvector",
-		"txid_snapshot",
-		"xml",
+		// The 10 ClearBlade app types
+		"string", "int", "bool", "timestamp", "float", "bigint", "double", "jsonb", "blob", "uuid",
+		// Internal types
+		"counter", "autoincrement",
 	}
 	for _, typ := range validTypes {
 		if !isValidColumnType(typ) {
@@ -222,7 +198,15 @@ func Test_IsValidColumnType(t *testing.T) {
 		}
 	}
 
-	invalidTypes := []string{"str", "bogus", "INT", "Bool", ""}
+	invalidTypes := []string{
+		// Nonsense
+		"str", "bogus", "INT", "Bool", "",
+		// PostgreSQL types — no longer valid as schema column types
+		"boolean", "text", "integer", "real", "double precision", "bytea",
+		"character varying", "varchar", "int4", "int8", "float4", "float8",
+		"timestamp without time zone", "smallint", "numeric", "json",
+		"bit", "date", "xml", "cidr", "timestamptz", "timestamp with time zone",
+	}
 	for _, typ := range invalidTypes {
 		if isValidColumnType(typ) {
 			t.Errorf("isValidColumnType(%q) = true, expected false", typ)
@@ -245,7 +229,7 @@ func Test_ValidateColumnTypes_AcceptsValid(t *testing.T) {
 	columns := []map[string]interface{}{
 		{"ColumnName": "col1", "ColumnType": "string"},
 		{"ColumnName": "col2", "ColumnType": "bool"},
-		{"ColumnName": "col3", "ColumnType": "boolean"},
+		{"ColumnName": "col3", "ColumnType": "jsonb"},
 	}
 	err := validateColumnTypes(columns)
 	if err != nil {
@@ -277,13 +261,13 @@ func Test_ColumnExists_NormalizesTypes(t *testing.T) {
 }
 
 func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
-	// Local schema uses PostgreSQL type "boolean", backend has app type "bool".
-	// These should be treated as the same column — no removal or addition.
+	// Local schema uses app type "bool"; backend (DB) has PostgreSQL type "boolean".
+	// normalizeType maps both to "bool" — no removal or addition.
 	local := []map[string]interface{}{
-		{"ColumnName": "active", "ColumnType": "boolean", "UserDefined": true},
+		{"ColumnName": "active", "ColumnType": "bool", "UserDefined": true},
 	}
 	backend := []map[string]interface{}{
-		{"ColumnName": "active", "ColumnType": "bool", "UserDefined": true},
+		{"ColumnName": "active", "ColumnType": "boolean", "UserDefined": true},
 	}
 	diff, err := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
 	if err != nil {
@@ -294,6 +278,30 @@ func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
 	}
 	if len(diff.Added) != 0 {
 		t.Errorf("Expected 0 additions but got %d — type alias caused false addition", len(diff.Added))
+	}
+}
+
+func Test_TypeModifiers_BackendNotNormalized(t *testing.T) {
+	// A type modifier like varchar(128) or timestamp(6) means the schema was
+	// changed outside of ClearBlade. We do not normalise it — the mismatch
+	// should be surfaced rather than silently ignored.
+	local := []map[string]interface{}{
+		{"ColumnName": "name", "ColumnType": "string", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp", "UserDefined": true},
+	}
+	backend := []map[string]interface{}{
+		{"ColumnName": "name", "ColumnType": "varchar(128)", "UserDefined": true},
+		{"ColumnName": "created", "ColumnType": "timestamp(6) without time zone", "UserDefined": true},
+	}
+	diff, err := GetDiffForColumnsWithDynamicListOfDefaultColumns(local, backend)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+	if len(diff.Removed) != 2 {
+		t.Errorf("Expected 2 removals (mismatched types) but got %d", len(diff.Removed))
+	}
+	if len(diff.Added) != 2 {
+		t.Errorf("Expected 2 additions (mismatched types) but got %d", len(diff.Added))
 	}
 }
 
