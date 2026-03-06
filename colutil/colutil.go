@@ -2,14 +2,10 @@ package colutil
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/clearblade/cblib/diff"
 	"github.com/clearblade/cblib/listutil"
 )
-
-// typeModifierRe matches PostgreSQL type modifiers like (128), (10,2), (6).
-var typeModifierRe = regexp.MustCompile(`\s*\([^)]*\)`)
 
 func GetDiffForColumnsWithDynamicListOfDefaultColumns(localSchemaInterfaces, backendSchemaInterfaces []map[string]interface{}) (*diff.UnsafeDiff[map[string]interface{}], error) {
 	if err := validateColumnTypes(localSchemaInterfaces); err != nil {
@@ -50,9 +46,8 @@ func isDefaultColumn(defaultColumns []string, colName string) bool {
 }
 
 // normalizeType maps PostgreSQL native type names to app-level type names.
-// This matches the Typed() function in the clearblade server (postgres/dbOps.go).
+// This matches the ClearBladeType() function in the clearblade server (postgres/dbOps.go).
 func normalizeType(t string) string {
-	t = typeModifierRe.ReplaceAllString(t, "")
 	switch t {
 	// PostgreSQL types with ClearBlade app type equivalents
 	case "character varying", "varchar", "text":
