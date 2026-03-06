@@ -281,10 +281,10 @@ func Test_DiffWithPsqlTypeAliases_NoFalseRemoval(t *testing.T) {
 	}
 }
 
-func Test_TypeModifiers_BackendNormalized(t *testing.T) {
-	// The local schema uses app types (string, timestamp).
-	// The backend (DB) may return PostgreSQL types with modifiers.
-	// normalizeType strips the modifier and maps to the app type — no false removals.
+func Test_TypeModifiers_BackendNotNormalized(t *testing.T) {
+	// A type modifier like varchar(128) or timestamp(6) means the schema was
+	// changed outside of ClearBlade. We do not normalise it — the mismatch
+	// should be surfaced rather than silently ignored.
 	local := []map[string]interface{}{
 		{"ColumnName": "name", "ColumnType": "string", "UserDefined": true},
 		{"ColumnName": "created", "ColumnType": "timestamp", "UserDefined": true},
@@ -297,11 +297,11 @@ func Test_TypeModifiers_BackendNormalized(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
-	if len(diff.Removed) != 0 {
-		t.Errorf("Expected 0 removals but got %d — type modifier caused false removal", len(diff.Removed))
+	if len(diff.Removed) != 2 {
+		t.Errorf("Expected 2 removals (mismatched types) but got %d", len(diff.Removed))
 	}
-	if len(diff.Added) != 0 {
-		t.Errorf("Expected 0 additions but got %d — type modifier caused false addition", len(diff.Added))
+	if len(diff.Added) != 2 {
+		t.Errorf("Expected 2 additions (mismatched types) but got %d", len(diff.Added))
 	}
 }
 
