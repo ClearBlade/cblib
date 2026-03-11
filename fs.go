@@ -824,15 +824,17 @@ func writeService(name string, data map[string]interface{}) error {
 		}
 	}
 
-	// Store run_user as email so that pushing to a different system resolves
-	// to the correct user ID in the target system via the platform's ValidateCodeMeta.
-	if runUser, ok := data["run_user"].(string); ok && runUser != "" {
-		if email, err := getUserEmailByID(runUser); err != nil {
-			fmt.Printf("Warning - Could not resolve run_user %q to an email for service %q: %s\n", runUser, name, err)
-		} else if email != runUser {
-			data["run_user"] = email
-		} else {
-			fmt.Printf("Warning - Could not resolve run_user %q to an email for service %q. Either the user was not pulled previously OR the run_user is set to a developer account.\n", runUser, name)
+	// Store run_user and euid as email so that pushing to a different system
+	// resolves to the correct user ID in the target system via the platform's ValidateCodeMeta.
+	for _, field := range []string{"run_user", "euid"} {
+		if id, ok := data[field].(string); ok && id != "" {
+			if email, err := getUserEmailByID(id); err != nil {
+				fmt.Printf("Warning - Could not resolve %s %q to an email for service %q: %s\n", field, id, name, err)
+			} else if email != id {
+				data[field] = email
+			} else {
+				fmt.Printf("Warning - Could not resolve %s %q to an email for service %q. Either the user was not pulled previously OR the %s is set to a developer account.\n", field, id, name, field)
+			}
 		}
 	}
 
