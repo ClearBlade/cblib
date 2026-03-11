@@ -824,6 +824,16 @@ func writeService(name string, data map[string]interface{}) error {
 		}
 	}
 
+	// Store run_user as email so that pushing to a different system resolves
+	// to the correct user ID in the target system via the platform's ValidateCodeMeta.
+	if runUser, ok := data["run_user"].(string); ok && runUser != "" {
+		if email, err := getUserEmailByID(runUser); err == nil {
+			data["run_user"] = email
+		} else {
+			fmt.Printf("Warning - Could not resolve run_user %q to an email: %s\n", runUser, err)
+		}
+	}
+
 	omitServiceFields(data)
 	return writeEntity(mySvcDir, name, data)
 }
