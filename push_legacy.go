@@ -2095,7 +2095,7 @@ func updateService(systemKey, name string, service map[string]interface{}, clien
 		extra := getServiceBody(service)
 		_, err := client.UpdateServiceWithBody(systemKey, name, svcCode, extra)
 		if err != nil {
-			return err
+			return wrapRunUserError(err)
 		}
 
 	}
