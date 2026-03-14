@@ -246,6 +246,9 @@ func warnIfServicesHaveUserIDRunUser(serviceNames []string) error {
 			continue
 		}
 		runUser, _ := svc["run_user"].(string)
+		if runUser == "" {
+			runUser, _ = svc["euid"].(string)
+		}
 		if runUser != "" && !strings.Contains(runUser, "@") {
 			affected = append(affected, name)
 		}
