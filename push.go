@@ -215,20 +215,11 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 	fmt.Println("Pushing changes")
 	r, err := client.UploadToSystem(systemInfo.Key, buffer)
 	if err != nil {
-		return wrapRunUserError(err)
+		return err
 	}
 
 	updateIdMap(r)
-	return wrapRunUserError(r.Error())
-}
-
-// wrapRunUserError checks if an error from the platform is related to an
-// unresolvable run_user / euid and wraps it with a helpful hint.
-func wrapRunUserError(err error) error {
-	if err != nil && strings.Contains(err.Error(), "invalid run_as user") {
-		return fmt.Errorf("%w\nHint: the run_user / euid does not exist as a user or developer in the target system", err)
-	}
-	return err
+	return r.Error()
 }
 
 // warnIfServicesHaveUserIDRunUser checks the services about to be pushed and
