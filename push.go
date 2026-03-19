@@ -1,8 +1,11 @@
 package cblib
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	cb "github.com/clearblade/Go-SDK"
 	"github.com/clearblade/cblib/fs"
@@ -142,6 +145,26 @@ func doPush(cmd *SubCommand, client *cb.DevClient, args ...string) error {
 		return doLegacyPush(client, systemInfo)
 	}
 
+	if AllServices || AllAssets {
+		allSvcs, err := getServices()
+		if err != nil {
+			return err
+		}
+		names := make([]string, 0, len(allSvcs))
+		for _, svc := range allSvcs {
+			if name, ok := svc["name"].(string); ok {
+				names = append(names, name)
+			}
+		}
+		if err := warnIfServicesHaveUserIDRunUser(names); err != nil {
+			return err
+		}
+	} else if ServiceName != "" {
+		if err := warnIfServicesHaveUserIDRunUser([]string{ServiceName}); err != nil {
+			return err
+		}
+	}
+
 	return pushSystemZip(systemInfo, client, defaultZipOptions())
 }
 
@@ -197,6 +220,49 @@ func pushSystemZip(systemInfo *types.System_meta, client *cb.DevClient, options 
 
 	updateIdMap(r)
 	return r.Error()
+}
+
+// warnIfServicesHaveUserIDRunUser checks the services about to be pushed and
+// warns the user if any have run_user set to a user ID (non-email). A user ID
+// in run_user is unsafe when pushing to a different system because the ID will
+// not be valid there. If the user declines to continue, an error is returned.
+func warnIfServicesHaveUserIDRunUser(serviceNames []string) error {
+	if AutoApprove {
+		return nil
+	}
+	var affected []string
+	for _, name := range serviceNames {
+		svc, err := getService(name)
+		if err != nil {
+			continue
+		}
+		runUser, _ := svc["run_user"].(string)
+		if runUser == "" {
+			runUser, _ = svc["euid"].(string)
+		}
+		if runUser != "" && !strings.Contains(runUser, "@") {
+			affected = append(affected, name)
+		}
+	}
+	if len(affected) == 0 {
+		return nil
+	}
+	fmt.Println("\nWarning: The following services have run_user set to a user ID rather than an email.")
+	fmt.Println("If pushing to a different system, the user ID may not be valid there.")
+	fmt.Println("Consider re-pulling from the source system first to resolve this.")
+	for _, name := range affected {
+		fmt.Printf("  - %s\n", name)
+	}
+	fmt.Print("\nPush anyway? (y / N = abort) ")
+	reader := bufio.NewReader(os.Stdin)
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	if strings.ToLower(strings.TrimSpace(text)) != "y" {
+		return fmt.Errorf("push aborted")
+	}
+	return nil
 }
 
 func updateIdMap(result *cb.SystemUploadChanges) {

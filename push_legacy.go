@@ -88,6 +88,21 @@ func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 		opts := cbfs.NewZipOptions(&mapper{})
 		opts.AllServices = AllServices || AllAssets
 		opts.AllLibraries = AllLibraries || AllAssets
+		if AllServices || AllAssets {
+			allSvcs, err := getServices()
+			if err != nil {
+				return err
+			}
+			names := make([]string, 0, len(allSvcs))
+			for _, svc := range allSvcs {
+				if name, ok := svc["name"].(string); ok {
+					names = append(names, name)
+				}
+			}
+			if err := warnIfServicesHaveUserIDRunUser(names); err != nil {
+				return err
+			}
+		}
 		if err := pushCode(systemInfo, client, opts); err != nil {
 			return err
 		}
@@ -102,6 +117,9 @@ func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 
 	if ServiceName != "" {
 		didSomething = true
+		if err := warnIfServicesHaveUserIDRunUser([]string{ServiceName}); err != nil {
+			return err
+		}
 		if err := pushOneService(systemInfo, client, ServiceName); err != nil {
 			return err
 		}
@@ -372,6 +390,7 @@ func doLegacyPush(client *cb.DevClient, systemInfo *types.System_meta) error {
 
 	return nil
 }
+
 
 func pushOneService(systemInfo *types.System_meta, client *cb.DevClient, name string) error {
 	fmt.Printf("Pushing service %+s\n", name)
